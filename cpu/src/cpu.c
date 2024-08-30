@@ -1,4 +1,4 @@
-#include <utils/hello.h>
+#include <utils/utils.h>
 #include <cpu.h>
 
 int main(int argc, char* argv[]) {
