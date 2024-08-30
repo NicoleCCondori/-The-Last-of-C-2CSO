@@ -36,7 +36,7 @@ int crear_conexion(char *ip, char *puerto, char *name_server)
 	}
 	else
 	{
-		printf("Error al conectar servidor %s\n", name_server;
+		printf("Error al conectar servidor %s\n", name_server);
 	}
 
 	freeaddrinfo(server_info);
