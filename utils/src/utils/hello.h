@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include<commons/log.h>
+#include<commons/config.h>
 /**
 * @brief Imprime un saludo por consola
 * @param quien Módulo desde donde se llama a la función
