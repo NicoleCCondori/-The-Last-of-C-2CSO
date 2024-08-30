@@ -1,6 +1,7 @@
 #include <utils/hello.h>
+#include <cpu.h>
 
 int main(int argc, char* argv[]) {
-    saludar("memoria");
+    saludar("cpu");
     return 0;
 }
