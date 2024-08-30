@@ -43,7 +43,7 @@ typedef struct
 */
 int crear_conexion(char* ip, char* puerto,char* name_server);
 int iniciar_servidor(char* puerto, t_log* logger, char* msj_server);
-int esperar_cliente(int socket_servidor, t_log* logger, char* msj);
+int esperar_cliente(int socket_servidor, t_log* logger, char* name_cliente);
 int recibir_operacion(int socket_cliente);
 
 //void saludar(char* quien);
