@@ -35,6 +35,13 @@ int main(int argc, char* argv[]) {
     
     
     fd_memoria=crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"Conexion con MEMORIA exitosa");
+
+    //Mensajes de memoria
+    //preguntar si esta bien esto, no se que onda el tp anterior, por que esucharia a la memoria?
+    pthread_t hilo_memoria;
+    pthread_create(&hilo_memoria,NULL,(void*)cpu_escuchar_memoria,NULL);
+    pthread_join (hilo_memoria,NULL);
+
     
     
     return 0;
