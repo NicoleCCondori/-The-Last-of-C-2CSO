@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     fd_cpu_interrupt=iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT,cpu_logger,"Servidor CPU Interrupt iniciado");
     
     
-    fd_memoria=crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"Conexion con MEMORIA exitosa");
+    fd_memoria=crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"Conexion con MEMORIA exitosa",cpu_logger);
 
     //Mensajes de memoria
     //preguntar si esta bien esto, no se que onda el tp anterior, por que esucharia a la memoria?
