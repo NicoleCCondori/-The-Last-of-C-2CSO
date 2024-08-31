@@ -36,7 +36,7 @@ int crear_conexion(char *ip, char *puerto, char *name_server)
 	}
 	else
 	{
-		printf("Error al conectar servidor %s\n", name_server;
+		printf("Error al conectar servidor %s\n", name_server); //ACA FALTABA EL PARENTESIS
 	}
 
 	freeaddrinfo(server_info);
@@ -115,3 +115,24 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
+
+
+t_log *iniciar_logger(char *modulo)
+{
+	t_log *nuevo_logger = log_create(modulo, modulo, 1, LOG_LEVEL_INFO);
+	if (nuevo_logger == NULL)
+	{
+		printf("Error al crear %s\n",modulo);
+       	exit(2);
+	};
+	return nuevo_logger;
+}
+
+t_config* iniciar_configs(char* modulo){
+    t_config* nuevo_config=config_create(modulo);
+    if (nuevo_config == NULL) {
+        printf("Error al crear %s\n",modulo);
+        exit(2);
+    }
+    return nuevo_config;
+}
