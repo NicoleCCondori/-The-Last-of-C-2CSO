@@ -34,20 +34,20 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-
-
-/**
-* @brief Imprime un saludo por consola
-* @param quien Módulo desde donde se llama a la función
-* @return No devuelve nada
-*/
-int crear_conexion(char* ip, char* puerto,char* name_server);
-int iniciar_servidor(char* puerto, t_log* logger, char* msj_server);
-int esperar_cliente(int socket_servidor, t_log* logger, char* name_cliente);
+//Funciones para servidor
+int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
+int iniciar_servidor(char* puerto, t_log *logger, char* msj_server);
 int recibir_operacion(int socket_cliente);
-t_log* iniciar_logger(char* modulo);
-t_config* iniciar_configs(char* modulo);
+void handshakeClient(int fd_servidor, int32_t handshake);
 
-//void saludar(char* quien);
+//Funciones para cliente
+int esperar_cliente(int socket_servidor, t_log* nomre_logger, char* name_cliente);
+void handshakeServer(int fd_client);
+
+//Globales
+t_log *iniciar_logger(char *path_log, char *nombre_log);
+t_config* iniciar_configs(char* path_config);
+
+
 
 #endif

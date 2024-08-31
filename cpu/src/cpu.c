@@ -27,11 +27,11 @@ int main(int argc, char* argv[]) {
 	PUERTO_ESCUCHA_INTERRUPT = config_get_string_value (cpu_config , "PUERTO_ESCUCHA_INTERRUPT" );
     LOG_LEVEL = config_get_string_value(cpu_config, "LOG_LEVEL"); 
 
-    fd_cpu_dispatch=iniciar_servidor(PUERTO_ESCUCHA_DISPATCH,cpu_logger,"Servidor CPU Dispatch iniciado");
-    fd_cpu_interrupt=iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT,cpu_logger,"Servidor CPU Interrupt iniciado");
+    fd_cpu_dispatch=iniciar_servidor(PUERTO_ESCUCHA_DISPATCH,cpu_logger,"CPU Dispatch");
+    fd_cpu_interrupt=iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT,cpu_logger,"CPU Interrupt");
     
     
-    fd_memoria=crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"Conexion con MEMORIA exitosa");
+    fd_memoria=crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"MEMORIA");//agregar el parametro de cpu_logger
     
     return 0;
 }
