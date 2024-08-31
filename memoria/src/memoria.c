@@ -31,4 +31,13 @@ int main(int argc, char* argv[]) {
     fd_cpu=esperar_cliente(fd_memoria,memoria_logger,"CPU");
 
     return 0;
+
 }
+/**
+logger_memoria = iniciar_logger("memoria");
+    levantar_config_memoria("memoria");
+    inicializar_memoria();
+void inicializar_memoria(){
+    conexion = crear_conexion(ip, puerto);
+
+}*/
