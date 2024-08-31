@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+int fd_memoria;
+int fd_cpu;
 
 
 #endif
