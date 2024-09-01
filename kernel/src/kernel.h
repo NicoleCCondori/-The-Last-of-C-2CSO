@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
 t_log* kernel_logger;
 t_log* kernel_logs_obligatorios;
@@ -17,5 +18,12 @@ char* PUERTO_CPU_INTERRUPT;
 char* ALGORITMO_PLANIFICACION;
 char* QUANTUM;
 char* LOG_LEVEL;
+
+int fd_cpu_dispatch;
+int fd_cpu_interrupt;
+int fd_memoria;
+pthread_t hilo_cpu_dispatch;
+pthread_t hilo_cpu_interrupt;
+pthread_t hilo_memoria;
 
 #endif
