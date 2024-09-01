@@ -34,14 +34,15 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-//Funciones para servidor
-int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
-int iniciar_servidor(char* puerto, t_log *logger, char* msj_server);
-int recibir_operacion(int socket_cliente);
-void handshakeClient(int fd_servidor, int32_t handshake);
 
 //Funciones para cliente
+int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
+void handshakeClient(int fd_servidor, int32_t handshake);
+
+//Funciones para servidor
+int iniciar_servidor(char* puerto, t_log *logger, char* msj_server);
 int esperar_cliente(int socket_servidor, t_log* nomre_logger, char* name_cliente);
+int recibir_operacion(int socket_cliente);
 void handshakeServer(int fd_client);
 
 //Globales

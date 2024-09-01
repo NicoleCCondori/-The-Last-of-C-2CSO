@@ -1,5 +1,6 @@
 #include <utils/utils.h>
 
+//establece una conexión TCP con un servidor dado su dirección IP y puerto
 int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 {
 	struct addrinfo hints;
@@ -11,7 +12,7 @@ int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-    //
+    //Obtiene la información sobre el servidor y la almacena en server_info. 
 	int resultado = getaddrinfo(ip, puerto, &hints, &server_info);
 	if (resultado != 0)
 	{
@@ -44,6 +45,20 @@ int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 	return socket_cliente;
 }
 
+void handshakeClient(int fd_servidor, int32_t handshake)
+{
+	int result;
+
+	send(fd_servidor, &handshake, sizeof(int32_t), 0);
+	recv(fd_servidor, &result, sizeof(int32_t), 0);
+
+	if (result == 0)
+		printf("Handshake Success\n");
+	else
+		printf("Handshake Failure\n");
+}
+
+//configura y pone en marcha un servidor TCP
 int iniciar_servidor(char *puerto, t_log *logger, char *msj_server)
 {
 
@@ -115,43 +130,6 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
-t_log *iniciar_logger(char *path_log, char *nombre_log)
-{
-	t_log *nuevo_logger = log_create(path_log, nombre_log, 1, LOG_LEVEL_INFO);
-	if (nuevo_logger == NULL)
-	{
-		log_error(nuevo_logger, "Error al crear %s\n",nombre_log);
-		//printf("Error al crear %s\n",nombre_log);
-       	exit(2);
-	};
-	return nuevo_logger;
-}
-
-t_config* iniciar_configs(char* path_config)
-{
-    t_config* nuevo_config=config_create(path_config);
-    if (nuevo_config == NULL) {
-		perror("Error al cargar el archivo.");
-        exit(EXIT_FAILURE);
-        //printf("Error al crear %s\n",path_config);
-        //exit(2);
-    }
-    return nuevo_config;
-}
-
-void handshakeClient(int fd_servidor, int32_t handshake)
-{
-	int result;
-
-	send(fd_servidor, &handshake, sizeof(int32_t), 0);
-	recv(fd_servidor, &result, sizeof(int32_t), 0);
-
-	if (result == 0)
-		printf("Handshake Success\n");
-	else
-		printf("Handshake Failure\n");
-}
-
 void handshakeServer(int fd_client)
 {
 	int32_t handshake;
@@ -174,4 +152,29 @@ void handshakeServer(int fd_client)
 		send(fd_client, &resultError, sizeof(int32_t), 0);
 		break;
 	}
+}
+
+
+t_log *iniciar_logger(char *path_log, char *nombre_log)
+{
+	t_log *nuevo_logger = log_create(path_log, nombre_log, 1, LOG_LEVEL_INFO);
+	if (nuevo_logger == NULL)
+	{
+		log_error(nuevo_logger, "Error al crear %s\n",nombre_log);
+		//printf("Error al crear %s\n",nombre_log);
+       	exit(2);
+	};
+	return nuevo_logger;
+}
+
+t_config* iniciar_configs(char* path_config)
+{
+    t_config* nuevo_config=config_create(path_config);
+    if (nuevo_config == NULL) {
+		perror("Error al cargar el archivo.");
+        exit(EXIT_FAILURE);
+        //printf("Error al crear %s\n",path_config);
+        //exit(2);
+    }
+    return nuevo_config;
 }
