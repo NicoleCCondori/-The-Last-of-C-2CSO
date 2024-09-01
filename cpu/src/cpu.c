@@ -1,42 +1,34 @@
 #include <utils/hello.h>
 #include <cpu.h>
-int fd_cpu_dispatch;
-int fd_cpu_interrupt;
-int fd_kernel_dispatch;
-int fd_kernel_interrupt;
-//int fd_memoria
-pthread_t hilo_cpu_dispatch;
-pthread_t hilo_cpu_interrupt;
-pthread_t hilo_kernel_dispatch;
-pthread_t hilo_kernel_interrupt;
-
 
 int main(int argc, char* argv[]) {
     //saludar("cpu");
     inicializar_cpu();
     crearHilos();
     
+    //liberar los logs y config
     return 0;
 }
 
 void inicializar_cpu(){
-    cpu_logger = log_create(".//tp.log", "log_cliente", true, LOG_LEVEL_INFO);
+    cpu_logger = iniciar_logger(".//tp.log", "log_cliente");
+    /*cpu_logger = log_create(".//tp.log", "log_cliente", true, LOG_LEVEL_INFO);
     if(cpu_logger == NULL){
         perror("Algo paso con el log. No se pudo crear.");
         exit(EXIT_FAILURE);
-    }
-
-    cpu_logs_obligatorios = log_create(".//cpu_logs_obligatorios.log", "logs", true, LOG_LEVEL_INFO);
+    }*/
+    cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "logs");
+    /*cpu_logs_obligatorios = log_create(".//cpu_logs_obligatorios.log", "logs", true, LOG_LEVEL_INFO);
     if(cpu_logs_obligatorios == NULL){
         perror("Algo paso con el log. No se pudo crear.");
         exit(EXIT_FAILURE);
-    }
-
-    cpu_config = config_create("src/cpu.config");
+    }*/
+    cpu_config = iniciar_configs("src/cpu.config");
+    /*cpu_config = config_create("src/cpu.config");
     if(cpu_config == NULL){
         perror("Error al cargar el archivo.");
         exit(EXIT_FAILURE);
-    }
+    }*/
 
     IP_MEMORIA = config_get_string_value(cpu_config,"IP_MEMORIA");
     PUERTO_MEMORIA = config_get_string_value (cpu_config , "PUERTO_MEMORIA" );
@@ -44,16 +36,19 @@ void inicializar_cpu(){
 	PUERTO_ESCUCHA_INTERRUPT = config_get_string_value (cpu_config , "PUERTO_ESCUCHA_INTERRUPT" );
     LOG_LEVEL = config_get_string_value(cpu_config, "LOG_LEVEL");
 
-    mostrar_logs();
+    log_info(cpu_logger, "IP_MEMORIA: %s", IP_MEMORIA);
+    log_info(cpu_logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
 }
 
 void crearHilos(){
     //Hilo para servidor de CPU - dispatch
     pthread_create(&hilo_cpu_dispatch, NULL, (void*)servidor_cpu_dispatch, NULL);
     pthread_detach(hilo_cpu_dispatch);
+
     //Hilo para servidor de CPU - interrupt
     pthread_create(&hilo_cpu_interrupt, NULL, (void*)servidor_cpu_interrupt, NULL);
     pthread_detach(hilo_cpu_interrupt);
+
     //Hilo para conectarse como cliente a Memoria
 
 }
