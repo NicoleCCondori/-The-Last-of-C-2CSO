@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+
 t_log* cpu_logger;
 t_log* cpu_log_debug;
 t_log* cpu_config;
