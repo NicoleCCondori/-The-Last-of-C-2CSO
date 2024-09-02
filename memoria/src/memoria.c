@@ -30,6 +30,11 @@ int main(int argc, char* argv[]) {
     log_info(memoria_logger,"Esperando CPU...");
     fd_cpu=esperar_cliente(fd_memoria,memoria_logger,"CPU");
 
+    //mensajes de CPU
+    pthread_t hilo_cpu;
+    pthread_create(&hilo_cpu,NULL,(void*)memoria_escuchar_cpu,NULL);
+    pthread_detach (hilo_cpu);
+
     return 0;
 
 }
