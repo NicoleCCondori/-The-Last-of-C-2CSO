@@ -35,19 +35,27 @@ typedef struct
 } t_paquete;
 
 
+//Funciones para cliente
+int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
+void handshakeClient(int fd_servidor, int32_t handshake);
 
-/**
-* @brief Imprime un saludo por consola
-* @param quien Módulo desde donde se llama a la función
-* @return No devuelve nada
-*/
-int crear_conexion(char* ip, char* puerto,char* name_server);
-int iniciar_servidor(char* puerto, t_log* logger, char* msj_server);
-int esperar_cliente(int socket_servidor, t_log* logger, char* name_cliente);
+//Funciones para servidor
+int iniciar_servidor(char* puerto, t_log *logger, char* msj_server);
+int esperar_cliente(int socket_servidor, t_log* nomre_logger, char* name_cliente);
 int recibir_operacion(int socket_cliente);
-t_log* iniciar_logger(char* modulo);
-t_config* iniciar_configs(char* modulo);
+void handshakeServer(int fd_client);
 
-//void saludar(char* quien);
+//Globales
+t_log *iniciar_logger(char *path_log, char *nombre_log);
+t_config* iniciar_configs(char* path_config);
+
+
+
+
+
+void finalizar_modulo(t_log* logger, t_config* config);
+void* recibir_buffer(int* size, int socket_cliente);
+void recibir_mensaje(int socket_cliente, t_log* logger);
+t_list* recibir_paquete(int socket_cliente);
 
 #endif

@@ -3,41 +3,104 @@
 
 int main(int argc, char* argv[]) {
     
-    memoria_logger=log_create(".//tp.log","log_cliente",true,LOG_LEVEL_INFO);
-    if (memoria_logger==NULL)
-    {
-        perror("Algo paso con el log. No se pudo crear");
-        exit(EXIT_FAILURE);
-    }
-    memoria_log_obligatorios=log_create(".//tp.logs_olbigatorios.log","logs",true,LOG_LEVEL_INFO);
-    if (memoria_log_obligatorios==NULL)
-    {
-        perror("Algo paso con el log. No se pudo crear");
-        exit(EXIT_FAILURE);
-    }
-    t_config *memoria_config=config_create("src/memoria.config");
-    if(memoria_config==NULL)
-    {
-        perror("Error al crear config");
-        exit(EXIT_FAILURE);
-    }
-    PUERTO_ESCUCHA=config_get_string_value(memoria_config,"PUERTO_ESCUCHA");
-    
-    fd_memoria=iniciar_servidor(PUERTO_ESCUCHA,memoria_logger,"Memoria iniciada ");
-    
-    //Esperar conexion CPU
+   
+   
 
-    log_info(memoria_logger,"Esperando CPU...");
-    fd_cpu=esperar_cliente(fd_memoria,memoria_logger,"CPU");
 
-    return 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    logger_memoria = iniciar_logger("memoria.log", "MEMORIA");
+    log_info(logger_memoria, "Se creo exitosamente el logger de memoria");
+
+    levantar_config_memoria("src/memoria.config");
+    
+    iniciar_conexion_con_FS();
+
+    //finalizar_conexiones(1, cliente_memoria);
+
+    finalizar_modulo(logger_memoria, config);
+
+    free(config_memoria);
+
+    return EXIT_SUCCESS;
 
 }
-/**
-logger_memoria = iniciar_logger("memoria");
-    levantar_config_memoria("memoria");
-    inicializar_memoria();
-void inicializar_memoria(){
-    conexion = crear_conexion(ip, puerto);
 
-}*/
+
+void levantar_config_memoria(char* config_path){
+    t_config* config = iniciar_configs(config_path);
+
+    t_config_memoria* config_memoria;
+    config_memoria = malloc(sizeof(t_config_memoria));
+
+    if (config == NULL){
+        log_info(logger_memoria, "Error al levantar el Config");
+        exit(1);
+    }
+
+    char* puerto_FS = config_get_string_value(config,"PUERTO_FILESYSTEM");
+    char* ip_FS = config_get_string_value(config,"IP_FILESYSTEM");
+
+    printf(puerto_FS);
+    printf(ip_FS);
+
+    /**
+    config_memoria->puerto_escucha = config_get_int_value(config,"PUERTO_ESCUCHA");
+    config_memoria->ip_filesystem = config_get_string_value(config,"IP_FILESYSTEM");
+    config_memoria->puerto_filesystem = config_get_string_value(config,"PUERTO_FILESYSTEM");
+    config_memoria->tam_memoria = config_get_int_value(config,"TAM_MEMORIA");
+    config_memoria->path_instrucciones = config_get_string_value(config,"PATH_INSTRUCCIONES");
+    config_memoria->retardo_respuesta = config_get_int_value(config,"RETARDO_RESPUESTA");
+    config_memoria->esquema = config_get_string_value(config,"ESQUEMA");
+    config_memoria->algoritmo_busqueda = config_get_string_value(config,"ALGORITMO_BUSQUEDA");
+    config_memoria->particiones = config_get_array_value(config,"PARTICIONES");
+    config_memoria->log_level = config_get_string_value(config,"LOG_LEVEL");*/
+}
+
+
+void iniciar_conexion_con_FS(){
+
+    /**char* puerto_FS= string_itoa(config_memoria->puerto_filesystem);
+    char* IP_FS= string_itoa(config_memoria->ip_filesystem);*/
+
+    
+    int cliente_memoria = crear_conexion(ip_FS , puerto_FS, "FILESYSTEM",memoria_logger);
+}

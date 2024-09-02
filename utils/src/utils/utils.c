@@ -1,6 +1,7 @@
 #include <utils/utils.h>
 
-int crear_conexion(char *ip, char *puerto, char *name_server)
+//establece una conexión TCP con un servidor dado su dirección IP y puerto
+int crear_conexion(char *ip, char *puerto, char *name_server, t_log* logger)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
@@ -11,11 +12,12 @@ int crear_conexion(char *ip, char *puerto, char *name_server)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-    //
+    //Obtiene la información sobre el servidor y la almacena en server_info.
 	int resultado = getaddrinfo(ip, puerto, &hints, &server_info);
 	if (resultado != 0)
 	{
-		printf("Error en getaddrinfo: %s", gai_strerror(resultado));
+		log_error(logger, "Error en getaddrinfo: %s", gai_strerror(resultado));
+		//printf("Error en getaddrinfo: %s", gai_strerror(resultado));
 		exit(-1);
 	}
 
@@ -28,16 +30,35 @@ int crear_conexion(char *ip, char *puerto, char *name_server)
 	int connect_resultado = connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen);
 	if (connect_resultado == 0)
 	{
+		//log_info(logger, "El cliente se conecto al servidor correctamente a %s.\n", name_server);
 		printf("El cliente se conecto al servidor correctamente a %s.\n", name_server);
+	
 	}
 	else
-	{printf("Error al conectar servidor %s\n", name_server);}
+	{
+		//log_info(logger, "Error al conectar servidor %s\n", name_server);
+		printf("Error al conectar servidor %s\n", name_server);
+	}
 
 	freeaddrinfo(server_info);
 
 	return socket_cliente;
 }
 
+void handshakeClient(int fd_servidor, int32_t handshake)
+{
+	int result;
+
+	send(fd_servidor, &handshake, sizeof(int32_t), 0);
+	recv(fd_servidor, &result, sizeof(int32_t), 0);
+
+	if (result == 0)
+		printf("Handshake Success\n");
+	else
+		printf("Handshake Failure\n");
+}
+
+//configura y pone en marcha un servidor TCP
 int iniciar_servidor(char *puerto, t_log *logger, char *msj_server)
 {
 
@@ -109,24 +130,131 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
-
-
-t_log *iniciar_logger(char *modulo)
+void handshakeServer(int fd_client)
 {
-	t_log *nuevo_logger = log_create(modulo, modulo, 1, LOG_LEVEL_INFO);
+	int32_t handshake;
+	int32_t resultOk = 0;
+	int32_t resultError = -1;
+
+	recv(fd_client, &handshake, sizeof(int32_t), MSG_WAITALL);
+	switch (handshake)
+	{
+	case 1: // CPU
+		send(fd_client, &resultOk, sizeof(int32_t), 0);
+		break;
+	case 2: // Kernel
+		send(fd_client, &resultOk, sizeof(int32_t), 0);
+		break;
+	case 3: // Memoria
+		send(fd_client, &resultOk, sizeof(int32_t), 0);
+		break;
+	default: // ERROR
+		send(fd_client, &resultError, sizeof(int32_t), 0);
+		break;
+	}
+}
+
+
+t_log *iniciar_logger(char *path_log, char *nombre_log)
+{
+	t_log *nuevo_logger = log_create(path_log, nombre_log, 1, LOG_LEVEL_INFO);
 	if (nuevo_logger == NULL)
 	{
-		printf("Error al crear %s\n",modulo);
+		log_error(nuevo_logger, "Error al crear %s\n",nombre_log);
+		//printf("Error al crear %s\n",nombre_log);
        	exit(2);
 	};
 	return nuevo_logger;
 }
 
-t_config* iniciar_configs(char* modulo){
-    t_config* nuevo_config=config_create(modulo);
+t_config* iniciar_configs(char* path_config)
+{
+    t_config* nuevo_config=config_create(path_config);
     if (nuevo_config == NULL) {
-        printf("Error al crear %s\n",modulo);
-        exit(2);
+		perror("Error al cargar el archivo.");
+        exit(EXIT_FAILURE);
+        //printf("Error al crear %s\n",path_config);
+        //exit(2);
     }
     return nuevo_config;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void* recibir_buffer(int* size, int socket_cliente)
+{
+	void * buffer;
+
+	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	buffer = malloc(*size);
+	recv(socket_cliente, buffer, *size, MSG_WAITALL);
+
+	return buffer;
+}
+
+void recibir_mensaje(int socket_cliente, t_log* logger)
+{
+	int size;
+	char* buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "Me llego el mensaje %s", buffer);
+	free(buffer);
+}
+
+t_list* recibir_paquete(int socket_cliente)
+{
+	int size;
+	int desplazamiento = 0;
+	void * buffer;
+	t_list* valores = list_create();
+	int tamanio;
+
+	buffer = recibir_buffer(&size, socket_cliente);
+	while(desplazamiento < size)
+	{
+		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
+		desplazamiento+=sizeof(int);
+		char* valor = malloc(tamanio);
+		memcpy(valor, buffer+desplazamiento, tamanio);
+		desplazamiento+=tamanio;
+		list_add(valores, valor);
+	}
+	free(buffer);
+	return valores;
+}
+
+/**
+void finalizar_conexiones(int num_sockets, ...) {
+  va_list args;
+  va_start(args, num_sockets);
+
+  for (int i = 0; i < num_sockets; i++) {
+    int socket_fd = va_arg(args, int);
+    close(socket_fd);
+  }
+
+  va_end(args);
+}*/
+
+void finalizar_modulo(t_log* logger, t_config* config){
+	
+	if (logger) {
+		log_destroy(logger);
+	}
+
+	if (config){
+		config_destroy(config);
+	}
 }
