@@ -64,7 +64,7 @@ void crearHilos(){ //analizar si utilizo 3 hilos o 5 ------------
    // pthread_detach(hilo_memoria); 
 }
 
-void conexion_cpu_dispatch(){
+void conexion_cpu_dispatch(){  //preguntar
     fd_cpu_dispatch = crear_conexion(IP_CPU, PUERTO_CPU_DISPATCH, "CPU - Dispatch");
 
     //atender los msjs de cpu-dispatch , otra funcion?

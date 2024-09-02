@@ -6,7 +6,8 @@
 
 t_log* memoria_logger;
 t_log* memoria_log_debug;
-t_log* memoria_config;
+t_log* memoria_log_obligatorios;
+t_config* memoria_config;
 
 int fd_memoria;
 int fd_cpu;
@@ -28,17 +29,14 @@ void memoria_escuchar_cpu(){
 		//
 			break;
 		case -1:
-			log_error(logger, "Desconexion con CPU");
-			return EXIT_FAILURE;
+			log_error(memoria_logger, "Desconexion con CPU");
+			exit(EXIT_FAILURE);
 		default:
-			log_warning(logger, "Operacion desconocida con CPU");
+			log_warning(memoria_logger, "Operacion desconocida con CPU");
 			break;
 		}
 	}
-	return EXIT_SUCCESS;
+	
 } 
-
-}
-
 
 #endif
