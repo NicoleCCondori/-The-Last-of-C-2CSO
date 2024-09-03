@@ -1,9 +1,8 @@
 #include <utils/utils.h>
 
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
-<<<<<<< HEAD
-int crear_conexion(char *ip, char *puerto, char *name_server, t_log* logger)
 
+int crear_conexion(char *ip, char *puerto, char *name_server, t_log* logger)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;

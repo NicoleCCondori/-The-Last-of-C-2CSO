@@ -7,17 +7,21 @@
 
 t_log* kernel_logger;
 t_log* kernel_logs_obligatorios;
-t_config* kernel_config;
+t_config* config;
+t_config_kernel* kernel_config;
 
-char* IP_MEMORIA;
-char* PUERTO_ESCUCHA;
-char* PUERTO_MEMORIA;
-char* IP_CPU;
-char* PUERTO_CPU_DISPATCH;
-char* PUERTO_CPU_INTERRUPT;
-char* ALGORITMO_PLANIFICACION;
-char* QUANTUM;
-char* LOG_LEVEL;
+typedef struct{
+	char* ip_memoria;
+	char* puerto_escucha;
+	char* puerto_memoria;
+	char* ip_cpu;
+	char* puerto_cpu_dispatch;
+	char* puerto_cpu_interrupt;
+	char* algoritmo_planificacion;
+	char* quantum;
+	char* log_level;
+}t_config_kernel;
+
 
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;

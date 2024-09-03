@@ -16,32 +16,33 @@ void inicializar_kernel(){
    
     kernel_logs_obligatorios = iniciar_logger(".//kernel_logs_obligatorios.log", "logs");
     
-    kernel_config = iniciar_configs("src/kernel.config");
-    
+    config = iniciar_configs("src/kernel.config");
 
-    IP_MEMORIA = config_get_string_value(kernel_config,"IP_MEMORIA");
-    PUERTO_ESCUCHA = config_get_string_value (kernel_config , "PUERTO_ESCUCHA" );
-    PUERTO_MEMORIA = config_get_string_value (kernel_config , "PUERTO_MEMORIA" );
-	IP_CPU = config_get_string_value (kernel_config , "IP_CPU");
-	PUERTO_CPU_DISPATCH = config_get_string_value (kernel_config , "PUERTO_CPU_DISPATCH" );
-    PUERTO_CPU_INTERRUPT = config_get_string_value (kernel_config , "PUERTO_CPU_INTERRUPT" );
-    ALGORITMO_PLANIFICACION = config_get_string_value (kernel_config , "ALGORITMO_PLANIFICACION");
-    QUANTUM = config_get_string_value (kernel_config , "QUANTUM");
-    LOG_LEVEL = config_get_string_value(kernel_config, "LOG_LEVEL");
+    t_config_kernel* kernel_config;
 
-    log_info(kernel_logger, "IP_MEMORIA: %s", IP_MEMORIA);
-    log_info(kernel_logger, "PUERTO_ESCUCHA: %s", PUERTO_ESCUCHA);
-    log_info(kernel_logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
-    log_info(kernel_logger, "IP_CPU: %s", IP_CPU);
-    log_info(kernel_logger, "PUERTO_CPU_DISPATCH: %s", PUERTO_CPU_DISPATCH);
-    log_info(kernel_logger, "PUERTO_CPU_INTERRUPT: %s", PUERTO_CPU_INTERRUPT);
+    kernel_config->ip_memoria = config_get_string_value(config,"IP_MEMORIA");
+    kernel_config->puerto_escucha= config_get_string_value (config , "PUERTO_ESCUCHA" );
+    kernel_config->puerto_memoria = config_get_string_value (config , "PUERTO_MEMORIA" );
+	kernel_config->ip_cpu = config_get_string_value (config , "IP_CPU");
+	kernel_config->puerto_cpu_dispatch = config_get_string_value (config , "PUERTO_CPU_DISPATCH" );
+    kernel_config->puerto_cpu_interrupt = config_get_string_value (config , "PUERTO_CPU_INTERRUPT" );
+    kernel_config->algoritmo_planificacion = config_get_string_value (config , "ALGORITMO_PLANIFICACION");
+    kernel_config->quantum = config_get_string_value (config , "QUANTUM");
+    kernel_config->log_level = config_get_string_value(config, "LOG_LEVEL");
+
+    log_info(kernel_logger, "IP_MEMORIA: %s", kernel_config->ip_memoria);
+    log_info(kernel_logger, "PUERTO_ESCUCHA: %s", kernel_config->puerto_escucha);
+    log_info(kernel_logger, "PUERTO_MEMORIA: %s", kernel_config->puerto_memoria);
+    log_info(kernel_logger, "IP_CPU: %s", kernel_config->ip_cpu);
+    log_info(kernel_logger, "PUERTO_CPU_DISPATCH: %s", kernel_config->puerto_cpu_dispatch);
+    log_info(kernel_logger, "PUERTO_CPU_INTERRUPT: %s", kernel_config->puerto_cpu_interrupt);
 
 }
 
 void crearHilos(){ //analizar si utilizo 3 hilos o 5 ------------
 
 	//Cliente KERNEL a CPU-dispatch
-	fd_cpu_dispatch = crear_conexion(IP_CPU, PUERTO_CPU_DISPATCH, "CPU - Dispatch",kernel_logger);
+	fd_cpu_dispatch = crear_conexion(kernel_config->ip_cpu, kernel_config->puerto_cpu_dispatch, "CPU - Dispatch",kernel_logger);
 	handshakeClient(fd_cpu_dispatch,2);
     
 	//hilo para conectarse con cpu Dispatch / atender
@@ -50,7 +51,7 @@ void crearHilos(){ //analizar si utilizo 3 hilos o 5 ------------
 
 	
 	//Cliente KERNEL a CPU-interrupt
-	fd_cpu_interrupt = crear_conexion(IP_CPU, PUERTO_CPU_INTERRUPT, "CPU - Interrupt",kernel_logger);
+	fd_cpu_interrupt = crear_conexion(kernel_config->ip_cpu, kernel_config->puerto_cpu_interrupt, "CPU - Interrupt",kernel_logger);
 	handshakeClient(fd_cpu_interrupt,2);
 
     //hilo para conectarse con cpu - Interrupt / atender
@@ -64,7 +65,7 @@ void crearHilos(){ //analizar si utilizo 3 hilos o 5 ------------
 
 
 /*void conexion_memoria(){
-    fd_memoria = crear_conexion(IP_MEMORIA, PUERTO_MEMORIA, "MEMORIA");
+    fd_memoria = crear_conexion(kernel_config->ip_memoria, kernel_config->puerto_memoria, "MEMORIA");
 
     //atender los msjs de memoria , otra funcion?
     bool control_key = 1;
