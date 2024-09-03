@@ -29,12 +29,12 @@ void inicializar_cpu(){
 
 void crearHilos(){
 
-    //Hilo para conectarse como cliente a Memoria
+    //Cliente CPU a Memoria
     fd_memoria = crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"MEMORIA",cpu_logger);
     handshakeClient(fd_memoria,1);
-    printf("fd_kernel: %d\n", fd_memoria);
+    //printf("fd_kernel: %d\n", fd_memoria);
 
-    //Mensajes de memoria
+    //Hilo para enviar mensajes a memoria
     pthread_create(&hilo_memoria,NULL,(void*)cpu_escuchar_memoria,NULL);
     pthread_detach(hilo_memoria);
 
@@ -44,7 +44,7 @@ void crearHilos(){
     //espera la conexion del kernel
     fd_kernel_dispatch = esperar_cliente(fd_cpu_dispatch, cpu_logger, "Kernel - dispatch");
     handshakeServer(fd_kernel_dispatch);
-    printf("fd_kernel: %d\n", fd_kernel_dispatch);
+    //printf("fd_kernel: %d\n", fd_kernel_dispatch);
 
     //se crea un hilo para escuchar msj de Kernel - dispatch
     pthread_create(&hilo_kernel_dispatch, NULL, (void*)cpu_escuchar_kernel_dispatch, NULL);
@@ -56,10 +56,10 @@ void crearHilos(){
     //espera la conexion del kernel
     fd_kernel_interrupt = esperar_cliente(fd_cpu_interrupt, cpu_logger, "Kernel - Interrupt");
     handshakeServer(fd_kernel_interrupt);
-    printf("fd_kernel: %d\n", fd_kernel_interrupt);
+    //printf("fd_kernel: %d\n", fd_kernel_interrupt);
 
     //se crea un hilo para escuchar msj de Kernel - interrupt
     pthread_create(&hilo_kernel_interrupt, NULL, (void*)cpu_escuchar_kernel_interrupt, NULL);
-    pthread_detach(hilo_kernel_interrupt);
+    pthread_join(hilo_kernel_interrupt,NULL);
 
 }
