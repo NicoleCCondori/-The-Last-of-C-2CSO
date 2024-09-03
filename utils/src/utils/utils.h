@@ -13,7 +13,7 @@
 #include<commons/collections/list.h>
 #include<string.h>
 #include<assert.h>
-
+#include <pthread.h>
 #include<signal.h>
 
 typedef enum
@@ -44,6 +44,7 @@ int iniciar_servidor(char* puerto, t_log *logger, char* msj_server);
 int esperar_cliente(int socket_servidor, t_log* nomre_logger, char* name_cliente);
 int recibir_operacion(int socket_cliente);
 void handshakeServer(int fd_client);
+
 
 //Globales
 t_log *iniciar_logger(char *path_log, char *nombre_log);
