@@ -1,0 +1,12 @@
+[INFO] 23:36:26:903 log.memoria/(9068:9068): Server: memoria:
+[INFO] 23:36:26:903 log.memoria/(9068:9068): Servidor listo para recibir al cliente
+[INFO] 23:38:36:027 log.memoria/(9436:9436): Server: memoria:
+[INFO] 23:38:36:027 log.memoria/(9436:9436): Servidor listo para recibir al cliente
+[INFO] 23:51:18:527 log.memoria/(11343:11343): Server: memoria:
+[INFO] 23:51:18:543 log.memoria/(11343:11343): Servidor listo para recibir al cliente
+[INFO] 23:51:38:876 log.memoria/(11343:11343): Se conecto el cliente: > kernel
+[ERROR] 23:51:38:878 log.memoria/(11343:11343): el cliente se desconecto. Terminando servidor
+[INFO] 00:23:56:299 log.memoria/(12791:12791): Server: memoria:
+[INFO] 00:23:56:300 log.memoria/(12791:12791): Servidor listo para recibir al cliente
+[INFO] 00:24:34:893 log.memoria/(12791:12791): Se conecto el cliente: > kernel
+[ERROR] 00:24:34:894 log.memoria/(12791:12791): el cliente se desconecto. Terminando servidor

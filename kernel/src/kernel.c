@@ -1,12 +1,33 @@
 #include <utils/hello.h>
 #include <kernel.h>
 
+#include <utils/utils.h>
+
+/*
+	Objetivos para el kernel
+
+	*Crear los logs y archivos de configuracion
+	*Establecer conexion con kernel
+	-crear los procesos
+		-enviar un mensaje
+
+	--------------*hilos------------------- 
+	THREAD_CREATE, esta syscall recibirá como parámetro de la CPU el nombre del archivo de pseudocódigo que deberá ejecutar el hilo a crear y su prioridad. Al momento de crear el nuevo hilo, deberá generar el nuevo TCB con un TID autoincremental y poner al mismo en el estado READY.
+	THREAD_JOIN, esta syscall recibe como parámetro un TID, mueve el hilo que la invocó al estado BLOCK hasta que el TID pasado por parámetro finalice. En caso de que el TID pasado por parámetro no exista o ya haya finalizado, esta syscall no hace nada y el hilo que la invocó continuará su ejecución.
+	THREAD_CANCEL, esta syscall recibe como parámetro un TID con el objetivo de finalizarlo pasando al mismo al estado EXIT. Se deberá indicar a la Memoria la finalización de dicho hilo. En caso de que el TID pasado por parámetro no exista o ya haya finalizado, esta syscall no hace nada. Finalmente, el hilo que la invocó continuará su ejecución.
+	THREAD_EXIT, esta syscall finaliza al hilo que lo invocó, pasando el mismo al estado EXIT. Se deberá indicar a la Memoria la finalización de dicho hilo.
+*/
 int main(int argc, char* argv[]) {
     // saludar("kernel");
 	t_log* kernelLogger;
-	t_log* kernelLoggerObs;
+	// t_log* kernelLoggerObs;
 	t_config* kernelConfig;
+	
+	kernelLogger = iniciar_logger("tp1.kernelClient.logs", "log.kernelClient");
+	kernelLoggerObs = iniciar_logger("tp1.kernelClient.logsObs", "log.kernelClientObs");
+	kernelConfig = iniciar_configs("kernel.config");
 
+	/*
 	kernelLogger = log_create("tp1.kernelClient.logs", "log.kernelClient", true, LOG_LEVEL_INFO);
     if (kernelLogger == NULL){
 		perror("No se pudo encontrar o crear el log");
@@ -24,33 +45,43 @@ int main(int argc, char* argv[]) {
 		perror("No se pudo cargar la config");
 		exit(EXIT_FAILURE);
 	}
+	*/
 
-	iniciarCliente();
-	conexionA = crear_conexion(IP_MEMORIA,PUERTO_MEMORIA);
-	enviar_mensaje();
-	paquete(conexion);
+	IP_MEMORIA = config_get_string_value(kernelConfig,"IP_MEMORIA");
+	PUERTO_MEMORIA = config_get_string_value(kernelConfig,"PUERTO_MEMORIA");
+	LOG_LEVEL = config_get_string_value(kernelConfig,"LOG_LEVEL");
+
+	//iniciarCliente();
 	
+	kernelConexion = crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"memoria",kernelLogger);
+	
+	// pthread_create()
+	
+	/*
 	log_destroy(kernelLogger);
 	config_destroy(kernelConfig);
+	*/
 
 	printf("//////////////----FIN----//////////////");
     return 0;
 }
-
+/*
 int iniciarCliente(void){
 	IP_MEMORIA = config_get_string_value(kernel.config,"IP_MEMORIA");
 	PUERTO_MEMORIA = config_get_string_value(kernel.config,"PUERTO_MEMORIA");
-	/*
+	LOG_LEVEL = config_get_string_value(kernel.config,"LOG_LEVEL");
+
 	IP_CPU = config_get_string_value(kernel.config,"IP");
 	PUERTO_CPU_DISPATCH = config_get_string_value(config,"IP");
 	PUERTO_CPU_INTERRUPT = config_get_string_value(config,"IP");
 	ALGORITMOS_PLANIFICACION = config_get_string_value(kernel.config,"IP");
 	QUANTUM = config_get_string_value(kernel.config,"IP");
-	*/
-	LOG_LEVEL = config_get_string_value(kernel.config,"LOG_LEVEL");
+	
 }
+*/
 
-int crear_conexion(char *ip, char* puerto)
+/*
+int crear_conexion1(char *ip, char* puerto)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
@@ -72,67 +103,5 @@ int crear_conexion(char *ip, char* puerto)
 
 	return socket_cliente;
 }
-void enviar_mensaje(char* mensaje, int socket_cliente)
-{
-	t_paquete* paquete = malloc(sizeof(t_paquete));
-
-	paquete->codigo_operacion = MENSAJE;
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = strlen(mensaje) + 1;
-	paquete->buffer->stream = malloc(paquete->buffer->size);
-	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
-
-	int bytes = paquete->buffer->size + 2*sizeof(int);
-
-	void* a_enviar = serializar_paquete(paquete, bytes);
-
-
-	send(socket_cliente,a_enviar, bytes, 0);
-
-	free(a_enviar);
-	eliminar_paquete(paquete);
-}
-
-
-void crear_buffer(t_paquete* paquete)
-{
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = 0;
-	paquete->buffer->stream = NULL;
-}
-
-t_paquete* crear_paquete(void)
-{
-	t_paquete* paquete = malloc(sizeof(t_paquete));
-	paquete->codigo_operacion = PAQUETE;
-	crear_buffer(paquete);
-	return paquete;
-}
-
-void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
-{
-	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
-
-	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
-	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
-
-	paquete->buffer->size += tamanio + sizeof(int);
-}
-
-void enviar_paquete(t_paquete* paquete, int socket_cliente)
-{
-	int bytes = paquete->buffer->size + 2*sizeof(int);
-	void* a_enviar = serializar_paquete(paquete, bytes);
-
-	send(socket_cliente, a_enviar, bytes, 0);
-
-	free(a_enviar);
-}
-
-void eliminar_paquete(t_paquete* paquete)
-{
-	free(paquete->buffer->stream);
-	free(paquete->buffer);
-	free(paquete);
-}
+*/
 
