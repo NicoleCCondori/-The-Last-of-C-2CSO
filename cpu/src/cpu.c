@@ -1,9 +1,14 @@
 #include <utils/utils.h>
 #include <cpu.h>
 
+t_config_cpu* valores_config_cpu;
+
 int main(int argc, char* argv[]) {
 
     inicializar_cpu();
+
+    valores_config_cpu = configurar_cpu();
+
     crearHilos();
 
     //liberar los logs y config
@@ -14,23 +19,26 @@ void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
     
     cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU");
-   
-    cpu_config = iniciar_configs("src/cpu.config");
-  
-    IP_MEMORIA = config_get_string_value(cpu_config,"IP_MEMORIA");
-    PUERTO_MEMORIA = config_get_string_value (cpu_config , "PUERTO_MEMORIA" );
-	PUERTO_ESCUCHA_DISPATCH = config_get_string_value (cpu_config , "PUERTO_ESCUCHA_DISPATCH" );
-	PUERTO_ESCUCHA_INTERRUPT = config_get_string_value (cpu_config , "PUERTO_ESCUCHA_INTERRUPT" );
-    LOG_LEVEL = config_get_string_value(cpu_config, "LOG_LEVEL");
+}
 
-    log_info(cpu_logger, "IP_MEMORIA: %s", IP_MEMORIA);
-    log_info(cpu_logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
+t_config_cpu* configurar_cpu(){
+
+    t_config_cpu* config = malloc(sizeof(t_config_cpu));
+    config->config = iniciar_configs("src/cpu.config");
+
+    config->ip_memoria = config_get_string_value(config->config,"IP_MEMORIA");
+    config->puerto_memoria = config_get_string_value (config->config, "PUERTO_MEMORIA" );
+    config->puerto_escucha_dispatch = config_get_string_value(config->config, "PUERTO_ESCUCHA_DISPATCH");
+    config->puerto_escucha_interrupt = config_get_string_value(config->config, "PUERTO_ESCUCHA_INTERRUPT");
+    config->log_level = config_get_string_value(config->config, "LOG_LEVEL");
+
+    return config;
 }
 
 void crearHilos(){
 
     //Cliente CPU a Memoria
-    fd_memoria = crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"MEMORIA",cpu_logger);
+    fd_memoria = crear_conexion(valores_config_cpu->ip_memoria,valores_config_cpu->puerto_memoria,"MEMORIA",cpu_logger);
     handshakeClient(fd_memoria,1);
     //printf("fd_kernel: %d\n", fd_memoria);
 
@@ -39,7 +47,7 @@ void crearHilos(){
     pthread_detach(hilo_memoria);
 
     //Servidor CPU - dispatch
-    fd_cpu_dispatch = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH, cpu_logger, "CPU - Dispatch");
+    fd_cpu_dispatch = iniciar_servidor(valores_config_cpu->puerto_escucha_dispatch, cpu_logger, "CPU - Dispatch");
     
     //espera la conexion del kernel
     fd_kernel_dispatch = esperar_cliente(fd_cpu_dispatch, cpu_logger, "Kernel - dispatch");
@@ -51,7 +59,7 @@ void crearHilos(){
     pthread_detach(hilo_kernel_dispatch);
 
     //Servidor CPU - interrupt
-    fd_cpu_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT, cpu_logger, "CPU - Interrupt");
+    fd_cpu_interrupt = iniciar_servidor(valores_config_cpu->puerto_escucha_interrupt, cpu_logger, "CPU - Interrupt");
 
     //espera la conexion del kernel
     fd_kernel_interrupt = esperar_cliente(fd_cpu_interrupt, cpu_logger, "Kernel - Interrupt");

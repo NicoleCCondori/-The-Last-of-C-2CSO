@@ -3,43 +3,46 @@
 #include <commons/log.h>
 #include <commons/config.h>
 
+t_log* logger_FS;
+t_log* memoria_logs_obligatorios;
+int cliente_memoria;
+int servidor_FS;
+t_config_filesystem* valores_config_FS;
 
 int main(int argc, char* argv[]) {
 
-    logger_FS = iniciar_logger("fileSystem.log", "FILESYSTEM");
-    log_info(logger_FS, "Se creo exitosamente el logger de filesystem");
-
-    levantar_config_FS("src/filesystem.config");
+    //loggers
+    logger_FS = iniciar_logger("fileSystem.log", "FILESYSTEM.log");
+    memoria_logs_obligatorios = iniciar_logger("FS_logs_obligatorios.log", "logs OBLIGATORIOS FILESYSTEM");
+    
+    //config
+    valores_config_FS = configurar_FS();
     
     iniciar_conexiones_FS();
-
     //finalizar_conexiones(1, cliente_memoria);
-
-    finalizar_modulo(logger_FS, config);
-
-    free(config_filesystem);
-
+    //finalizar_modulo(logger_FS, valores_config_FS->config);
+    log_destroy(logger_FS);
+   // free(valores_config_FS);
     return EXIT_SUCCESS;
-
 }
 
-void levantar_config_FS (char* config_path){
-    t_config* config = iniciar_configs(config_path);
-    config_filesystem = malloc(sizeof(t_config_filesystem));
+t_config_filesystem* configurar_FS() {
+    t_config_filesystem* config = malloc(sizeof(t_config_filesystem));
+    config->config = iniciar_configs("src/filesystem.config");
 
-    config_filesystem->puerto_escucha = config_get_int_value(config,"PUERTO_ESCUCHA");
-    config_filesystem->mount_dir = config_get_string_value(config,"MOUNT_DIR");
-    config_filesystem->block_size= config_get_int_value(config,"BLOCK_SIZE");
-    config_filesystem->block_count = config_get_int_value(config,"BLOCK_COUNT");
-    config_filesystem->retardo_acceso_bloque = config_get_int_value(config,"RETARDO_ACCESO_BLOQUE");
-    config_filesystem->log_level= config_get_string_value(config,"LOG_LEVEL");
+    config->puerto_escucha = config_get_string_value(config->config, "PUERTO_ESCUCHA");
+    config->mount_dir = config_get_string_value(config->config, "MOUNT_DIR");
+    config->block_size = config_get_int_value(config->config, "BLOCK_SIZE");
+    config->block_count = config_get_int_value(config->config, "BLOCK_COUNT");
+    config->retardo_acceso_bloque = config_get_int_value(config->config, "RETARDO_ACCESO_BLOQUE");
+    config->log_level = config_get_string_value(config->config, "LOG_LEVEL");
+
+    return config;
     }
 
 void iniciar_conexiones_FS() {
-
-    char* puerto =  string_itoa(config_filesystem->puerto_escucha);
     
-    int servidor_FS = iniciar_servidor (puerto,logger_FS, "Servidor FS iniciado");
+    servidor_FS = iniciar_servidor (valores_config_FS->puerto_escucha,logger_FS, "Servidor FS iniciado");
     conectarMemoria(servidor_FS, logger_FS, "MEMORIA");
 }
 
@@ -48,7 +51,7 @@ void conectarMemoria(int servidor_FS, t_log* logger_FS, char* moduloCliente){
 
     log_info(logger_FS, "Espera conexion de memoria");
 
-    int cliente_memoria = esperar_cliente(servidor_FS, logger_FS, "MEMORIA");
+    cliente_memoria = esperar_cliente(servidor_FS, logger_FS, "MEMORIA");
 
 	pthread_t hilo_memoria;
 	pthread_create(&hilo_memoria, NULL, (void *) atender_memoria, NULL);
@@ -75,7 +78,7 @@ void atender_memoria(){
                 break;
             case -1:
                 log_error(logger_FS, "el cliente se desconecto. Terminando servidor");
-                return EXIT_FAILURE;
+                //return EXIT_FAILURE;
             default:
                 log_warning(logger_FS,"Operacion desconocida. No quieras meter la pata");
                 break;

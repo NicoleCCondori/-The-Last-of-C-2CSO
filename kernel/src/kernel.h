@@ -5,12 +5,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
-t_log* kernel_logger;
-t_log* kernel_logs_obligatorios;
-t_config* config;
-t_config_kernel* kernel_config;
-
 typedef struct{
+	t_config* config;
 	char* ip_memoria;
 	char* puerto_escucha;
 	char* puerto_memoria;
@@ -22,6 +18,9 @@ typedef struct{
 	char* log_level;
 }t_config_kernel;
 
+t_log* kernel_logger;
+t_log* kernel_logs_obligatorios;
+t_config_kernel* valores_config_FS;
 
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;
@@ -32,6 +31,7 @@ pthread_t hilo_memoria;
 
 void inicializar_kernel();
 void crearHilos();
+t_config_kernel* configurar_kernel();
 
 void conexion_cpu_dispatch(){  //preguntar
  

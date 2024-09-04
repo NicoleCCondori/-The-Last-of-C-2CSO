@@ -168,6 +168,7 @@ t_log *iniciar_logger(char *path_log, char *nombre_log)
 		//printf("Error al crear %s\n",nombre_log);
        	exit(2);
 	};
+	log_info(nuevo_logger, "Se creo exitosamente, %s\n",nombre_log);
 	return nuevo_logger;
 }
 

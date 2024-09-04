@@ -4,11 +4,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef struct{
+	t_config* config;
+	char* ip_memoria;
+	char* puerto_memoria;
+	char* puerto_escucha_dispatch;
+	char* puerto_escucha_interrupt;
+	char* log_level;
+}t_config_cpu;
 
 t_log* cpu_logger;
 t_log* cpu_log_debug;
 t_log* cpu_logs_obligatorios;
-t_config* cpu_config;
+t_config_cpu* valores_config_cpu;
 
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;
@@ -22,13 +30,8 @@ pthread_t hilo_kernel_dispatch;
 pthread_t hilo_kernel_interrupt;
 pthread_t hilo_memoria;
 
-char* IP_MEMORIA;
-char* PUERTO_MEMORIA;
-char* PUERTO_ESCUCHA_DISPATCH;
-char* PUERTO_ESCUCHA_INTERRUPT;
-char* LOG_LEVEL;
-
 void inicializar_cpu();
+t_config_cpu* configurar_cpu();
 void crearHilos();
 
 void cpu_escuchar_memoria(){
