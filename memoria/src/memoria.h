@@ -4,39 +4,43 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef struct{
+	t_config* config;
+	char* puerto_escucha;
+	char* ip_filesystem;
+	char* puerto_filesystem;
+	char* tam_memoria;
+	char* path_instrucciones;
+	char* retardo_respuesta;
+    char* esquema;
+    char* algoritmo_busqueda;
+    t_list* particiones;
+    char* log_level;
+}t_config_memoria;
+
 t_log* memoria_logger;
-t_log* memoria_log_debug;
 t_log* memoria_log_obligatorios;
-t_config* memoria_config;
+
+t_config_memoria* valores_config_memoria;
 
 int fd_memoria;
+int fd_FS;
 int fd_cpu;
+int fd_kernel;
 
-char* PUERTO_ESCUCHA;
+pthread_t hilo_FS;
+pthread_t hilo_cpu;
+pthread_t hilo_kernel;
 
+void inicializar_memoria();
+void configurar_memoria();
 
-void memoria_escuchar_cpu(){
-    bool control_key=1;
-   while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_cpu);
-		switch (cod_op)
-		{
-		case MENSAJE:
-			//
-			break;
-		case PAQUETE:
-		//
-			break;
-		case -1:
-			log_error(memoria_logger, "Desconexion con CPU");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(memoria_logger, "Operacion desconocida con CPU");
-			break;
-		}
-	}
-	
-} 
+void conectar_con_FS();
+void conectar_cpu();
+void conectar_kernel();
+
+void memoria_escucha_FS();
+void memoria_escucha_cpu();
+void memoria_escucha_kernel();
 
 #endif

@@ -1,12 +1,15 @@
-#include <utils/utils.h>
 #include <cpu.h>
 
 int main(int argc, char* argv[]) {
 
     inicializar_cpu();
-    crearHilos();
 
+    conectar_memoria();
+    conectar_kernel_dispatch();
+    conectar_kernel_interrupt();
+    
     //liberar los logs y config
+    free(valores_config_cpu);
     return 0;
 }
 
@@ -15,31 +18,30 @@ void inicializar_cpu(){
     
     cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU");
    
-    cpu_config = iniciar_configs("src/cpu.config");
-  
-    IP_MEMORIA = config_get_string_value(cpu_config,"IP_MEMORIA");
-    PUERTO_MEMORIA = config_get_string_value (cpu_config , "PUERTO_MEMORIA" );
-	PUERTO_ESCUCHA_DISPATCH = config_get_string_value (cpu_config , "PUERTO_ESCUCHA_DISPATCH" );
-	PUERTO_ESCUCHA_INTERRUPT = config_get_string_value (cpu_config , "PUERTO_ESCUCHA_INTERRUPT" );
-    LOG_LEVEL = config_get_string_value(cpu_config, "LOG_LEVEL");
-
-    log_info(cpu_logger, "IP_MEMORIA: %s", IP_MEMORIA);
-    log_info(cpu_logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
+    configurar_cpu();
 }
 
-void crearHilos(){
+void configurar_cpu(){
 
-    //Cliente CPU a Memoria
-    fd_memoria = crear_conexion(IP_MEMORIA,PUERTO_MEMORIA,"MEMORIA",cpu_logger);
-    handshakeClient(fd_memoria,1);
-    //printf("fd_kernel: %d\n", fd_memoria);
+    valores_config_cpu = malloc(sizeof(t_config_cpu));
+    valores_config_cpu->config = iniciar_configs("src/cpu.config");
 
-    //Hilo para enviar mensajes a memoria
-    pthread_create(&hilo_memoria,NULL,(void*)cpu_escuchar_memoria,NULL);
-    pthread_detach(hilo_memoria);
+    valores_config_cpu->ip_memoria = config_get_string_value(valores_config_cpu->config,"IP_MEMORIA");
+    valores_config_cpu->puerto_memoria = config_get_string_value (valores_config_cpu->config, "PUERTO_MEMORIA" );
+    valores_config_cpu->puerto_escucha_dispatch = config_get_string_value(valores_config_cpu->config, "PUERTO_ESCUCHA_DISPATCH");
+    valores_config_cpu->puerto_escucha_interrupt = config_get_string_value(valores_config_cpu->config, "PUERTO_ESCUCHA_INTERRUPT");
+    valores_config_cpu->log_level = config_get_string_value(valores_config_cpu->config, "LOG_LEVEL");
 
-    //Servidor CPU - dispatch
-    fd_cpu_dispatch = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH, cpu_logger, "CPU - Dispatch");
+    //valores_config_cpu = config;
+    printf("dsp %s \n",valores_config_cpu->ip_memoria); //se ASIGNA BIEN
+	//free(config);
+}
+
+
+
+void conectar_kernel_dispatch(){
+     //Servidor CPU - dispatch
+    fd_cpu_dispatch = iniciar_servidor(valores_config_cpu->puerto_escucha_dispatch, cpu_logger, "CPU - Dispatch");
     
     //espera la conexion del kernel
     fd_kernel_dispatch = esperar_cliente(fd_cpu_dispatch, cpu_logger, "Kernel - dispatch");
@@ -47,11 +49,12 @@ void crearHilos(){
     //printf("fd_kernel: %d\n", fd_kernel_dispatch);
 
     //se crea un hilo para escuchar msj de Kernel - dispatch
-    pthread_create(&hilo_kernel_dispatch, NULL, (void*)cpu_escuchar_kernel_dispatch, NULL);
+    pthread_create(&hilo_kernel_dispatch, NULL, (void*)escuchar_kernel_dispatch, NULL);
     pthread_detach(hilo_kernel_dispatch);
-
+}
+void conectar_kernel_interrupt(){
     //Servidor CPU - interrupt
-    fd_cpu_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT, cpu_logger, "CPU - Interrupt");
+    fd_cpu_interrupt = iniciar_servidor(valores_config_cpu->puerto_escucha_interrupt, cpu_logger, "CPU - Interrupt");
 
     //espera la conexion del kernel
     fd_kernel_interrupt = esperar_cliente(fd_cpu_interrupt, cpu_logger, "Kernel - Interrupt");
@@ -59,7 +62,84 @@ void crearHilos(){
     //printf("fd_kernel: %d\n", fd_kernel_interrupt);
 
     //se crea un hilo para escuchar msj de Kernel - interrupt
-    pthread_create(&hilo_kernel_interrupt, NULL, (void*)cpu_escuchar_kernel_interrupt, NULL);
+    pthread_create(&hilo_kernel_interrupt, NULL, (void*)escuchar_kernel_interrupt, NULL);
     pthread_join(hilo_kernel_interrupt,NULL);
+}
+void conectar_memoria(){
+    //Conexion como cliente a MEMORIA
+    fd_memoria = crear_conexion(valores_config_cpu->ip_memoria,valores_config_cpu->puerto_memoria,"MEMORIA",cpu_logger);
+    handshakeClient(fd_memoria,1);
+    
+    //Hilo para enviar mensajes a memoria
+    pthread_create(&hilo_memoria,NULL,(void*)cpu_escucha_memoria,NULL);
+    pthread_detach(hilo_memoria);
+}
 
+
+void cpu_escucha_memoria(){
+    bool control_key = 1;
+    while (control_key)
+	{
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op)
+		{
+		case MENSAJE:
+		
+		case PAQUETE:
+		
+			break;
+		case -1:
+			log_error(cpu_logger, "Desconexion de MEMORIA");
+			exit(EXIT_FAILURE);
+		default:
+			log_warning(cpu_logger, "Operacion desconocida de MEMORIA");
+			break;
+		}
+	}
+}
+void escuchar_kernel_dispatch(){
+    //atender los msjs de kernel-dispatch
+    bool control_key=1;
+    while (control_key)
+	{
+		int cod_op = recibir_operacion(fd_kernel_dispatch);
+		switch (cod_op)
+		{
+		case MENSAJE:
+
+		case PAQUETE:
+
+			break;
+		case -1:
+			log_error(cpu_logger, "Desconexion de KERNEL - Dispatch");
+			exit(EXIT_FAILURE);
+		default:
+			log_warning(cpu_logger, "Operacion desconocida de KERNEL -Interrupt");
+			break;
+		}
+	}    
+}
+
+
+void escuchar_kernel_interrupt(){
+    //atender los msjs de kernel-interrupt 
+    bool control_key=1;
+    while (control_key)
+	{
+		int cod_op = recibir_operacion(fd_kernel_interrupt);
+		switch (cod_op)
+		{
+		case MENSAJE:
+
+		case PAQUETE:
+
+			break;
+		case -1:
+			log_error(cpu_logger, "Desconexion de KERNEL-Interrupt");
+			exit(EXIT_FAILURE);
+		default:
+			log_warning(cpu_logger, "Operacion desconocida de KERNEL-Interrupt");
+			break;
+		}
+	}
 }

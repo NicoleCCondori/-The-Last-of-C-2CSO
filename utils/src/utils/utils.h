@@ -48,6 +48,10 @@ void handshakeServer(int fd_client);
 //Globales
 t_log *iniciar_logger(char *path_log, char *nombre_log);
 t_config* iniciar_configs(char* path_config);
+void finalizar_modulo(t_log* logger, t_config* config);
+void* recibir_buffer(int* size, int socket_cliente);
+void recibir_mensaje(int socket_cliente, t_log* logger);
+t_list* recibir_paquete(int socket_cliente);
 
 
 

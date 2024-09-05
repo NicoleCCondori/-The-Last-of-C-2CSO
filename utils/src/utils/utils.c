@@ -164,6 +164,7 @@ t_log *iniciar_logger(char *path_log, char *nombre_log)
 		//printf("Error al crear %s\n",nombre_log);
        	exit(2);
 	};
+	log_info(nuevo_logger, "Se creo exitosamente, %s\n",nombre_log);
 	return nuevo_logger;
 }
 
@@ -177,4 +178,69 @@ t_config* iniciar_configs(char* path_config)
         //exit(2);
     }
     return nuevo_config;
+}
+
+void* recibir_buffer(int* size, int socket_cliente)
+{
+	void * buffer;
+
+	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	buffer = malloc(*size);
+	recv(socket_cliente, buffer, *size, MSG_WAITALL);
+
+	return buffer;
+}
+
+void recibir_mensaje(int socket_cliente, t_log* logger)
+{
+	int size;
+	char* buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "Me llego el mensaje %s", buffer);
+	free(buffer);
+}
+
+t_list* recibir_paquete(int socket_cliente)
+{
+	int size;
+	int desplazamiento = 0;
+	void * buffer;
+	t_list* valores = list_create();
+	int tamanio;
+
+	buffer = recibir_buffer(&size, socket_cliente);
+	while(desplazamiento < size)
+	{
+		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
+		desplazamiento+=sizeof(int);
+		char* valor = malloc(tamanio);
+		memcpy(valor, buffer+desplazamiento, tamanio);
+		desplazamiento+=tamanio;
+		list_add(valores, valor);
+	}
+	free(buffer);
+	return valores;
+}
+
+/**
+void finalizar_conexiones(int num_sockets, ...) {
+  va_list args;
+  va_start(args, num_sockets);
+
+  for (int i = 0; i < num_sockets; i++) {
+    int socket_fd = va_arg(args, int);
+    close(socket_fd);
+  }
+
+  va_end(args);
+}*/
+
+void finalizar_modulo(t_log* logger, t_config* config){
+	
+	if (logger) {
+		log_destroy(logger);
+	}
+
+	if (config){
+		config_destroy(config);
+	}
 }
