@@ -1,5 +1,4 @@
-
-#include <kernel_utils.h>
+#include <k_conexiones.h>
 
 t_log* kernel_logger=NULL;
 t_log* kernel_logs_obligatorios;

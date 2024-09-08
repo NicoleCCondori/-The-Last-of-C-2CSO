@@ -1,8 +1,7 @@
-#ifndef KERNEL_UTILS_H_
-#define KERNEL_UTILS_H_
+#ifndef K_CONEXIONES_H_
+#define K_CONEXIONES_H_
 
 #include <utils/utils.h>
-//#include <kernel_gestor.h>
 
 typedef struct{
 	t_config* config;
