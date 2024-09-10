@@ -1,46 +1,41 @@
 #ifndef CPU_H_
 #define CPU_H_
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <utils/utils.h>
+typedef struct{
+	t_config* config;
+	char* ip_memoria;
+	char* puerto_memoria;
+	char* puerto_escucha_dispatch;
+	char* puerto_escucha_interrupt;
+	char* log_level;
+}t_config_cpu;
 
 t_log* cpu_logger;
 t_log* cpu_log_debug;
-t_log* cpu_config;
+t_log* cpu_logs_obligatorios;
+
+t_config_cpu* valores_config_cpu;
 
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;
+int fd_kernel_dispatch;
+int fd_kernel_interrupt;
 int fd_memoria;
 
-char* IP_MEMORIA;
-char* PUERTO_MEMORIA;
-char* PUERTO_ESCUCHA_DISPATCH;
-char* PUERTO_ESCUCHA_INTERRUPT;
+pthread_t hilo_kernel_dispatch;
+pthread_t hilo_kernel_interrupt;
+pthread_t hilo_memoria;
 
-void cpu_escuchar_memoria(){
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_memoria);
-		switch (cod_op)
-		{
-		case MENSAJE:
-		
-		case PAQUETE:
-		
-			break;
-		case -1:
-			log_error(logger, "Desconexion de MEMORIA");
-			return EXIT_FAILURE;
-		default:
-			log_warning(logger, "Operacion desconocida de MEMORIA");
-			break;
-		}
-	}
-	return EXIT_SUCCESS;
-}
+void inicializar_cpu();
+void configurar_cpu();
 
+void conectar_kernel_dispatch();
+void conectar_kernel_interrupt();
+void conectar_memoria();
 
-
+void cpu_escucha_memoria();
+void escuchar_kernel_dispatch();
+void escuchar_kernel_interrupt();
 
 #endif
