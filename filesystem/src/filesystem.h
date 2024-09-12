@@ -1,9 +1,8 @@
 #ifndef FILESYSTEM_H_
 #define FILESYSTEM_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
+#include <utils/utils.h>
+
 
 typedef struct{
 	t_config* config;
@@ -15,26 +14,23 @@ typedef struct{
 	char* log_level;
 }t_config_filesystem;
 
-// Declaración de variables
+t_log* FS_logger;
+t_log* FS_logs_obligatorios;
 
-pthread_t hiloMemoria;
+t_config_filesystem* valores_config_FS;
 
-t_log* logger_FS;
-t_log* memoria_logs_obligatorios;
-int cliente_memoria;
-int servidor_fileSystem;
+int fd_memoria;
+int fd_FS;
 
+pthread_t hilo_memoria;
 
 //Funciones de inicio
-t_config_filesystem* configurar_FS();
-void iniciar_conexiones_FS();
-void conectarMemoria(int socket_servidor, t_log* logger_FS, char* moduloCLiente);
-void atender_memoria();
-void iterator(char* value);
+void inicializar_FS();
+void configurar_FS();
 
-//Declaro funciones utiles
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
-int pthread_detach(pthread_t thread);
+void conectar_memoria();
+void escuchar_memoria();
+//void iterator(char* value);
 
 
 

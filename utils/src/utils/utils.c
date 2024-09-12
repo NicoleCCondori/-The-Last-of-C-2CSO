@@ -1,8 +1,7 @@
 #include <utils/utils.h>
 
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
-
-int crear_conexion(char *ip, char *puerto, char *name_server, t_log* logger)
+int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
@@ -12,7 +11,6 @@ int crear_conexion(char *ip, char *puerto, char *name_server, t_log* logger)
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-
 
     //Obtiene la información sobre el servidor y la almacena en server_info. 
 	int resultado = getaddrinfo(ip, puerto, &hints, &server_info);
@@ -32,16 +30,14 @@ int crear_conexion(char *ip, char *puerto, char *name_server, t_log* logger)
 	int connect_resultado = connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen);
 	if (connect_resultado == 0)
 	{
+		log_info(logger, "El cliente se conecto al servidor correctamente a %s.\n", name_server);
+		//printf("El cliente se conecto al servidor correctamente a %s.\n", name_server);
 
-		//log_info(logger, "El cliente se conecto al servidor correctamente a %s.\n", name_server);
-		printf("El cliente se conecto al servidor correctamente a %s.\n", name_server);
-	
 	}
 	else
 	{
-		//log_info(logger, "Error al conectar servidor %s\n", name_server);
-		printf("Error al conectar servidor %s\n", name_server);
-
+		log_info(logger, "Error al conectar servidor %s\n", name_server);
+		//printf("Error al conectar servidor %s\n", name_server);
 	}
 
 	freeaddrinfo(server_info);
