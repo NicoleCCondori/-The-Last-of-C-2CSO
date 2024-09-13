@@ -2,6 +2,7 @@
 #define KERNEL_H_
 
 #include <utils/utils.h>
+#include <conectar_cpu_dispatch.h>
 
 typedef struct{
 	t_config* config;
@@ -16,18 +17,18 @@ typedef struct{
 	char* log_level;
 }t_config_kernel;
 
-t_log* kernel_logger;
-t_log* kernel_logs_obligatorios;
+extern t_log* kernel_logger;
+extern t_log* kernel_logs_obligatorios;
 
-t_config_kernel* valores_config_kernel;
+extern t_config_kernel* valores_config_kernel;
 
-int fd_cpu_dispatch;
-int fd_cpu_interrupt;
-int fd_memoria;
+extern int fd_cpu_dispatch;
+extern int fd_cpu_interrupt;
+extern fd_memoria;
 
-pthread_t hilo_cpu_dispatch;
-pthread_t hilo_cpu_interrupt;
-pthread_t hilo_memoria;
+extern pthread_t hilo_cpu_dispatch;
+extern pthread_t hilo_cpu_interrupt;
+extern pthread_t hilo_memoria;
 
 void inicializar_kernel();
 void configurar_kernel();
@@ -39,6 +40,5 @@ void conectar_memoria();
 void kernel_escucha_cpu_dispatch();
 void kernel_escucha_cpu_interrupt();
 void kernel_escucha_memoria();
-
 
 #endif

@@ -1,7 +1,19 @@
 #include <kernel.h>
 
+
 int main(int argc, char* argv[]) {
     //saludar("kernel");
+	t_log* kernel_logger=NULL;
+t_log* kernel_logs_obligatorios;
+t_config_kernel* valores_config_kernel;
+int fd_cpu_dispatch;
+int fd_cpu_interrupt;
+int fd_memoria;
+
+pthread_t hilo_cpu_dispatch;
+pthread_t hilo_cpu_interrupt;
+pthread_t hilo_memoria;
+
     inicializar_kernel();
 
     conectar_cpu_dispatch();
@@ -48,7 +60,7 @@ void configurar_kernel() {
 }
 
 //Revisar mas adelante
-void conectar_cpu_dispatch(){
+/*void conectar_cpu_dispatch(){
     //Cliente KERNEL a CPU-dispatch
 	fd_cpu_dispatch = crear_conexion(valores_config_kernel->ip_memoria, valores_config_kernel->puerto_cpu_dispatch, "CPU - Dispatch",kernel_logger);
 	handshakeClient(fd_cpu_dispatch,2);
@@ -56,7 +68,7 @@ void conectar_cpu_dispatch(){
 	//hilo para conectarse con cpu Dispatch / atender
     pthread_create(&hilo_cpu_dispatch, NULL, (void*)kernel_escucha_cpu_dispatch,NULL);
     pthread_detach(hilo_cpu_dispatch);
-}
+}*/
 void conectar_cpu_interrupt(){
     //Cliente KERNEL a CPU-interrupt
 	fd_cpu_interrupt = crear_conexion(valores_config_kernel->ip_cpu, valores_config_kernel->puerto_cpu_interrupt, "CPU - Interrupt",kernel_logger);
