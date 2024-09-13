@@ -72,7 +72,7 @@ void conectar_memoria(){
     pthread_create(&hilo_memoria, NULL, (void*)kernel_escucha_memoria,NULL);
     pthread_join(hilo_memoria,NULL);
 }
-
+/*
 void kernel_escucha_memoria(){
     //atender los msjs de memoria
     bool control_key = 1;
@@ -94,7 +94,7 @@ void kernel_escucha_memoria(){
 		}
 	}
 }
-/*
+
 void kernel_escucha_cpu_dispatch(){
     //atender los msjs de cpu-dispatch , otra funcion?
     bool control_key = 1;
@@ -116,7 +116,7 @@ void kernel_escucha_cpu_dispatch(){
 		}
 	}
 	//close(fd_cpu_dispatch); //liberar_conexion(fd_cpu_dispatch);
-}*/
+}
 
 void kernel_escucha_cpu_interrupt(){
 
@@ -141,4 +141,4 @@ void kernel_escucha_cpu_interrupt(){
 		}
 	}
 	//close(fd_cpu_interrupt); //liberar_conexion(fd_cpu_interrupt);
-}
+}*/
