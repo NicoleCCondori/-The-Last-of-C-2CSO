@@ -45,7 +45,7 @@ void conectar_memoria() {
 	pthread_join(hilo_memoria, NULL);
 }
 
-void escuchar_memoria(){
+/*void escuchar_memoria(){
 	while(1){
 
 		int op_code_memoria = recibir_operacion(fd_memoria);
@@ -67,7 +67,8 @@ void escuchar_memoria(){
                 break;
 		}
 	}
-}
+}*/
+
 /*
 void iterator(char* value) {
 	log_info(logger_FS,"%s", value);
