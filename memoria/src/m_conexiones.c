@@ -61,7 +61,7 @@ void conectar_cpu(){
     handshakeServer(fd_cpu);
 
     //se crea un hilo para escuchar mensajes de CPU
-    pthread_create(&hilo_cpu, NULL, (void*)memoria_escucha_cpu, NULL);
+    pthread_create(&hilo_cpu, NULL, (void*)escuchar_cpu, NULL);
     pthread_detach(hilo_cpu);
 }
 
@@ -72,11 +72,11 @@ void conectar_kernel(){
 	handshakeServer(fd_kernel);
 
     //se crea un hilo para escuchar mensajes de kernel // ->>>> cambiar como multihilo
-    pthread_create(&hilo_kernel,NULL,(void*)memoria_escucha_kernel,NULL);
+    pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);
     pthread_join(hilo_kernel,NULL);
 }
-
-void memoria_escucha_cpu(){
+/*
+void escuchar_cpu(){
     bool control_key=1;
    while (control_key)
 	{
@@ -99,7 +99,7 @@ void memoria_escucha_cpu(){
 	}	
 } 
 
-void memoria_escucha_kernel(){
+void escuchar_kernel(){
     bool control_key=1;
     while (control_key)
 	{
@@ -144,3 +144,4 @@ void memoria_escucha_FS(){
 		}
 	}
 }
+*/

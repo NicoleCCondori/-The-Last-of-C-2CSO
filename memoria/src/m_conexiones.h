@@ -3,6 +3,11 @@
 
 #include <utils/utils.h>
 
+#include <escuchar_cpu.h>
+#include <escuchar_kernel.h>
+#include <memoria_escucha_FS.h>
+
+
 typedef struct{
 	t_config* config;
 	char* puerto_escucha;
@@ -39,7 +44,7 @@ void conectar_cpu();
 void conectar_kernel();
 
 void memoria_escucha_FS();
-void memoria_escucha_cpu();
-void memoria_escucha_kernel();
+void escuchar_cpu();
+void escuchar_kernel();
 
 #endif
