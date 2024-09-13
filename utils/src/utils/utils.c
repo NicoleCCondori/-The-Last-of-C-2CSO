@@ -234,12 +234,14 @@ void finalizar_conexiones(int num_sockets, ...) {
   va_end(args);
 }*/
 
-void finalizar_modulo(t_log* logger, t_config* config){
+void finalizar_modulo(t_log* logger,t_log* logger_obligatorio, t_config* config){
 	
 	if (logger) {
 		log_destroy(logger);
 	}
-
+	if (logger_obligatorio){
+		log_destroy(logger_obligatorio);
+	}
 	if (config){
 		config_destroy(config);
 	}

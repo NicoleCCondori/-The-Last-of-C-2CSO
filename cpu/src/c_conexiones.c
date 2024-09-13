@@ -36,7 +36,6 @@ void configurar_cpu(){
 
     //valores_config_cpu = config;
     printf("dsp %s \n",valores_config_cpu->ip_memoria); //se ASIGNA BIEN
-	//free(config);
 }
 
 

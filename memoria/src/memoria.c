@@ -1,4 +1,3 @@
-#include <utils/utils.h>
 #include <memoria.h>
 
 int main(int argc, char* argv[]) {
@@ -14,9 +13,16 @@ int main(int argc, char* argv[]) {
 
     conectar_kernel();
 
-    //falta finalizar las conexiones
+    //liberar los logs y config
 
+    finalizar_modulo(memoria_logger,memoria_log_obligatorios,valores_config_memoria->config);
     free(valores_config_memoria);
+    //finalizar las conexiones
+    close(fd_memoria);
+    close(fd_FS);
+    close(fd_kernel);
+    close(fd_cpu);
+
 
     return 0;
 }

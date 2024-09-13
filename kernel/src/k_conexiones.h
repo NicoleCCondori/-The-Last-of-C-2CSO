@@ -2,7 +2,7 @@
 #define K_CONEXIONES_H_
 
 #include <utils/utils.h>
-#include <kernel_escucha_cpu_dispatch.h>
+//#include <kernel_escucha_cpu_dispatch.h>
 
 typedef struct{
 	t_config* config;
