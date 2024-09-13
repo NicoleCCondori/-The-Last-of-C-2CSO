@@ -17,6 +17,7 @@ typedef struct
 	uint32_t AX,BX,CX,DX,EX,FX,GX,HX;
 }registros_CPU;
 
+
 t_log* cpu_logger;
 t_log* cpu_log_debug;
 t_log* cpu_logs_obligatorios;

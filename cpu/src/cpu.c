@@ -12,13 +12,18 @@ int main(int argc, char* argv[]) {
     free(valores_config_cpu);
     return 0;
 }
-void incrementar_PC(){
-    PC+=1;//Se incrementa para apuntar a la siguiente dirrecion
-}
-void fetch_intruccion(){
-    log_info(cpu_logger,"## TID:<TID> - FETCH - Program Cunter:<PROGRAM_COUNTER: %d",PC);
+void ciclo_de_instruccion(char* instruccion){
+    fetch();
+    decode();
+    execute();
+    check_interrupt();
 
-    incrementar_PC();
+}
+
+void fetch(){
+    log_info(cpu_logger,"## TID:<TID> - FETCH - Program Cunter:<PROGRAM_COUNTER: %d",registros_CPU.PC);
+
+    
 }
 
 void inicializar_cpu(){
