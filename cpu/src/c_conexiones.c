@@ -77,7 +77,7 @@ void conectar_memoria(){
     pthread_detach(hilo_memoria);
 }
 
-
+/*
 void cpu_escucha_memoria(){
     bool control_key = 1;
     while (control_key)
@@ -145,3 +145,4 @@ void escuchar_kernel_interrupt(){
 		}
 	}
 }
+*/
