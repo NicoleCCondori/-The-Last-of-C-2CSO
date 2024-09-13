@@ -49,7 +49,7 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 {
 	int result;
 
-	send(fd_servidor, &handshake, sizeof(int32_t), 0);
+	send(fd_servidor, &handshake, sizeof(int32_t), 0); //tira error cuando conectamos kernel ---> falta liberar sockets?
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)

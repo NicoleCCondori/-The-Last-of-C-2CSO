@@ -33,7 +33,32 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+typedef struct
+{
+	uint32_t AX;
+	uint32_t BX;
+	uint32_t CX;
+	uint32_t DX;
+	uint32_t EX;
+	uint32_t FX;
+	uint32_t GX;
+	uint32_t HX;
+} RegistrosCPU;
+typedef struct
 
+{
+	uint32_t pid; //Identificador del proceso
+	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
+	RegistrosCPU* registro;
+	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+} PCB;
+
+typedef struct 
+{
+	uint32_t tid;
+	int prioridad;//0 maxima prioridad
+} TCB;
 
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);

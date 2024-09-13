@@ -7,9 +7,9 @@ int fd_cpu_dispatch;
 int fd_cpu_interrupt;
 int fd_memoria;
 
- pthread_t hilo_cpu_dispatch;
- pthread_t hilo_cpu_interrupt;
- pthread_t hilo_memoria;
+pthread_t hilo_cpu_dispatch;
+pthread_t hilo_cpu_interrupt;
+pthread_t hilo_memoria;
 
 void inicializar_kernel(){
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
@@ -41,6 +41,7 @@ void configurar_kernel() {
 	//free(config);
 }
 
+
 //Revisar mas adelante
 void conectar_cpu_dispatch(){
     //Cliente KERNEL a CPU-dispatch
@@ -51,6 +52,7 @@ void conectar_cpu_dispatch(){
     pthread_create(&hilo_cpu_dispatch, NULL, (void*)kernel_escucha_cpu_dispatch,NULL);
     pthread_detach(hilo_cpu_dispatch);
 }
+
 void conectar_cpu_interrupt(){
     //Cliente KERNEL a CPU-interrupt
 	fd_cpu_interrupt = crear_conexion(valores_config_kernel->ip_cpu, valores_config_kernel->puerto_cpu_interrupt, "CPU - Interrupt",kernel_logger);
@@ -60,6 +62,7 @@ void conectar_cpu_interrupt(){
     pthread_create(&hilo_cpu_interrupt, NULL, (void*)kernel_escucha_cpu_interrupt,NULL);
     pthread_detach(hilo_cpu_interrupt);
 }
+
 void conectar_memoria(){
     //cliente KERNEL - MEMORIA
     fd_memoria = crear_conexion(valores_config_kernel->ip_cpu,valores_config_kernel->puerto_memoria,"MEMORIA",kernel_logger);
@@ -91,7 +94,7 @@ void kernel_escucha_memoria(){
 		}
 	}
 }
-
+/*
 void kernel_escucha_cpu_dispatch(){
     //atender los msjs de cpu-dispatch , otra funcion?
     bool control_key = 1;
@@ -113,7 +116,7 @@ void kernel_escucha_cpu_dispatch(){
 		}
 	}
 	//close(fd_cpu_dispatch); //liberar_conexion(fd_cpu_dispatch);
-}
+}*/
 
 void kernel_escucha_cpu_interrupt(){
 

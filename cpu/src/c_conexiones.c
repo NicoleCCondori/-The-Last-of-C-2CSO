@@ -18,7 +18,7 @@ pthread_t hilo_memoria;
 void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
     
-    cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU");
+    cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU_obligatorio");
    
     configurar_cpu();
 }
