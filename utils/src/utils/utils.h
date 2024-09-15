@@ -60,7 +60,6 @@ typedef struct
 } TCB;
 
 
-
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
 void handshakeClient(int fd_servidor, int32_t handshake);
