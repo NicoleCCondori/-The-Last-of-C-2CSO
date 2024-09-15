@@ -6,11 +6,13 @@ int main(int argc, char* argv[]) {
 
     conectar_memoria();
 
-    //finalizar_conexiones(1, cliente_memoria);
-    //finalizar_modulo(logger_FS, valores_config_FS->config);
-    log_destroy(FS_logger);
+    //liberar los logs y config
+    finalizar_modulo(FS_logger, FS_logs_obligatorios, valores_config_FS->config);
     free(valores_config_FS);
-    
+
+    //finalizar las conexiones
+    close(fd_memoria);
+    close(fd_FS);
     return EXIT_SUCCESS;
 }
 
