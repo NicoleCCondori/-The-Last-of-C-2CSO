@@ -6,6 +6,7 @@ t_config_kernel* valores_config_kernel;
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;
 int fd_memoria;
+uint32_t pid = 0;
 
 pthread_t hilo_cpu_dispatch;
 pthread_t hilo_cpu_interrupt;
@@ -41,6 +42,36 @@ void configurar_kernel() {
 	//free(config);
 }
 
+//Inicializar el primer proceso
+ void iniciar_proceso(char* archivo_pseudocodigo,int tamanio_proceso){
+
+    PCB* pcb = malloc(sizeof(PCB));
+    if (pcb == NULL){
+        printf("Error al crear pcb");
+    }
+    
+    pid++;
+    pcb->pid = pid;
+    pcb->tid = list_create();
+    pcb->mutex = list_create();
+    pcb->pc = 0;
+    pcb->registro->AX = 0;
+    pcb->registro->BX = 0;
+    pcb->registro->CX = 0;
+    pcb->registro->DX = 0;
+    pcb->registro->EX = 0;
+    pcb->registro->FX = 0;
+    pcb->registro->GX = 0;
+    pcb->registro->HX = 0;
+    pcb->tam_proceso = tamanio_proceso;
+    pcb->estado = NEW;
+
+    //mandamos mensaje a memoria para saber si hay espacio
+
+    //SI HAY Espacio , pasa a ready al proceso
+
+    //crea el hilo tid 0
+ }
 
 //Revisar mas adelante
 void conectar_cpu_dispatch(){
@@ -72,73 +103,3 @@ void conectar_memoria(){
     pthread_create(&hilo_memoria, NULL, (void*)kernel_escucha_memoria,NULL);
     pthread_join(hilo_memoria,NULL);
 }
-/*
-void kernel_escucha_memoria(){
-    //atender los msjs de memoria
-    bool control_key = 1;
-    while (control_key){
-		int cod_op = recibir_operacion(fd_memoria);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(kernel_logger, "Desconexion de MEMORIA");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(kernel_logger, "Operacion desconocida de MEMORIA");
-			break;
-		}
-	}
-}
-
-void kernel_escucha_cpu_dispatch(){
-    //atender los msjs de cpu-dispatch , otra funcion?
-    bool control_key = 1;
-    while (control_key){
-		int cod_op = recibir_operacion(fd_cpu_dispatch);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(kernel_logger, "Desconexion de CPU-Dispatch");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(kernel_logger, "Operacion desconocida de CPU-Dispatch");
-			break;
-		}
-	}
-	//close(fd_cpu_dispatch); //liberar_conexion(fd_cpu_dispatch);
-}
-
-void kernel_escucha_cpu_interrupt(){
-
-    //atender los msjs de cpu-interrupt , otra funcion?
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_cpu_interrupt);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(kernel_logger, "Desconexion de CPU-Interrupt");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(kernel_logger, "Operacion desconocida de CPU-Interrupt");
-			break;
-		}
-	}
-	//close(fd_cpu_interrupt); //liberar_conexion(fd_cpu_interrupt);
-}*/

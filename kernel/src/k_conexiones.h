@@ -33,6 +33,7 @@ extern pthread_t hilo_memoria;
 
 void inicializar_kernel();
 void configurar_kernel();
+void iniciar_proceso(char* archivo_pseudocodigo,int tamanio_proceso);
 
 void conectar_cpu_dispatch();
 void conectar_cpu_interrupt();

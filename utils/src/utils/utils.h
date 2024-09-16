@@ -20,8 +20,16 @@ typedef enum
 {
 	MENSAJE,
 	PAQUETE
+	
 }op_code;
 
+typedef enum{
+	NEW,
+	BLOCKED,
+	READY,
+	EXIT,
+	EXEC
+} estado_proceso_hilo;
 typedef struct
 {
 	int size;
@@ -44,6 +52,7 @@ typedef struct
 	uint32_t GX;
 	uint32_t HX;
 } RegistrosCPU;
+
 typedef struct 
 {
 	uint32_t pid; //Identificador del proceso
@@ -51,6 +60,9 @@ typedef struct
 	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
 	RegistrosCPU* registro;
 	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
+	int tam_proceso;
+
 } PCB;
 
 typedef struct 
