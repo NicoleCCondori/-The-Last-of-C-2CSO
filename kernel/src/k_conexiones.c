@@ -7,10 +7,16 @@ int fd_cpu_dispatch;
 int fd_cpu_interrupt;
 int fd_memoria;
 uint32_t pid = 0;
-
+//uint32_t tid_main = 0;
 pthread_t hilo_cpu_dispatch;
 pthread_t hilo_cpu_interrupt;
 pthread_t hilo_memoria;
+
+t_queue* cola_new;
+t_queue* cola_exec;
+t_queue* cola_ready;
+t_queue* cola_blocked;
+t_queue* cola_exit;
 
 void inicializar_kernel(){
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
@@ -41,13 +47,46 @@ void configurar_kernel() {
 
 	//free(config);
 }
+//Mnadamos mensaje a memoria para saber si hay espacio disponible
+void asignar_espacio_memoria(int fd_memoria, int tamanio_proceso, PCB* pcb){
+    int result;
+
+	send(fd_memoria, &tamanio_proceso, sizeof(int), 0);
+	recv(fd_memoria, &result, sizeof(int32_t), 0);
+
+	if (result == 0)
+		printf("Hay espacio en memoria\n");
+        //Hacer un signal del sem_binario_memoria
+	else
+		printf("No hay espacio en memoria\n");
+}
+//inicializar el hilo
+TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid){
+    
+    TCB* tcb = malloc(sizeof(TCB));
+    if(tcb == NULL){
+        printf("Error al crear TCB\n");
+    }
+    
+    tcb->tid = tid;
+    tcb->pid = pid;
+    tcb->prioridad = prioridad;
+    tcb->registro->AX = 0;
+    tcb->registro->BX = 0;
+    tcb->registro->CX = 0;
+    tcb->registro->DX = 0;
+    tcb->registro->EX = 0;
+    tcb->registro->FX = 0;
+    tcb->registro->GX = 0;
+    tcb->registro->HX = 0;
+}
 
 //Inicializar el primer proceso
- void iniciar_proceso(char* archivo_pseudocodigo,int tamanio_proceso){
+void iniciar_proceso(char* archivo_pseudocodigo,int tamanio_proceso){
 
     PCB* pcb = malloc(sizeof(PCB));
     if (pcb == NULL){
-        printf("Error al crear pcb");
+        printf("Error al crear pcb\n");
     }
     
     pid++;
@@ -55,22 +94,28 @@ void configurar_kernel() {
     pcb->tid = list_create();
     pcb->mutex = list_create();
     pcb->pc = 0;
-    pcb->registro->AX = 0;
-    pcb->registro->BX = 0;
-    pcb->registro->CX = 0;
-    pcb->registro->DX = 0;
-    pcb->registro->EX = 0;
-    pcb->registro->FX = 0;
-    pcb->registro->GX = 0;
-    pcb->registro->HX = 0;
     pcb->tam_proceso = tamanio_proceso;
     pcb->estado = NEW;
-
-    //mandamos mensaje a memoria para saber si hay espacio
-
+    
+    //agregar proceso a cola de NEW 
+    queue_push(cola_new,pcb);
+    
+    //mandamos mensaje a memoria para saber si hay espacio,
+    
+    //asignar_espacio_memoria(int fd_memoria, int tamanio_proceso, PCB* pcb);
+    //wait (sem_binario_memoria);
+    
     //SI HAY Espacio , pasa a ready al proceso
-
+    PCB* pcb_ready = queue_pop(cola_new); //donde se debería guardar si es que es el hilo el que pasa a ready?
     //crea el hilo tid 0
+    uint32_t tid_main = 0;
+    list_add(pcb->tid, tid_main);
+    int prioridad = 0; //la prioridad máxima 0 (cero).
+    TCB* hilo_main = malloc(sizeof(TCB));
+    hilo_main = iniciar_hilo(tid_main,prioridad,pid);
+    queue_push(cola_ready,hilo_main);//consulta ¿pasamos a ready el tcb o pcb?
+    crear_hilo(,prioridad);
+    
  }
 
 //Revisar mas adelante

@@ -17,11 +17,21 @@ int main(int argc, char* argv[]) {
     printf("Tamaño proceso: %d\n", tamanio_proceso);
 
     inicializar_kernel();
-    iniciar_proceso(archivo_pseudocodigo,tamanio_proceso);
+
     conectar_cpu_dispatch();
     conectar_cpu_interrupt();
     conectar_memoria();
     
+    cola_new = queue_create();
+    cola_exec = queue_create();
+    cola_ready = queue_create();
+    cola_blocked = queue_create();
+    cola_exit = queue_create();
+    
+
+
+    iniciar_proceso(archivo_pseudocodigo,tamanio_proceso);
+
     //liberar los logs y config
  
     finalizar_modulo(kernel_logger, kernel_logs_obligatorios,valores_config_kernel->config);

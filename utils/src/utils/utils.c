@@ -53,9 +53,9 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)
-		printf("Handshake Success\n");
+		printf("¡Handshake realizado con exito!\n");
 	else
-		printf("Handshake Failure\n");
+		printf("Error Handshake\n");
 }
 
 //configura y pone en marcha un servidor TCP
@@ -220,6 +220,7 @@ t_list* recibir_paquete(int socket_cliente)
 	free(buffer);
 	return valores;
 }
+
 
 /**
 void finalizar_conexiones(int num_sockets, ...) {
