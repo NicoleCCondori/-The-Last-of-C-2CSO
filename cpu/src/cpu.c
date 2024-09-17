@@ -18,12 +18,40 @@ void ciclo_de_instruccion(char* instruccion){
     execute();
     check_interrupt();
 
+
 }
+int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
+    int flags= (send(fd_memoria,&PC,sizeof(uint32_t),0));
+    if (flags==-1)
+    {
+        log_error(cpu_logger,"Error al enviar PC a MEMORIA");
+        return -1;
+    }
+    return 0;
+}    
+char* recibir_instruccion_de_memoria(fd_memoria){
+    char* instruccion=malloc(128);//Buffer para recibir instruccion, suponemos el tamanio maximo de la instruccion
+    memset(instruccion,0,128);// utilizo memset para evitar datos basura
 
-void fetch(){
-    log_info(cpu_logger,"## TID:<TID> - FETCH - Program Cunter:<PROGRAM_COUNTER: %d",registros_CPU.PC);
-
+    int bytes_recibidos=recv(fd_memoria,instruccion,128,0);
+    if (bytes_recibidos<=0)
+    {
+        log_error(cpu_logger,"Error al recibir la instruccion desde memoria");
+        free(instruccion);
+        exit(EXIT_FAILURE);
+    }
+    log_info(cpu_logger,"Instruccion recibida desde memoria %s",instruccion);
+    return instruccion;
+}
+void fetch_intruccion(int fd_memoria,uint32_t tid,uint32_t PC){
+    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tid,PC);
     
+    enviar_pc_a_memoria(fd_memoria,PC);
+
+    char* instruccion=recibir_instruccion_de_memoria(fd_memoria);
+
+    PC++;//incremento PC(reivsar cuando si y cuando no)
+
 }
 
 void inicializar_cpu(){
