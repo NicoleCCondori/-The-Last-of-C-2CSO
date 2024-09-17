@@ -43,17 +43,26 @@ char* recibir_instruccion_de_memoria(fd_memoria){
     log_info(cpu_logger,"Instruccion recibida desde memoria %s",instruccion);
     return instruccion;
 }
-void fetch_intruccion(int fd_memoria,uint32_t tid,uint32_t PC){
-    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tid,PC);
+char* fetch(int fd_memoria,uint32_t tid,uint32_t* PC){
+    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tid,*PC);
     
     enviar_pc_a_memoria(fd_memoria,PC);
 
     char* instruccion=recibir_instruccion_de_memoria(fd_memoria);
+    if(instruccion==NULL){
+        log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
+        return NULL;
+    }
+    log_info(cpu_logger,"Instruccion recibida: %s".instruccion);
 
-    PC++;//incremento PC(reivsar cuando si y cuando no)
+    (*PC)++;//incremento PC(reivsar cuando si y cuando no)
+
+    return instruccion;
 
 }
+void execute(char* instruccion){
 
+}
 void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
     
