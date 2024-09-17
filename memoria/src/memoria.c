@@ -1,4 +1,4 @@
-#include <utils/hello.h>
+#include <utils/utils.h>
 #include <memoria.h>
 
 int main(int argc, char* argv[]) {
@@ -15,13 +15,19 @@ int main(int argc, char* argv[]) {
     
     //Esperar conexion CPU
 
-    log_info(memoria_logger,"Esperando CPU...");
-    fd_cpu=esperar_cliente(fd_memoria,memoria_logger,"CPU");
+    conectar_con_FS();
+    
+    fd_memoria= iniciar_servidor(valores_config_memoria->puerto_escucha ,memoria_logger,"MEMORIA");
+    log_info(memoria_logger, "MEMORIA lista para recibir clientes");
 
-    //mensajes de CPU
-    pthread_t hilo_cpu;
-    pthread_create(&hilo_cpu,NULL,(void*)memoria_escuchar_cpu,NULL);
-    pthread_detach (hilo_cpu);
+    conectar_cpu();
+
+    conectar_kernel();
+
+    //falta finalizar las conexiones
+
+    free(valores_config_memoria);
 
     return 0;
 }
+

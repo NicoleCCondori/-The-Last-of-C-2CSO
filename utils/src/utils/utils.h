@@ -14,7 +14,10 @@
 #include<string.h>
 #include<assert.h>
 #include <pthread.h>
+<<<<<<< HEAD
 
+=======
+>>>>>>> check1V2
 #include<signal.h>
 
 typedef enum
@@ -34,7 +37,6 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
-
 
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);

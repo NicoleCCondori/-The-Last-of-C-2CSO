@@ -1,6 +1,17 @@
-#include <utils/hello.h>
+#include <filesystem.h>
+
 
 int main(int argc, char* argv[]) {
-    saludar("filesystem");
-    return 0;
+
+    inicializar_FS();
+
+    conectar_memoria();
+
+    //finalizar_conexiones(1, cliente_memoria);
+    //finalizar_modulo(logger_FS, valores_config_FS->config);
+    log_destroy(FS_logger);
+    free(valores_config_FS);
+    
+    return EXIT_SUCCESS;
 }
+

@@ -1,35 +1,24 @@
-#include <cpu.h>
+#include <c_conexiones.h>
+t_log* cpu_logger;
+t_log* cpu_log_debug;
+t_log* cpu_logs_obligatorios;
 
-int main(int argc, char* argv[]) {
+t_config_cpu* valores_config_cpu;
 
-    inicializar_cpu();
+int fd_cpu_dispatch;
+int fd_cpu_interrupt;
+int fd_kernel_dispatch;
+int fd_kernel_interrupt;
+int fd_memoria;
 
-    conectar_memoria();
-    conectar_kernel_dispatch();
-    conectar_kernel_interrupt();
-    
-    //liberar los logs y config
-    free(valores_config_cpu);
-    return 0;
-}
-void ciclo_de_instruccion(char* instruccion){
-    fetch();
-    decode();
-    execute();
-    check_interrupt();
-
-}
-
-void fetch(){
-    log_info(cpu_logger,"## TID:<TID> - FETCH - Program Cunter:<PROGRAM_COUNTER: %d",registros_CPU.PC);
-
-    
-}
+pthread_t hilo_kernel_dispatch;
+pthread_t hilo_kernel_interrupt;
+pthread_t hilo_memoria;
 
 void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
     
-    cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU");
+    cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU_obligatorio");
    
     configurar_cpu();
 }
@@ -88,7 +77,7 @@ void conectar_memoria(){
     pthread_detach(hilo_memoria);
 }
 
-
+/*
 void cpu_escucha_memoria(){
     bool control_key = 1;
     while (control_key)
@@ -156,4 +145,4 @@ void escuchar_kernel_interrupt(){
 		}
 	}
 }
-
+*/

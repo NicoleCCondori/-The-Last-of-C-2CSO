@@ -49,7 +49,11 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 {
 	int result;
 
+<<<<<<< HEAD
 	send(fd_servidor, &handshake, sizeof(int32_t), 0);
+=======
+	send(fd_servidor, &handshake, sizeof(int32_t), 0); //tira error cuando conectamos kernel ---> falta liberar sockets?
+>>>>>>> check1V2
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)
@@ -164,6 +168,10 @@ t_log *iniciar_logger(char *path_log, char *nombre_log)
 		//printf("Error al crear %s\n",nombre_log);
        	exit(2);
 	};
+<<<<<<< HEAD
+=======
+	log_info(nuevo_logger, "Se creo exitosamente, %s\n",nombre_log);
+>>>>>>> check1V2
 	return nuevo_logger;
 }
 

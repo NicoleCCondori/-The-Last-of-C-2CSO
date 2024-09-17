@@ -1,9 +1,7 @@
 #ifndef FILESYSTEM_H_
 #define FILESYSTEM_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-
-
+#include <utils/utils.h>
+#include <f_conexiones.h>
 
 #endif
