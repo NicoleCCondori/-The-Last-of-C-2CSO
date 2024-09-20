@@ -12,18 +12,30 @@ int main(int argc, char* argv[]) {
     free(valores_config_cpu);
     return 0;
 }
-void ciclo_de_instruccion(char* instruccion){
-    fetch(); //Actualizamos la instruccion Actual que se  esta trabajando  check
-    decode();
-    execute();
+void ciclo_de_instruccion(){
+    fetch(); //Actualizamos la instruccionActual que se  esta trabajando  check
+    t_instruccion* instruccionDecodificada = decode(instruccionActual); //Verificar lectura de la instruccion
+    execute(instruccionDecodificada);
     check_interrupt();
 
 
 }
 
-void decode(){
+t_instruccion* decode(char* instruccion){
 
+    t_instruccion* instruccionDecodificada= malloc(sizeof(t_instruccion));
+    instruccionDecodificada -> operacion = strtok(instruccion," ");
+    instruccionDecodificada -> operando1 = strtok(NULL," ");
+    instruccionDecodificada -> operando2 = strtok(NULL," ");
+    return instruccionDecodificada;
 }
+
+void execute(t_instruccion* instruccionA,int fd_memoria){
+    
+}
+
+
+
 
 
 

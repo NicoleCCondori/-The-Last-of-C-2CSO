@@ -4,6 +4,18 @@
 #include <utils/utils.h>
 
 char* instruccionActual;
+char* operacionAux;
+
+// Struc para dividir la instruccion
+typedef struct 
+{
+	char* operacion;
+	char* operando1;
+	char* operando2;
+
+}t_instruccion;
+
+
 typedef struct{
 	t_config* config;
 	char* ip_memoria;
