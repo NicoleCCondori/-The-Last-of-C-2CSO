@@ -13,13 +13,20 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 void ciclo_de_instruccion(char* instruccion){
-    fetch();
+    fetch(); //Actualizamos la instruccion Actual que se  esta trabajando  check
     decode();
     execute();
     check_interrupt();
 
 
 }
+
+void decode(){
+
+}
+
+
+
 int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
     int flags= (send(fd_memoria,&PC,sizeof(uint32_t),0));
     if (flags==-1)
@@ -28,7 +35,8 @@ int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
         return -1;
     }
     return 0;
-}    
+}
+
 char* recibir_instruccion_de_memoria(fd_memoria){
     char* instruccion=malloc(128);//Buffer para recibir instruccion, suponemos el tamanio maximo de la instruccion
     memset(instruccion,0,128);// utilizo memset para evitar datos basura
@@ -43,23 +51,65 @@ char* recibir_instruccion_de_memoria(fd_memoria){
     log_info(cpu_logger,"Instruccion recibida desde memoria %s",instruccion);
     return instruccion;
 }
-char* fetch(int fd_memoria,uint32_t tid,uint32_t* PC){
+
+void fetch(){
+
+    // int fd_memoria   uint32_t tid,uint32_t* PC
     log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tid,*PC);
     
     enviar_pc_a_memoria(fd_memoria,PC);
-
-    char* instruccion=recibir_instruccion_de_memoria(fd_memoria);
-    if(instruccion==NULL){
+    // Busca la nueva inscruccion
+    instruccionActual =recibir_instruccion_de_memoria(fd_memoria);
+    if(instruccionActual==NULL){
         log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
-        return NULL;
+        exit(EXIT_FAILURE);
     }
-    log_info(cpu_logger,"Instruccion recibida: %s".instruccion);
-
-    (*PC)++;//incremento PC(reivsar cuando si y cuando no)
-
-    return instruccion;
+    log_info(cpu_logger,"Instruccion recibida: %s".instruccionActual);
 
 }
+/*
+void fetch() { 
+    int numInstruccionABuscar = contextoEjecucion->programCounter;
+    instruccionAEjecutar = list_get(contextoEjecucion->instrucciones,numInstruccionABuscar); 
+    contextoEjecucion->programCounter += 1;
+}
+
+//////////////// "MMU" //////////
+uint32_t mmu(char* direccionLogica, int tamValor){
+    int dirFisica;
+    int dirLogica = atoi(direccionLogica);
+    int tamMaxSegmento = obtenerTamanioMaxSeg();
+
+    nroSegmento = floor(dirLogica/tamMaxSegmento);
+    uint32_t desplazamiento = dirLogica % tamMaxSegmento;
+
+    log_debug(logger, "nrosegmento: %d", nroSegmento);
+    log_debug(logger, "desplazamiento: %d", desplazamiento);
+    log_debug(logger, "tamvalor: %d", tamValor);
+
+    t_segmento* segmento = (t_segmento*)list_get(contextoEjecucion->tablaDeSegmentos, nroSegmento);
+    
+    uint32_t base = segmento->direccionBase;
+    
+    if((desplazamiento + tamValor) < (segmento->tamanio)){
+        dirFisica = base + desplazamiento;
+        return dirFisica;
+    }
+    
+    else{
+        log_info(logger, "PID: <%d> - Error SEG_FAULT - Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", contextoEjecucion->pid, nroSegmento, desplazamiento, tamValor);
+        char * terminado = string_duplicate ("SEG_FAULT");
+        destruirTemporizador(rafagaCPU);
+        modificarMotivoDesalojo (EXIT, 1, terminado, "", "");
+        enviarContextoActualizado(socketCliente);
+        contextoEjecucion->programCounter = contextoEjecucion->instruccionesLength;
+        free (terminado);
+        return UINT32_MAX; 
+    }
+}
+*/
+
+
 void execute(char* instruccion){
 
 }

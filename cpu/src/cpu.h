@@ -2,6 +2,8 @@
 #define CPU_H_
 
 #include <utils/utils.h>
+
+char* instruccionActual;
 typedef struct{
 	t_config* config;
 	char* ip_memoria;
@@ -11,11 +13,6 @@ typedef struct{
 	char* log_level;
 }t_config_cpu;
 //Registros de la cpu
-typedef struct
-{
-	uint32_t PC;
-	uint32_t AX,BX,CX,DX,EX,FX,GX,HX;
-}registros_CPU;
 
 
 t_log* cpu_logger;
