@@ -26,6 +26,8 @@ extern t_config_kernel* valores_config_kernel;
 extern int fd_cpu_dispatch;
 extern int fd_cpu_interrupt;
 extern int fd_memoria;
+extern char* archivo_pseudocodigo_main;
+extern int tamanio_proceso_main;
 
 extern pthread_t hilo_cpu_dispatch;
 extern pthread_t hilo_cpu_interrupt;
@@ -43,8 +45,8 @@ extern t_list* lista_procesos;
 
 void inicializar_kernel();
 void configurar_kernel();
-void iniciar_proceso(char* archivo_pseudocodigo,int tamanio_proceso);
-void asignar_espacio_memoria(int fd_memoria, int tamanio_proceso, PCB* pcb);
+void iniciar_proceso(int tamanio_proceso);
+void asignar_espacio_memoria(int fd_memoria, uint32_t pid,int tam_proceso);
 TCB* iniciar_hilo(uint32_t tid,int prioridad,uint32_t pid);
 
 void conectar_cpu_dispatch();
@@ -58,6 +60,6 @@ void kernel_escucha_memoria();
 void planificador_cortoPlazo();
 void planificador_largoPlazo();
 void planificador_corto_plazo();
-void planificador_largo_plazo();
+void planificador_de_largo_plazo();
 
 #endif

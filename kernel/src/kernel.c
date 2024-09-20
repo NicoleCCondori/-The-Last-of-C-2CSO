@@ -10,11 +10,11 @@ int main(int argc, char* argv[]) {
 
  //./bin/kernel [archivo_pseudocodigo] [tamanio_proceso] [...args]
 
-    char* archivo_pseudocodigo = argv[1];
-	int tamanio_proceso = atoi(argv[2]);
+    archivo_pseudocodigo_main = argv[1];
+	tamanio_proceso_main = atoi(argv[2]);
 
-	printf("Archivo pseudocodigo: %s\n", archivo_pseudocodigo);
-    printf("Tamaño proceso: %d\n", tamanio_proceso);
+	printf("Archivo pseudocodigo: %s\n", archivo_pseudocodigo_main);
+    printf("Tamaño proceso: %d\n", tamanio_proceso_main);
 
     inicializar_kernel();
 
@@ -29,8 +29,9 @@ int main(int argc, char* argv[]) {
     cola_exit = queue_create();
     
 
-
-    iniciar_proceso(archivo_pseudocodigo,tamanio_proceso);
+    planificador_largoPlazo();
+    planificador_cortoPlazo();
+    //iniciar_proceso(archivo_pseudocodigo,tamanio_proceso);
 
     //liberar los logs y config
  
