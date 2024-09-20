@@ -38,6 +38,9 @@ extern t_queue* cola_ready;
 extern t_queue* cola_blocked;
 extern t_queue* cola_exit;
 
+//Listas
+extern t_list* lista_procesos;
+
 void inicializar_kernel();
 void configurar_kernel();
 void iniciar_proceso(char* archivo_pseudocodigo,int tamanio_proceso);
@@ -51,5 +54,10 @@ void conectar_memoria();
 void kernel_escucha_cpu_dispatch();
 void kernel_escucha_cpu_interrupt();
 void kernel_escucha_memoria();
+
+void planificador_cortoPlazo();
+void planificador_largoPlazo();
+void planificador_corto_plazo();
+void planificador_largo_plazo();
 
 #endif

@@ -11,15 +11,17 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <commons/collections/list.h>
-#include<string.h>
+#include <string.h>
 #include <assert.h>
 #include <pthread.h>
 #include <signal.h>
 #include <commons/collections/queue.h>
+#include <semaphore.h>
 
 typedef enum
 {
 	MENSAJE,
+	ASIGNAR_MEMORIA,
 	PAQUETE
 	
 }op_code;
@@ -34,6 +36,7 @@ typedef enum{
 typedef struct
 {
 	int size;
+	uint32_t offset;
 	void* stream;
 } t_buffer;
 
@@ -42,6 +45,7 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+
 typedef struct
 {
 	uint32_t AX;
