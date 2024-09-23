@@ -5,7 +5,7 @@
 
 char* instruccionActual;
 char* operacionAux;
-
+uint32_t programCounterCpu;
 // Struc para dividir la instruccion
 typedef struct 
 {
@@ -14,7 +14,9 @@ typedef struct
 	char* operando2;
 
 }t_instruccion;
-
+/* Podriamos utilizar listas con un vector en su interior para segmentar la linea
+	stru
+*/
 
 typedef struct{
 	t_config* config;

@@ -29,15 +29,9 @@ t_instruccion* decode(char* instruccion){
     instruccionDecodificada -> operando2 = strtok(NULL," ");
     return instruccionDecodificada;
 }
+void MMU(){
 
-void execute(t_instruccion* instruccionA,int fd_memoria){
-    
 }
-
-
-
-
-
 
 int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
     int flags= (send(fd_memoria,&PC,sizeof(uint32_t),0));
@@ -122,17 +116,37 @@ uint32_t mmu(char* direccionLogica, int tamValor){
 */
 
 
-void execute(char* instruccion){
+void execute(t_instruccion* instruccion){
+    if(strcmp(instruccion->operacion,"SET")==0)
+    {
+        set_registro(instruccion->operando1,instruccion->operando2);
+    }
+    else if(strcmp(instruccion->operacion,"SUM")==0){
+        sum_registro(instruccion->operando1,instruccion->operando2);
+    }
+    else if (strcmp(instruccion->operacion,"SUB")==0)
+    {
+        sub_registro(instruccion->operando1,instruccion->operando2);
+    }
+    else if(strcmp(instruccion->operacion,"JNZ")==0)
+    {
+        jnz_registro(instruccion->operando1,instruccion->operando2);
+    }
+    else if(strcmp())
+
+    else{
+        log_error(cpu_logger,"INSTRUCCION DESCONOCIDA %s",instruccion->operacion);
+    }
+    
 
 }
 void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
     
     cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU");
-   
+
     configurar_cpu();
 }
-
 void configurar_cpu(){
 
     valores_config_cpu = malloc(sizeof(t_config_cpu));
@@ -254,5 +268,111 @@ void escuchar_kernel_interrupt(){
 			break;
 		}
 	}
+}
+///////////////////////////////////////
+
+void set_registro(char* registro,char* valor){
+    uint32_t aux = atoi(valor);
+
+    uint32_t* reg=obtenerRegistro(registro);
+    if(reg!=NULL){
+        *reg = aux
+    }
+
+}
+
+read_mem(registro datos, registro dirreccion){
+    
+}
+
+write_mem(registro dirreccion, registro datos){
+    
+}
+
+void sum_registro(char* destino, char* origen){
+    uint32_t* reg_des=obtenerRegistro(destino);
+    uin32_t* reg_ori=obtenerRegistro(origen);
+    if(reg_des!=NULL && reg_ori!=NULL){
+        *reg_des+=*reg_orig;
+    }
+}
+
+sub_registro(char* destino, char* origen){
+    destino -= origen;
+}
+
+jnz_registro(char* registro, char* instrucción){
+    if(registro != 0){
+        programCounterCpu = instrucción;
+    }
+}
+
+log_registro(char* registro){
+    log_info(cpu_logger,);
+}
+uint32_t obtenerRegistro(char* registro){
+    if(strcmp(registro,"AX")==0){
+       return RegistrosCPU->AX 
+    }
+    else if (strcmp(registro,"BX")==0){
+       return RegistrosCPU->BX 
+    }
+    else if(strcmp(registro,"CX")==0){
+        return RegistrosCPU->CX 
+    }
+     else if(strcmp(registro,"DX")==0){
+        return RegistrosCPU->DX
+    }
+    else if(strcmp(registro,"EX")==0){
+       return  RegistrosCPU->EX 
+    }
+    else if(strcmp(registro,"FX")==0){
+        return RegistrosCPU->FX 
+    }
+    else if(strcmp(registro,"GX")==0){
+       return RegistrosCPU->GX
+    }
+    else if(strcmp(registro,"HX")==0){
+        return RegistrosCPU->HX 
+    }
+    else{
+        log_error(cpu_logger,"Registro desconocido %s",registro);
+        return NULL
+    }
+}
+
+/////////// System Calls //////////
+void DUMP_MEMORY{
+    
+}
+void IO (Tiempo){
+    
+}
+void PROCESS_CREATE (Archivo de instrucciones, Tamaño, Prioridad del TID 0){
+    
+}
+void THREAD_CREATE (Archivo de instrucciones, Prioridad){
+    
+}
+void THREAD_JOIN (TID){
+    
+}
+void THREAD_CANCEL (TID){
+    
+}
+void MUTEX_CREATE (Recurso){
+    
+}
+void MUTEX_LOCK (Recurso){
+    
+}
+void MUTEX_UNLOCK (Recurso){
+    
+}
+void THREAD_EXIT{
+    
+}
+void PROCESS_EXIT{
+    
 }
 
