@@ -49,7 +49,7 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 {
 	int result;
 
-	send(fd_servidor, &handshake, sizeof(int32_t), 0);
+	send(fd_servidor, &handshake, sizeof(int32_t), 0); //tira error cuando conectamos kernel ---> falta liberar sockets?
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)
@@ -234,12 +234,14 @@ void finalizar_conexiones(int num_sockets, ...) {
   va_end(args);
 }*/
 
-void finalizar_modulo(t_log* logger, t_config* config){
+void finalizar_modulo(t_log* logger,t_log* logger_obligatorio, t_config* config){
 	
 	if (logger) {
 		log_destroy(logger);
 	}
-
+	if (logger_obligatorio){
+		log_destroy(logger_obligatorio);
+	}
 	if (config){
 		config_destroy(config);
 	}

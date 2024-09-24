@@ -1,31 +1,18 @@
-#include <memoria.h>
+#include <m_conexiones.h>
 
-int main(int argc, char* argv[]) {
-    
-    inicializar_memoria();
+t_log* memoria_logger;
+t_log* memoria_log_obligatorios;
 
-    conectar_con_FS();
-    
-    fd_memoria= iniciar_servidor(valores_config_memoria->puerto_escucha ,memoria_logger,"MEMORIA");
-    log_info(memoria_logger, "MEMORIA lista para recibir clientes");
+t_config_memoria* valores_config_memoria;
 
-    conectar_cpu();
+int fd_memoria;
+int fd_FS;
+int fd_cpu;
+int fd_kernel;
 
-    conectar_kernel();
-
-    //liberar los logs y config
-
-    finalizar_modulo(memoria_logger,memoria_log_obligatorios,valores_config_memoria->config);
-    free(valores_config_memoria);
-    //finalizar las conexiones
-    close(fd_memoria);
-    close(fd_FS);
-    close(fd_kernel);
-    close(fd_cpu);
-
-
-    return 0;
-}
+pthread_t hilo_FS;
+pthread_t hilo_cpu;
+pthread_t hilo_kernel;
 
 void inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","log_MEMORIA");
@@ -50,6 +37,9 @@ void configurar_memoria(){
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
     /**valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");*/
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
+
+     printf("dsp %s \n",valores_config_memoria->puerto_escucha);
+
 }
 
 void conectar_con_FS(){
@@ -71,7 +61,7 @@ void conectar_cpu(){
     handshakeServer(fd_cpu);
 
     //se crea un hilo para escuchar mensajes de CPU
-    pthread_create(&hilo_cpu, NULL, (void*)memoria_escucha_cpu, NULL);
+    pthread_create(&hilo_cpu, NULL, (void*)escuchar_cpu, NULL);
     pthread_detach(hilo_cpu);
 }
 
@@ -82,11 +72,11 @@ void conectar_kernel(){
 	handshakeServer(fd_kernel);
 
     //se crea un hilo para escuchar mensajes de kernel // ->>>> cambiar como multihilo
-    pthread_create(&hilo_kernel,NULL,(void*)memoria_escucha_kernel,NULL);
+    pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);
     pthread_join(hilo_kernel,NULL);
 }
-
-void memoria_escucha_cpu(){
+/*
+void escuchar_cpu(){
     bool control_key=1;
    while (control_key)
 	{
@@ -109,7 +99,7 @@ void memoria_escucha_cpu(){
 	}	
 } 
 
-void memoria_escucha_kernel(){
+void escuchar_kernel(){
     bool control_key=1;
     while (control_key)
 	{
@@ -154,3 +144,4 @@ void memoria_escucha_FS(){
 		}
 	}
 }
+*/

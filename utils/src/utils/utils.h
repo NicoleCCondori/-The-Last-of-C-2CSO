@@ -33,7 +33,32 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+typedef struct
+{
+	uint32_t AX;
+	uint32_t BX;
+	uint32_t CX;
+	uint32_t DX;
+	uint32_t EX;
+	uint32_t FX;
+	uint32_t GX;
+	uint32_t HX;
+} RegistrosCPU;
+typedef struct
 
+{
+	uint32_t pid; //Identificador del proceso
+	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
+	RegistrosCPU* registro;
+	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+} PCB;
+
+typedef struct 
+{
+	uint32_t tid;
+	int prioridad;//0 maxima prioridad
+} TCB;
 
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
@@ -48,7 +73,7 @@ void handshakeServer(int fd_client);
 //Globales
 t_log *iniciar_logger(char *path_log, char *nombre_log);
 t_config* iniciar_configs(char* path_config);
-void finalizar_modulo(t_log* logger, t_config* config);
+void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
 void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
 t_list* recibir_paquete(int socket_cliente);

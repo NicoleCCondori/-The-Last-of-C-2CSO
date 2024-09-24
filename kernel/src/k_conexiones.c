@@ -1,29 +1,15 @@
-#include <kernel.h>
-#include <commons/log.h>
-#include <kernel.h>
+#include <k_conexiones.h>
 
-int main(int argc, char* argv[]) {
-    //saludar("kernel");
-    inicializar_kernel();
+t_log* kernel_logger=NULL;
+t_log* kernel_logs_obligatorios;
+t_config_kernel* valores_config_kernel;
+int fd_cpu_dispatch;
+int fd_cpu_interrupt;
+int fd_memoria;
 
-    conectar_cpu_dispatch();
-    conectar_cpu_interrupt();
-    conectar_memoria();
-    
-    //liberar los logs y config
- 
-    finalizar_modulo(kernel_logger, kernel_logs_obligatorios,valores_config_kernel->config);
-    free(valores_config_kernel);
-    
-    //finalizar las conexiones
-    close(fd_cpu_dispatch);
-    close(fd_cpu_interrupt);
-    close(fd_memoria);
-
-
-    return 0;
-}
-
+pthread_t hilo_cpu_dispatch;
+pthread_t hilo_cpu_interrupt;
+pthread_t hilo_memoria;
 
 void inicializar_kernel(){
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
@@ -55,6 +41,7 @@ void configurar_kernel() {
 	//free(config);
 }
 
+
 //Revisar mas adelante
 void conectar_cpu_dispatch(){
     //Cliente KERNEL a CPU-dispatch
@@ -65,6 +52,7 @@ void conectar_cpu_dispatch(){
     pthread_create(&hilo_cpu_dispatch, NULL, (void*)kernel_escucha_cpu_dispatch,NULL);
     pthread_detach(hilo_cpu_dispatch);
 }
+
 void conectar_cpu_interrupt(){
     //Cliente KERNEL a CPU-interrupt
 	fd_cpu_interrupt = crear_conexion(valores_config_kernel->ip_cpu, valores_config_kernel->puerto_cpu_interrupt, "CPU - Interrupt",kernel_logger);
@@ -74,6 +62,7 @@ void conectar_cpu_interrupt(){
     pthread_create(&hilo_cpu_interrupt, NULL, (void*)kernel_escucha_cpu_interrupt,NULL);
     pthread_detach(hilo_cpu_interrupt);
 }
+
 void conectar_memoria(){
     //cliente KERNEL - MEMORIA
     fd_memoria = crear_conexion(valores_config_kernel->ip_cpu,valores_config_kernel->puerto_memoria,"MEMORIA",kernel_logger);
@@ -83,7 +72,7 @@ void conectar_memoria(){
     pthread_create(&hilo_memoria, NULL, (void*)kernel_escucha_memoria,NULL);
     pthread_join(hilo_memoria,NULL);
 }
-
+/*
 void kernel_escucha_memoria(){
     //atender los msjs de memoria
     bool control_key = 1;
@@ -152,5 +141,4 @@ void kernel_escucha_cpu_interrupt(){
 		}
 	}
 	//close(fd_cpu_interrupt); //liberar_conexion(fd_cpu_interrupt);
-}
-
+}*/
