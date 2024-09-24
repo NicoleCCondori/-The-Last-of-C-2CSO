@@ -44,9 +44,6 @@ void configurar_memoria(){
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
     /**valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");*/
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
-
-     printf("dsp %s \n",valores_config_memoria->puerto_escucha);
-
 }
 
 void conectar_con_FS(){
