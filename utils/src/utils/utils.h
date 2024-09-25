@@ -7,24 +7,36 @@
 #include<commons/log.h>
 #include<commons/config.h>
 
-#include<sys/socket.h>
-#include<unistd.h>
-#include<netdb.h>
-#include<commons/collections/list.h>
-#include<string.h>
-#include<assert.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <commons/collections/list.h>
+#include <string.h>
+#include <assert.h>
 #include <pthread.h>
-#include<signal.h>
+#include <signal.h>
+#include <commons/collections/queue.h>
+#include <semaphore.h>
 
 typedef enum
 {
 	MENSAJE,
+	ASIGNAR_MEMORIA,
 	PAQUETE
+	
 }op_code;
 
+typedef enum{
+	NEW,
+	BLOCKED,
+	READY,
+	EXIT,
+	EXEC
+} estado_proceso_hilo;
 typedef struct
 {
 	int size;
+	uint32_t offset;
 	void* stream;
 } t_buffer;
 
@@ -33,6 +45,7 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+
 typedef struct
 {
 	uint32_t AX;
@@ -44,20 +57,24 @@ typedef struct
 	uint32_t GX;
 	uint32_t HX;
 } RegistrosCPU;
-typedef struct
 
+typedef struct 
 {
 	uint32_t pid; //Identificador del proceso
 	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
-	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
-	RegistrosCPU* registro;
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
 	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
+	int tam_proceso;
 } PCB;
 
 typedef struct 
 {
-	uint32_t tid;
+	uint32_t pid; //Identificador del proceso al que pertenece
+	uint32_t tid; //Identificador del hilo
 	int prioridad;//0 maxima prioridad
+	RegistrosCPU* registro;
+	
 } TCB;
 
 //Funciones para cliente
