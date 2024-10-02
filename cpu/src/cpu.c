@@ -29,9 +29,23 @@ t_instruccion* decode(char* instruccion){
     instruccionDecodificada -> operando2 = strtok(NULL," ");
     return instruccionDecodificada;
 }
-void MMU(){
-
+void inicializar_particion_de_memoria(uint32_t base,uint32_t limite){
+    parteActual.base=base;
+    parteActual.limite=limite;
+    log_info(cpu_logger,"Particion de memoria inicializada: Base=%d , Limite=%d",base,limite)
 }
+uint32_t MMU(uint32_t direccion_logica){
+    uint32_t direccion_fisica=parteActual.base+ direccion_logica;
+
+    if(direccion_fisica>parteActual.base+ parteActual.limite){
+        log_error(cpu_logger,"Segmentation Fault: Direccion %d fuera de los limites",direccion_logica);
+        //notificar a kernel;
+        exit(EXIT_FAILURE);
+    }
+    return direccion_fisica;
+}
+
+
 
 int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
     int flags= (send(fd_memoria,&PC,sizeof(uint32_t),0));
@@ -119,23 +133,42 @@ uint32_t mmu(char* direccionLogica, int tamValor){
 void execute(t_instruccion* instruccion){
     if(strcmp(instruccion->operacion,"SET")==0)
     {
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
         set_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"SUM")==0){
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+
         sum_registro(instruccion->operando1,instruccion->operando2);
     }
     else if (strcmp(instruccion->operacion,"SUB")==0)
     {
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
         sub_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"JNZ")==0)
     {
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+
         jnz_registro(instruccion->operando1,instruccion->operando2);
     }
-    else if(strcmp())
+    else if(strcmp(instruccion->operacion,"LOG")==0)
+    {
+        log_registro(instruccion->operando1);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+    }
+    else if(strcmp(instruccion->operacion,"WRITE_MEM")==0){
+        write_mem(instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+    }
+    else if(strcmp(instruccion->operacion,"READ_MEM")==0){
+        read_mem(instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+    }
 
     else{
         log_error(cpu_logger,"INSTRUCCION DESCONOCIDA %s",instruccion->operacion);
+        
     }
     
 
@@ -281,12 +314,51 @@ void set_registro(char* registro,char* valor){
 
 }
 
-read_mem(registro datos, registro dirreccion){
-    
+void read_mem(char* datos, char* direccion){
+    uint32_t* reg_datos = obtenerRegistro(datos);
+    uint32_t* reg_dirreccion = obtenerRegistro(dirreccion);
+    if(datos != NULL && dirreccion != NULL){
+        uint32_t direccion_fisica = MMU(*reg_dirreccion);
+        *reg_datos = leer_desde_memoria(fd_memoria,direccion_fisica)
+    }
+}
+void leer_desde_memoria(int fd_memoria,uint32_t direccion_fisica){
+    uint32_t dato;
+    int resultado_envio = send(fd_memoria, &direccion_fisica, sizeof(uint32_t));
+    if(resultado_envio == -1){
+        log_error(cpu_logger,"Errror al enviar direccion de lectura a memoria");
+        exit(EXIT_FAILURE)
+    }
+    int bytes_recibidos =recv(fd_memoria, &dato,sizeof(uint32_t),0);
+    if (bytes_recibidos <= 0){
+        log_error(cpu_logger,"Error al recibir dato desde memoria");
+        exit(EXIT_FAILURE);
+    }
+    log_info(cpu_logger,"## TID: <TID> - Acción: <LEER > - Dirección Física: <DIRECCION_FISICA>")
+    return dato;
 }
 
-write_mem(registro dirreccion, registro datos){
-    
+void write_mem(char* registro_direccion, char* registro_datos){
+    uint32_t* reg_direccion=obtenerRegistro(registro_direccion);
+    uint32_t* reg_datos=obtenerRegistro(registro_datos);
+    if(reg_direccion!= NULL && reg_datos!= NULL){
+        uint32_t direccion_fisica=MMU(*reg_direccion);
+
+        escribir_en_memoria(fd_memoria,direccion_fisica,*reg_datos);
+
+    }
+}
+void escribir_en_memoria(int fd_memoria,uint32_t direccion_fisica,uint32_t dato){
+    uint32_t buffer[2];
+    buffer[0]=direccion_fisica;
+    buffer[1]=dato;
+
+    int resultado_envio=send(fd_memoria,buffer,sizeof(buffer),0);
+    if(resultado_envio==-1){
+        log_error(cpu_logger,"Error al enviar datos de escritura a memoria");
+        exit(EXIT_FAILURE);
+    }
+    log_info(cpu_logger,"## TID: %d - Accion: Escribir - Dirrecion Fisica;%d",tid,direccion_fisica);
 }
 
 void sum_registro(char* destino, char* origen){

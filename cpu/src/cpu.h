@@ -14,6 +14,16 @@ typedef struct
 	char* operando2;
 
 }t_instruccion;
+
+
+typedef struct 
+{
+	uint32_t base;
+	uint32_t limite;
+}particionMemoria;
+
+particionMemoria parteActual;
+
 /* Podriamos utilizar listas con un vector en su interior para segmentar la linea
 	stru
 */
