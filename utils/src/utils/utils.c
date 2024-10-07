@@ -49,11 +49,11 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 {
 	int result;
 
-<<<<<<< HEAD
+// <<<<<<< HEAD
 	send(fd_servidor, &handshake, sizeof(int32_t), 0);
-=======
+// =======
 	send(fd_servidor, &handshake, sizeof(int32_t), 0); //tira error cuando conectamos kernel ---> falta liberar sockets?
->>>>>>> check1V2
+// >>>>>>> check1V2
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)
@@ -168,10 +168,10 @@ t_log *iniciar_logger(char *path_log, char *nombre_log)
 		//printf("Error al crear %s\n",nombre_log);
        	exit(2);
 	};
-<<<<<<< HEAD
-=======
+//<<<<<<< HEAD
+//=======
 	log_info(nuevo_logger, "Se creo exitosamente, %s\n",nombre_log);
->>>>>>> check1V2
+//>>>>>>> check1V2
 	return nuevo_logger;
 }
 
@@ -186,3 +186,43 @@ t_config* iniciar_configs(char* path_config)
     }
     return nuevo_config;
 }
+//////////////////////////////////////////////
+typedef struct
+{
+	uint32_t AX;
+	uint32_t BX;
+	uint32_t CX;
+	uint32_t DX;
+	uint32_t EX;
+	uint32_t FX;
+	uint32_t GX;
+	uint32_t HX;
+} RegistrosCPU;
+
+typedef enum{
+	NEW,
+	BLOCKED,
+	READY,
+	EXIT,
+	EXEC
+} estado_proceso_hilo;
+
+typedef struct 
+{
+	uint32_t pid; //Identificador del proceso
+	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
+	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
+	int tam_proceso;
+} PCB;
+
+typedef struct 
+{
+	uint32_t pid; //Identificador del proceso al que pertenece
+	uint32_t tid; //Identificador del hilo
+	int prioridad;//0 maxima prioridad
+	RegistrosCPU* registro;
+	
+} TCB;
+

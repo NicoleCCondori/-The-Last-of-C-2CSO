@@ -16,7 +16,7 @@ void ciclo_de_instruccion(){
     fetch(); //Actualizamos la instruccionActual que se  esta trabajando  check
     t_instruccion* instruccionDecodificada = decode(instruccionActual); //Verificar lectura de la instruccion
     execute(instruccionDecodificada);
-    check_interrupt();
+    //check_interrupt();
 
 
 }
@@ -32,7 +32,7 @@ t_instruccion* decode(char* instruccion){
 void inicializar_particion_de_memoria(uint32_t base,uint32_t limite){
     parteActual.base=base;
     parteActual.limite=limite;
-    log_info(cpu_logger,"Particion de memoria inicializada: Base=%d , Limite=%d",base,limite)
+    log_info(cpu_logger,"Particion de memoria inicializada: Base=%d , Limite=%d",base,limite);
 }
 uint32_t MMU(uint32_t direccion_logica){
     uint32_t direccion_fisica=parteActual.base+ direccion_logica;
@@ -57,7 +57,7 @@ int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
     return 0;
 }
 
-char* recibir_instruccion_de_memoria(fd_memoria){
+char* recibir_instruccion_de_memoria(int fd_memoria){
     char* instruccion=malloc(128);//Buffer para recibir instruccion, suponemos el tamanio maximo de la instruccion
     memset(instruccion,0,128);// utilizo memset para evitar datos basura
 
@@ -75,16 +75,16 @@ char* recibir_instruccion_de_memoria(fd_memoria){
 void fetch(){
 
     // int fd_memoria   uint32_t tid,uint32_t* PC
-    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tid,*PC);
+    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",PCB->tid,PCB->pc);
     
-    enviar_pc_a_memoria(fd_memoria,PC);
+    enviar_pc_a_memoria(fd_memoria,PCB->pc);
     // Busca la nueva inscruccion
     instruccionActual =recibir_instruccion_de_memoria(fd_memoria);
     if(instruccionActual==NULL){
         log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
         exit(EXIT_FAILURE);
     }
-    log_info(cpu_logger,"Instruccion recibida: %s".instruccionActual);
+    log_info(cpu_logger,"Instruccion recibida: %s",instruccionActual);
 
 }
 /*
@@ -133,37 +133,37 @@ uint32_t mmu(char* direccionLogica, int tamValor){
 void execute(t_instruccion* instruccion){
     if(strcmp(instruccion->operacion,"SET")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
         set_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"SUM")==0){
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
 
         sum_registro(instruccion->operando1,instruccion->operando2);
     }
     else if (strcmp(instruccion->operacion,"SUB")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
         sub_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"JNZ")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
 
         jnz_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"LOG")==0)
     {
         log_registro(instruccion->operando1);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"WRITE_MEM")==0){
         write_mem(instruccion->operando1,instruccion->operando2);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"READ_MEM")==0){
         read_mem(instruccion->operando1,instruccion->operando2);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",TCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
     }
 
     else{
@@ -309,14 +309,14 @@ void set_registro(char* registro,char* valor){
 
     uint32_t* reg=obtenerRegistro(registro);
     if(reg!=NULL){
-        *reg = aux
+        *reg = aux;
     }
 
 }
 
 void read_mem(char* datos, char* direccion){
     uint32_t* reg_datos = obtenerRegistro(datos);
-    uint32_t* reg_dirreccion = obtenerRegistro(dirreccion);
+    uint32_t* reg_dirreccion = obtenerRegistro(direccion);
     if(datos != NULL && dirreccion != NULL){
         uint32_t direccion_fisica = MMU(*reg_dirreccion);
         *reg_datos = leer_desde_memoria(fd_memoria,direccion_fisica)
@@ -369,17 +369,17 @@ void sum_registro(char* destino, char* origen){
     }
 }
 
-sub_registro(char* destino, char* origen){
+void sub_registro(char* destino, char* origen){
     destino -= origen;
 }
 
-jnz_registro(char* registro, char* instrucción){
+void jnz_registro(char* registro, char* instrucción){
     if(registro != 0){
         programCounterCpu = instrucción;
     }
 }
 
-log_registro(char* registro){
+void log_registro(char* registro){
     log_info(cpu_logger,);
 }
 uint32_t obtenerRegistro(char* registro){

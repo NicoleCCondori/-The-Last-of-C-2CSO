@@ -69,4 +69,37 @@ void cpu_escucha_memoria();
 void escuchar_kernel_dispatch();
 void escuchar_kernel_interrupt();
 
+void ciclo_de_instruccion();
+void fetch();
+t_instruccion* decode(char*);
+void execute(t_instruccion*);
+uint32_t MMU(uint32_t);
+//void check_interrupt();
+
+void inicializar_particion_de_memoria(uint32_t, uint32_t);
+int enviar_pc_a_memoria(int, uint32_t);
+
+
+
+
+
+
+
+
+
+
+
+
+int enviar_pc_a_memoria(int ,uint32_t );
+char* recibir_instruccion_de_memoria(int);
+void set_registro(char* ,char* );
+void read_mem(char* , char* );
+void leer_desde_memoria(int ,uint32_t );
+void write_mem(char* , char* );
+void escribir_en_memoria(int ,uint32_t ,uint32_t );
+void sum_registro(char* , char* );
+void sub_registro(char* , char* );
+void jnz_registro(char* , char* );
+void log_registro(char* );
+uint32_t obtenerRegistro(char* );
 #endif

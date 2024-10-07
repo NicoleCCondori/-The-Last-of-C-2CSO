@@ -14,10 +14,10 @@
 #include<string.h>
 #include<assert.h>
 #include <pthread.h>
-<<<<<<< HEAD
+//<<<<<<< HEAD
 
-=======
->>>>>>> check1V2
+//=======
+//>>>>>>> check1V2
 #include<signal.h>
 
 typedef enum
