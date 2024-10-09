@@ -27,6 +27,39 @@ t_instruccion* decode(char* instruccion){
     instruccionDecodificada -> operacion = strtok(instruccion," ");
     instruccionDecodificada -> operando1 = strtok(NULL," ");
     instruccionDecodificada -> operando2 = strtok(NULL," ");
+    //inicializo variables
+    instruccionDecodificada->es_syscall=false;
+    instruccionDecodificada->archivo=NULL;
+    instruccionDecodificada->tamanio=0;
+    instruccionDecodificada->prioridad=0;
+    instruccionDecodificada->tiempo=0;
+    instruccionDecodificada->recurso=0;
+    instruccionDecodificada->tid=0;
+    if(strcmp(instruccionDecodificada->operacion,"PROCESS_CREATE")==0 ||
+    strcmp(    instruccionDecodificada->operacion,"TRHEAD_CREATE")==0)
+    {
+            instruccionDecodificada->es_syscall=true;
+            instruccionDecodificada->archivo=strtok(NULL," ");
+            instruccionDecodificada->tamanio=atoi(strtok(NULL," "));
+            instruccionDecodificada->prioridad=atoi(strtok(NULL," "));
+    }
+    else if(strcmp(instruccionDecodificada->operacion,"IO")==0)
+    {
+        instruccionDecodificada->es_syscall=true;
+        instruccionDecodificada->tiempo=atoi(instruccionDecodificada->operando1);
+    }
+    else if (strcmp(instruccionDecodificada->operacion,"MUTEX_CREATE")==0 ||
+    strcmp(    instruccionDecodificada->operacion,"MUTEX_LOCK")==0 ||
+    strcmp(instruccionDecodificada->operacion,"MUTEX_UNLOCK")==0){
+        instruccionDecodificada->es_syscall=true;
+        instruccionDecodificada->recurso=atoi(instruccionDecodificada->operando1);
+    }
+    else if(strcmp(instruccionDecodificada->operacion,"THREAD_JOIN")==0 ||
+    strcmp(    instruccionDecodificada->operacion,"TRHEAD_CANCEL")==0){
+        instruccionDecodificada->es_syscall=true;
+        instruccionDecodificada->tid=atoi(instruccionDecodificada->operando1);
+    }
+        
     return instruccionDecodificada;
 }
 void inicializar_particion_de_memoria(uint32_t base,uint32_t limite){
@@ -87,50 +120,16 @@ void fetch(){
     log_info(cpu_logger,"Instruccion recibida: %s",instruccionActual);
 
 }
-/*
-void fetch() { 
-    int numInstruccionABuscar = contextoEjecucion->programCounter;
-    instruccionAEjecutar = list_get(contextoEjecucion->instrucciones,numInstruccionABuscar); 
-    contextoEjecucion->programCounter += 1;
-}
 
-//////////////// "MMU" //////////
-uint32_t mmu(char* direccionLogica, int tamValor){
-    int dirFisica;
-    int dirLogica = atoi(direccionLogica);
-    int tamMaxSegmento = obtenerTamanioMaxSeg();
 
-    nroSegmento = floor(dirLogica/tamMaxSegmento);
-    uint32_t desplazamiento = dirLogica % tamMaxSegmento;
 
-    log_debug(logger, "nrosegmento: %d", nroSegmento);
-    log_debug(logger, "desplazamiento: %d", desplazamiento);
-    log_debug(logger, "tamvalor: %d", tamValor);
 
-    t_segmento* segmento = (t_segmento*)list_get(contextoEjecucion->tablaDeSegmentos, nroSegmento);
-    
-    uint32_t base = segmento->direccionBase;
-    
-    if((desplazamiento + tamValor) < (segmento->tamanio)){
-        dirFisica = base + desplazamiento;
-        return dirFisica;
+void execute(t_instruccion* instruccion,int fd_memoria,int fd_kernel,uint32_t* PC{
+    if(instruccion->es_syscall){
+        log_info(cpu_logger,"Ejecutando syscall: %s",instruccion->operacion);
+        execute_syscall(instruccion,fd_kernel);
+        return;
     }
-    
-    else{
-        log_info(logger, "PID: <%d> - Error SEG_FAULT - Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", contextoEjecucion->pid, nroSegmento, desplazamiento, tamValor);
-        char * terminado = string_duplicate ("SEG_FAULT");
-        destruirTemporizador(rafagaCPU);
-        modificarMotivoDesalojo (EXIT, 1, terminado, "", "");
-        enviarContextoActualizado(socketCliente);
-        contextoEjecucion->programCounter = contextoEjecucion->instruccionesLength;
-        free (terminado);
-        return UINT32_MAX; 
-    }
-}
-*/
-
-
-void execute(t_instruccion* instruccion){
     if(strcmp(instruccion->operacion,"SET")==0)
     {
         log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
@@ -170,139 +169,19 @@ void execute(t_instruccion* instruccion){
         log_error(cpu_logger,"INSTRUCCION DESCONOCIDA %s",instruccion->operacion);
         
     }
+    if(strcmp(instruccion->operacion,"JNZ")!=0){
+        (*PC)++;
+    }
     
 
 }
-void inicializar_cpu(){
-    cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
-    
-    cpu_logs_obligatorios = iniciar_logger(".//cpu_logs_obligatorios.log", "log_CPU");
-
-    configurar_cpu();
-}
-void configurar_cpu(){
-
-    valores_config_cpu = malloc(sizeof(t_config_cpu));
-    valores_config_cpu->config = iniciar_configs("src/cpu.config");
-
-    valores_config_cpu->ip_memoria = config_get_string_value(valores_config_cpu->config,"IP_MEMORIA");
-    valores_config_cpu->puerto_memoria = config_get_string_value (valores_config_cpu->config, "PUERTO_MEMORIA" );
-    valores_config_cpu->puerto_escucha_dispatch = config_get_string_value(valores_config_cpu->config, "PUERTO_ESCUCHA_DISPATCH");
-    valores_config_cpu->puerto_escucha_interrupt = config_get_string_value(valores_config_cpu->config, "PUERTO_ESCUCHA_INTERRUPT");
-    valores_config_cpu->log_level = config_get_string_value(valores_config_cpu->config, "LOG_LEVEL");
-
-    //valores_config_cpu = config;
-    printf("dsp %s \n",valores_config_cpu->ip_memoria); //se ASIGNA BIEN
-	//free(config);
-}
 
 
 
-void conectar_kernel_dispatch(){
-     //Servidor CPU - dispatch
-    fd_cpu_dispatch = iniciar_servidor(valores_config_cpu->puerto_escucha_dispatch, cpu_logger, "CPU - Dispatch");
-    
-    //espera la conexion del kernel
-    fd_kernel_dispatch = esperar_cliente(fd_cpu_dispatch, cpu_logger, "Kernel - dispatch");
-    handshakeServer(fd_kernel_dispatch);
-    //printf("fd_kernel: %d\n", fd_kernel_dispatch);
-
-    //se crea un hilo para escuchar msj de Kernel - dispatch
-    pthread_create(&hilo_kernel_dispatch, NULL, (void*)escuchar_kernel_dispatch, NULL);
-    pthread_detach(hilo_kernel_dispatch);
-}
-void conectar_kernel_interrupt(){
-    //Servidor CPU - interrupt
-    fd_cpu_interrupt = iniciar_servidor(valores_config_cpu->puerto_escucha_interrupt, cpu_logger, "CPU - Interrupt");
-
-    //espera la conexion del kernel
-    fd_kernel_interrupt = esperar_cliente(fd_cpu_interrupt, cpu_logger, "Kernel - Interrupt");
-    handshakeServer(fd_kernel_interrupt);
-    //printf("fd_kernel: %d\n", fd_kernel_interrupt);
-
-    //se crea un hilo para escuchar msj de Kernel - interrupt
-    pthread_create(&hilo_kernel_interrupt, NULL, (void*)escuchar_kernel_interrupt, NULL);
-    pthread_join(hilo_kernel_interrupt,NULL);
-}
-void conectar_memoria(){
-    //Conexion como cliente a MEMORIA
-    fd_memoria = crear_conexion(valores_config_cpu->ip_memoria,valores_config_cpu->puerto_memoria,"MEMORIA",cpu_logger);
-    handshakeClient(fd_memoria,1);
-    
-    //Hilo para enviar mensajes a memoria
-    pthread_create(&hilo_memoria,NULL,(void*)cpu_escucha_memoria,NULL);
-    pthread_detach(hilo_memoria);
-}
 
 
-void cpu_escucha_memoria(){
-    bool control_key = 1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_memoria);
-		switch (cod_op)
-		{
-		case MENSAJE:
-		
-		case PAQUETE:
-		
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de MEMORIA");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de MEMORIA");
-			break;
-		}
-	}
-}
-void escuchar_kernel_dispatch(){
-    //atender los msjs de kernel-dispatch
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_kernel_dispatch);
-		switch (cod_op)
-		{
-		case MENSAJE:
 
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de KERNEL - Dispatch");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de KERNEL -Interrupt");
-			break;
-		}
-	}    
-}
-
-
-void escuchar_kernel_interrupt(){
-    //atender los msjs de kernel-interrupt 
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_kernel_interrupt);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de KERNEL-Interrupt");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de KERNEL-Interrupt");
-			break;
-		}
-	}
-}
-///////////////////////////////////////
+///////////////////INSTRUCCIONES ////////////////////
 
 void set_registro(char* registro,char* valor){
     uint32_t aux = atoi(valor);
@@ -414,6 +293,20 @@ uint32_t obtenerRegistro(char* registro){
 }
 
 /////////// System Calls //////////
+bool esSysscall(char* instruccion){
+    const char* syscall[]={"DUMP_MEMORY","IO","PROCESS_CREATE","THREAD_CREATE","THREAD_JOIN","THREAD_JOIN",
+    "THREAH_CANCEL","MUTEX_CREATE","MUTEX_LOCK","MUTEX_UNLOCK","THREAD_EXIT","PROCESS_EXIT"};
+    for (int i = 0; syscall[i]!=NULL; i++)
+    {
+        if(strcmp(instruccion,syscall[i],strlen(syscall[i]))==0)
+        {
+            return true;
+        }
+        
+    }
+    return false;
+}
+
 void DUMP_MEMORY{
     
 }
@@ -448,3 +341,99 @@ void PROCESS_EXIT{
     
 }
 
+
+void execute_syscall(t_instruccion* instruccion, int fd_kernel) {
+    // Ejemplo para la syscall PROCESS_CREATE
+    if (strcmp(instruccion->operacion, "PROCESS_CREATE") == 0) {
+        log_info(cpu_logger, "Syscall: Creando proceso con archivo %s, tamanio %d, prioridad %d",
+                 instruccion->archivo, instruccion->tamanio, instruccion->prioridad);
+
+        // Aqui se envia la informacion al Kernel mediante el fd_kernel (simulando una interrupcion)
+        // Estructura o mensaje que contiene la informacion de la syscall
+        t_syscall_mensaje mensaje;
+        mensaje.operacion = PROCESS_CREATE;
+        mensaje.archivo = instruccion->archivo;
+        mensaje.tamanio = instruccion->tamanio;
+        mensaje.prioridad = instruccion->prioridad;
+
+        // Enviar mensaje al Kernel usando fd_kernel
+        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
+            log_error(cpu_logger, "Error enviando syscall a Kernel");
+        }
+    }
+    else if (strcmp(instruccion->operacion, "IO") == 0) {
+        log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
+
+        // Enviar mensaje de IO al Kernel
+        t_syscall_mensaje mensaje;
+        mensaje.operacion = IO;
+        mensaje.tiempo = instruccion->tiempo;
+
+        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
+            log_error(cpu_logger, "Error enviando syscall IO al Kernel");
+        }
+    }
+    /////////////////////////////////////////////
+    else if (strcmp(instruccion->operacion, "THREAD_JOIN") == 0) {
+        log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
+
+        // Enviar mensaje de IO al Kernel
+        t_syscall_mensaje mensaje;
+        mensaje.operacion = IO;
+        mensaje.tiempo = instruccion->tiempo;
+
+        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
+            log_error(cpu_logger, "Error enviando syscall IO al Kernel");
+        }
+    }
+    else if (strcmp(instruccion->operacion, "THREAD_CANCEL") == 0) {
+        log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
+
+        // Enviar mensaje de IO al Kernel
+        t_syscall_mensaje mensaje;
+        mensaje.operacion = IO;
+        mensaje.tiempo = instruccion->tiempo;
+
+        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
+            log_error(cpu_logger, "Error enviando syscall IO al Kernel");
+        }
+    }
+
+}
+
+void enviar_syscall_a_kernel(int fd_kernel, char* syscall, ...) {
+    // Preparar los datos para enviar (por ejemplo, usar una estructura para empaquetar la syscall)
+    va_list args;
+    va_start(args, syscall);
+
+    // Empaquetar los datos de la syscall
+    syscall_request_t request;
+    request.tipo = syscall;
+    // Dependiendo de la syscall, llenar los argumentos (ejemplo con PROCESS_CREATE)
+    if (strcmp(syscall, "PROCESS_CREATE") == 0) {
+        request.archivo = va_arg(args, char);
+        request.tamano = va_arg(args, char);
+        request.prioridad = va_arg(args, char*);
+    }
+
+    va_end(args);
+
+    // Enviar la syscall al Kernel
+    int resultado_envio = send(fd_kernel, &request, sizeof(syscall_request_t), 0);
+    if (resultado_envio == -1) {
+        log_error(cpu_logger, "Error al enviar syscall al Kernel");
+        exit(EXIT_FAILURE);
+    }
+
+    log_info(cpu_logger, "Syscall enviada al Kernel: %s", syscall);
+
+    // Pausar CPU y esperar respuesta del Kernel (usualmente esperar en un socket)
+    char respuesta[128];
+    int bytes_recibidos = recv(fd_kernel, respuesta, 128, 0);
+    if (bytes_recibidos <= 0) {
+        log_error(cpu_logger, "Error al recibir respuesta del Kernel");
+        exit(EXIT_FAILURE);
+    }
+
+    log_info(cpu_logger, "Respuesta del Kernel: %s", respuesta);
+}

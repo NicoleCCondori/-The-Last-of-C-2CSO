@@ -6,16 +6,33 @@
 char* instruccionActual;
 char* operacionAux;
 uint32_t programCounterCpu;
+
+
+typedef struct {
+    char* operacion;  // Nombre de la instrucción (SET, SUM, SUB, etc.)
+    char* operando1;  // Primer operando
+    char* operando2;  // Segundo operando
+    bool es_syscall;  // Indica si es una syscall o no
+
+    // Campos adicionales para syscalls
+    char* archivo;     // Nombre del archivo (para syscalls que lo requieran)
+    int tamanio;       // Tamaño (si aplica, por ejemplo, para CREATE o MEMORY)
+    int prioridad;     // Prioridad (para operaciones como PROCESS_CREATE)
+    int tiempo;        // Tiempo de IO (si es la syscall IO)
+    int recurso;       // Para MUTEX_CREATE, MUTEX_LOCK, etc.
+    int tid;           // Para syscalls que manejan TID, como THREAD_JOIN, THREAD_CANCEL
+} t_instruccion;
 // Struc para dividir la instruccion
-typedef struct 
-{
-	char* operacion;
-	char* operando1;
-	char* operando2;
 
-}t_instruccion;
-
-
+typedef struct{
+    char* operacion;
+    char* archivo;
+    int tamanio;
+    int prioridad;
+    int tiempo;
+    int recurso;
+    int tid;
+}t_syscall_mensaje;
 typedef struct 
 {
 	uint32_t base;
@@ -24,9 +41,7 @@ typedef struct
 
 particionMemoria parteActual;
 
-/* Podriamos utilizar listas con un vector en su interior para segmentar la linea
-	stru
-*/
+
 
 typedef struct{
 	t_config* config;
@@ -102,4 +117,9 @@ void sub_registro(char* , char* );
 void jnz_registro(char* , char* );
 void log_registro(char* );
 uint32_t obtenerRegistro(char* );
+
+void execute_syscall(char*, int);
+void enviar_syscall_a_kernel(int, char*, ...);
+
+
 #endif
