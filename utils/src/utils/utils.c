@@ -226,3 +226,96 @@ typedef struct
 	
 } TCB;
 
+////////////////////////////////////////////////////////
+
+void agregar_buffer_char* (t_buffer buffer,char)
+
+//PARA SERIALIZAR
+void agregar_buffer_int(t_buffer buffer, int entero){
+    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(int));
+    buffer->size += sizeof(int);
+    memcpy(buffer->stream + buffer->offset, &entero, sizeof(int));
+    buffer->offset += sizeof(int);
+}
+
+void agregar_buffer_Uint32(t_buffer buffer, uint32_t entero){
+    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t));
+    buffer->size += sizeof(uint32_t);
+    memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint32_t));
+    buffer->offset += sizeof(uint32_t);
+}
+
+void agregar_buffer_Uint8(t_buffer *buffer, uint8_t entero)
+{
+    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint8_t));
+    buffer->size += sizeof(uint8_t);
+    memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint8_t));
+    buffer->offset += sizeof(uint8_t);
+}
+
+void agregar_buffer_string(t_buffer* buffer, char* args){
+    uint32_t tamanio = strlen(args) +1;
+    agregar_buffer_Uint32(buffer, tamanio);
+
+    buffer->stream = realloc(buffer->stream, buffer->size + tamanio);
+    memcpy(buffer->stream + buffer->offset, args, tamanio);
+    buffer->offset += tamanio;
+    buffer->size += tamanio;
+}
+
+//PARA DESERIALIZAR
+uint32_t leer_buffer_int(t_buffer* buffer)
+{
+    int entero;
+    memcpy(&entero, buffer->stream + buffer->offset, sizeof(int));
+    buffer->offset += sizeof(int);
+    return entero;
+}
+
+uint32_t leer_buffer_Uint32(t_buffer* buffer)
+{
+    uint32_t entero;
+    memcpy(&entero, buffer->stream + buffer->offset, sizeof(uint32_t));
+    buffer->offset += sizeof(uint32_t);
+    return entero;
+}
+
+uint8_t leer_buffer_Uint8(t_buffer* buffer)
+{
+    uint8_t entero;
+    memcpy(&entero, buffer->stream + buffer->offset, sizeof(uint8_t));
+    buffer->offset += sizeof(uint8_t);
+    return entero;
+}
+
+char *leer_buffer_string(tipo_buffer* buffer)
+{
+    char *cadena;
+    uint32_t tamanio;
+
+    tamanio = leer_buffer_enteroUint32(buffer);
+    cadena = malloc((tamanio) + 1);
+    memcpy(cadena, buffer->stream + buffer->offset, tamanio);
+    buffer->offset += tamanio;
+
+    *(cadena + tamanio) = '\0';
+
+    return cadena;
+}
+
+
+void *serializar_paquete(t_paquete *paquete, int bytes){
+	void *magic = malloc(bytes); // Reserva memoria del tamaño del paquete completo
+	int offset = 0;
+
+	memcpy(magic + offset, &(paquete->codigo_operacion), sizeof(int));
+	offset += sizeof(int);
+
+	memcpy(magic + offset, &(paquete->buffer->size), sizeof(int));
+	offset += sizeof(int);
+
+	memcpy(magic + offset, paquete->buffer->stream, paquete->buffer->size);
+	offset += paquete->buffer->size;
+
+	return magic;
+}

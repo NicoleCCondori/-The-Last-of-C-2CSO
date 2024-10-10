@@ -14,6 +14,7 @@
 #include<string.h>
 #include<assert.h>
 #include <pthread.h>
+#include <semaphore.h>
 //<<<<<<< HEAD
 
 //=======

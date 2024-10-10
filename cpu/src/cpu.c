@@ -3,20 +3,31 @@
 int main(int argc, char* argv[]) {
 
     inicializar_cpu();
+    inicializar_semaforo_syscall();
+
 
     conectar_memoria();
     conectar_kernel_dispatch();
     conectar_kernel_interrupt();
+    while (true)
+    {
+        ciclo_de_instruccion();
+    }
+    
     
     //liberar los logs y config
+    destruir_semaforo_syscall();
     free(valores_config_cpu);
     return 0;
 }
 void ciclo_de_instruccion(){
-    fetch(); //Actualizamos la instruccionActual que se  esta trabajando  check
-    t_instruccion* instruccionDecodificada = decode(instruccionActual); //Verificar lectura de la instruccion
-    execute(instruccionDecodificada);
-    //check_interrupt();
+    //Obtenemos la insstruccion de memoria y la llamamos instruccion actual
+    fetch(); 
+    //INSTRUCCION ACTUAL ES LA INSTRUCCION QUE RECIBIMOS DE MEMORIA, LA CUAL DECODIFICADA Y GUARDA EN UNA NUEVA VARIABLE
+    t_instruccion* instruccionDecodificada = decode(instruccionActual); 
+    //Revisa si es syscall,de serlo envia la syscall a kernel, en caso de no serlo ejecuta segun sus operandos
+    execute(instruccionDecodificada,fd_memoria,fd_kernel_dispatch,PCB->PC);
+    check_interrupt();
 
 
 }
@@ -112,6 +123,7 @@ void fetch(){
     
     enviar_pc_a_memoria(fd_memoria,PCB->pc);
     // Busca la nueva inscruccion
+    log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",PCB->tid);
     instruccionActual =recibir_instruccion_de_memoria(fd_memoria);
     if(instruccionActual==NULL){
         log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
@@ -174,6 +186,35 @@ void execute(t_instruccion* instruccion,int fd_memoria,int fd_kernel,uint32_t* P
     }
     
 
+}
+
+void check_interrupt(t_instruccion instruc, int fd_kernel,int fd_memoria){
+    // Verificar el TID
+    
+
+
+
+
+
+    if (instruc->es_syscall == 1)
+    {
+        log_info(cpu_logger,"SE A DETECTADO UNA INTERRUPCION %s", instruc->operacion);
+        execute_syscall(instruc,fd_kernel);
+        //mandar señal a memoria
+        t_buffer buContexExecut;
+        buContexExecut.stream = NULL;
+        buContexExecut.size = 0;
+        buContexExecut.offset = 0;
+        agregar_buffer_string(&buContexExecut,instruc->operacion);
+        if(send(fd_memoria,buContexExecut.stream,buContexExecut.size,0)==-1){
+            log_error(cpu_logger, "Error enviando el buffer a memoria para el Contexto de Ejecucion");
+        }
+        free(buContexExecut.stream);
+
+    }else{
+        log_info(cpu_logger,"NO SE A DETECTADO UNA INTERRUPCION");
+        
+    }
 }
 
 
@@ -261,6 +302,7 @@ void jnz_registro(char* registro, char* instrucción){
 void log_registro(char* registro){
     log_info(cpu_logger,);
 }
+// OBTENGO EL REGISTRO COMPARANDO 
 uint32_t obtenerRegistro(char* registro){
     if(strcmp(registro,"AX")==0){
        return RegistrosCPU->AX 
@@ -293,147 +335,252 @@ uint32_t obtenerRegistro(char* registro){
 }
 
 /////////// System Calls //////////
-bool esSysscall(char* instruccion){
-    const char* syscall[]={"DUMP_MEMORY","IO","PROCESS_CREATE","THREAD_CREATE","THREAD_JOIN","THREAD_JOIN",
-    "THREAH_CANCEL","MUTEX_CREATE","MUTEX_LOCK","MUTEX_UNLOCK","THREAD_EXIT","PROCESS_EXIT"};
-    for (int i = 0; syscall[i]!=NULL; i++)
-    {
-        if(strcmp(instruccion,syscall[i],strlen(syscall[i]))==0)
-        {
-            return true;
-        }
-        
-    }
-    return false;
-}
 
-void DUMP_MEMORY{
-    
-}
-void IO (Tiempo){
-    
-}
-void PROCESS_CREATE (Archivo de instrucciones, Tamaño, Prioridad del TID 0){
-    
-}
-void THREAD_CREATE (Archivo de instrucciones, Prioridad){
-    
-}
-void THREAD_JOIN (TID){
-    
-}
-void THREAD_CANCEL (TID){
-    
-}
-void MUTEX_CREATE (Recurso){
-    
-}
-void MUTEX_LOCK (Recurso){
-    
-}
-void MUTEX_UNLOCK (Recurso){
-    
-}
-void THREAD_EXIT{
-    
-}
-void PROCESS_EXIT{
-    
-}
+//Primero compara a que Syscall corresponde y le manda el mensaje a kernel. Mensaje es serializado y empaquetado.
+void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
+    t_syscall_mensaje mensaje;
 
-
-void execute_syscall(t_instruccion* instruccion, int fd_kernel) {
-    // Ejemplo para la syscall PROCESS_CREATE
     if (strcmp(instruccion->operacion, "PROCESS_CREATE") == 0) {
         log_info(cpu_logger, "Syscall: Creando proceso con archivo %s, tamanio %d, prioridad %d",
-                 instruccion->archivo, instruccion->tamanio, instruccion->prioridad);
+        instruccion->archivo, instruccion->tamanio, instruccion->prioridad);
 
-        // Aqui se envia la informacion al Kernel mediante el fd_kernel (simulando una interrupcion)
-        // Estructura o mensaje que contiene la informacion de la syscall
-        t_syscall_mensaje mensaje;
-        mensaje.operacion = PROCESS_CREATE;
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.archivo_length=strlen(instruccion->archivo)+1;
         mensaje.archivo = instruccion->archivo;
         mensaje.tamanio = instruccion->tamanio;
         mensaje.prioridad = instruccion->prioridad;
 
-        // Enviar mensaje al Kernel usando fd_kernel
-        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
-            log_error(cpu_logger, "Error enviando syscall a Kernel");
-        }
+      enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+      sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
     }
     else if (strcmp(instruccion->operacion, "IO") == 0) {
         log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
 
         // Enviar mensaje de IO al Kernel
-        t_syscall_mensaje mensaje;
-        mensaje.operacion = IO;
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion
         mensaje.tiempo = instruccion->tiempo;
 
-        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
-            log_error(cpu_logger, "Error enviando syscall IO al Kernel");
-        }
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+
     }
-    /////////////////////////////////////////////
+    else if (strcmp(instruccion->operacion, "THREAD_CREATE") == 0) {
+        log_info(cpu_logger, "Syscall: Creando hilo con archivo %s, prioridad %d",
+        instruccion->archivo, instruccion->prioridad);
+
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.archivo = instruccion->archivo;
+        mensaje.prioridad = instruccion->prioridad;
+
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+
+     
+    }
     else if (strcmp(instruccion->operacion, "THREAD_JOIN") == 0) {
-        log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
+        log_info(cpu_logger, "Syscall: THREAD_JOIN a con tid: %d",instruccion->tid);
+            
 
-        // Enviar mensaje de IO al Kernel
-        t_syscall_mensaje mensaje;
-        mensaje.operacion = IO;
-        mensaje.tiempo = instruccion->tiempo;
+   
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.tid=instruccion->tid;
 
-        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
-            log_error(cpu_logger, "Error enviando syscall IO al Kernel");
-        }
+       
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
     }
     else if (strcmp(instruccion->operacion, "THREAD_CANCEL") == 0) {
-        log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
+       log_info(cpu_logger, "Syscall: THREAD_CANCEL con tid: %d",instruccion->tid);
 
-        // Enviar mensaje de IO al Kernel
-        t_syscall_mensaje mensaje;
-        mensaje.operacion = IO;
-        mensaje.tiempo = instruccion->tiempo;
 
-        if (send(fd_kernel, &mensaje, sizeof(mensaje), 0) < 0) {
-            log_error(cpu_logger, "Error enviando syscall IO al Kernel");
-        }
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.tid=instruccion->tid;
+
+
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+
+    }
+    else if (strcmp(instruccion->operacion, "MUTEX_CREATE") == 0) {
+         log_info(cpu_logger, "Syscall: MUTEX_CREATE con recurso: %d",instruccion->recurso);
+
+
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.recursoinstruccion->recurso;
+
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+               
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+    }
+    else if (strcmp(instruccion->operacion, "MUTEX_LOCK") == 0) {
+        log_info(cpu_logger, "Syscall: MUTEX_LOCK con recurso: %d",instruccion->recurso);
+
+
+      
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.recursoinstruccion->recurso;
+
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+    }
+    else if (strcmp(instruccion->operacion, "MUTEX_UNLOCK") == 0) {
+    log_info(cpu_logger, "Syscall: MUTEX_LOCK con recurso: %d",instruccion->recurso);
+
+
+      
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+        mensaje.recursoinstruccion->recurso;
+
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+    }
+    else if (strcmp(instruccion->operacion, "DUMP_MEMORY") == 0) {
+    log_info(cpu_logger, "SYSCALL: DUMP_MEMORY");
+
+
+      
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+ 
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+    }
+    else if (strcmp(instruccion->operacion, "THREAD_EXIT") == 0) {
+    log_info(cpu_logger, "SYSCALL: THREAD_EXIT");
+
+
+      
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+ 
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
+    }
+    else if (strcmp(instruccion->operacion, "PROCESS_EXIT") == 0) {
+    log_info(cpu_logger, "SYSCALL: PROCESS_EXIT");
+
+
+      
+        mensaje.operacion_length=strlen(instruccion->operacion)+1;
+        mensaje.operacion = instruccion->operacion;
+ 
+        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+        sem_wait(&sem_syscall);
+        recibir_respuesta_kernel(fd_kernel_interrupt);
+
+
     }
 
 }
+//SERIALIZO LAS SYSCALL
+char* serializar_syscall(t_syscall_mensaje* mensaje,int* bytes_serializados){
+   
+    int size_total=sizeof(uint32_t)*2
+    +sizeof(int)*5
+    +mensaje->operacion_length
+    +mensaje->archivo_length;
+    
+    char* buffer=malloc(size_total);
+    int offset=0;
+    
 
-void enviar_syscall_a_kernel(int fd_kernel, char* syscall, ...) {
-    // Preparar los datos para enviar (por ejemplo, usar una estructura para empaquetar la syscall)
-    va_list args;
-    va_start(args, syscall);
+    memcpy(stream + offset,&mensaje.tamanio,sizeof(int));
+    offset+=sizeof(int);
 
-    // Empaquetar los datos de la syscall
-    syscall_request_t request;
-    request.tipo = syscall;
-    // Dependiendo de la syscall, llenar los argumentos (ejemplo con PROCESS_CREATE)
-    if (strcmp(syscall, "PROCESS_CREATE") == 0) {
-        request.archivo = va_arg(args, char);
-        request.tamano = va_arg(args, char);
-        request.prioridad = va_arg(args, char*);
+    memcpy(stream + offset,&mensaje.prioridad,sizeof(int));
+    offset+=sizeof(int);
+
+    memcpy(stream + offset,&mensaje.tiempo,sizeof(int));
+    offset+=sizeof(int);
+
+    memcpy(stream + offset,&mensaje.recurso,sizeof(int));
+    offset+=sizeof(int);
+
+    memcpy(stream + offset,&mensaje.tid,sizeof(int));
+    offset+=sizeof(int);
+
+    memcpy(stream + offset,&(mensaje->operacion_length),sizeof(uint32_t));
+    buffer->offset+=sizeof(uint32_t);
+    
+    memcpy(stream + offset,&mensaje->operacion,mensaje->operacion_length);
+    offset+=mensaje->operacion_length;
+
+  
+    memcpy(stream + offset,(&mensaje->archivo_length),sizeof(uint32_t));
+    offset+=sizeof(uint32_t);
+    memcpy(stream + offset,&mensaje->archivo,mensaje->archivo_length);
+    offset+=mensaje.archivo_length;
+
+    *bytes_serializados=size_total;
+
+    return buffer;
+
+}
+//ENVIA
+void enviar_sysscall_a_kernel(t_syscall_mensaje* mensaje,int fd_kernel_interrupt){
+    int bytes_serializados;
+    char* buffer_serializado=serializar_syscall(mensaje,&bytes_serializados);
+
+    int bytes_enviados=send(fd_kernel_interrupt,buffer_serializado,bytes_serializados,0);
+
+    if(bytes_eviados<0){
+        log_error(cpu_logger,"Error enviando syscall al KERNEL");
+
+    }else{
+        log_info(cpu_logger,"SYSCALL enviada correctamente al kernel");
     }
 
-    va_end(args);
-
-    // Enviar la syscall al Kernel
-    int resultado_envio = send(fd_kernel, &request, sizeof(syscall_request_t), 0);
-    if (resultado_envio == -1) {
-        log_error(cpu_logger, "Error al enviar syscall al Kernel");
-        exit(EXIT_FAILURE);
-    }
-
-    log_info(cpu_logger, "Syscall enviada al Kernel: %s", syscall);
-
-    // Pausar CPU y esperar respuesta del Kernel (usualmente esperar en un socket)
-    char respuesta[128];
-    int bytes_recibidos = recv(fd_kernel, respuesta, 128, 0);
-    if (bytes_recibidos <= 0) {
-        log_error(cpu_logger, "Error al recibir respuesta del Kernel");
-        exit(EXIT_FAILURE);
-    }
-
-    log_info(cpu_logger, "Respuesta del Kernel: %s", respuesta);
+    free(buffer_serializado);
+}
+sem_t sem_syscall;
+void inicializar_semaforo_syscall(){
+    sem_init(&sem_syscall,0,0)
+}
+void recibir_respuesta_kernel(int fd_kernel_interrupt){
+    char respuesta[256];
+    int bytes_recibidos=recv(fd_kernel_interrupt,respuesta,sizeof(respuesta),0)
+    if (bytes_recibidos>0)
+    {
+        sem_post(&sem_syscall);
+    }   
+}
+void destruir_semaforo_syscall(){
+    sem_destroy(&sem_syscall);
 }

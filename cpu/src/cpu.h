@@ -24,8 +24,11 @@ typedef struct {
 } t_instruccion;
 // Struc para dividir la instruccion
 
+
 typedef struct{
+    uint32_t operacion_length;
     char* operacion;
+    uint32_t archivo_length;
     char* archivo;
     int tamanio;
     int prioridad;
@@ -70,6 +73,8 @@ pthread_t hilo_kernel_dispatch;
 pthread_t hilo_kernel_interrupt;
 pthread_t hilo_memoria;
 
+sem_t sem_syscall;
+
 
 
 
@@ -89,7 +94,7 @@ void fetch();
 t_instruccion* decode(char*);
 void execute(t_instruccion*);
 uint32_t MMU(uint32_t);
-//void check_interrupt();
+void check_interrupt();
 
 void inicializar_particion_de_memoria(uint32_t, uint32_t);
 int enviar_pc_a_memoria(int, uint32_t);
@@ -107,6 +112,8 @@ int enviar_pc_a_memoria(int, uint32_t);
 
 int enviar_pc_a_memoria(int ,uint32_t );
 char* recibir_instruccion_de_memoria(int);
+
+//EXECUTE EN CPU
 void set_registro(char* ,char* );
 void read_mem(char* , char* );
 void leer_desde_memoria(int ,uint32_t );
@@ -118,8 +125,12 @@ void jnz_registro(char* , char* );
 void log_registro(char* );
 uint32_t obtenerRegistro(char* );
 
-void execute_syscall(char*, int);
-void enviar_syscall_a_kernel(int, char*, ...);
+//Syscall
+void execute_syscall(t_instruccion* , int );
+char* serializar_syscall(t_syscall_mensaje* ,int* );
+void enviar_sysscall_a_kernel(t_syscall_mensaje* ,int );
+
+
 
 
 #endif
