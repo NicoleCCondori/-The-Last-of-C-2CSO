@@ -29,6 +29,8 @@ extern int fd_memoria;
 extern char* archivo_pseudocodigo_main;
 extern int tamanio_proceso_main;
 
+extern uint32_t pid;
+
 extern pthread_t hilo_cpu_dispatch;
 extern pthread_t hilo_cpu_interrupt;
 extern pthread_t hilo_memoria;
