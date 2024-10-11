@@ -471,7 +471,7 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
     }
     else if (strcmp(instruccion->operacion, "IO") == 0) {
@@ -486,7 +486,7 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
 
@@ -504,7 +504,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
 
@@ -524,7 +524,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
     }
     else if (strcmp(instruccion->operacion, "THREAD_CANCEL") == 0) {
@@ -539,7 +539,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
 
@@ -556,7 +556,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
@@ -573,7 +573,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
@@ -590,7 +590,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
@@ -606,7 +606,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
@@ -622,7 +622,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
@@ -638,7 +638,7 @@ t_paquete* paquete=serializar_syscall(%mensaje);
         paquete->codigo_operacion=PAQUETE;
         enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
-        recibir_respuesta_kernel(fd_kernel_interrupt);
+        recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
