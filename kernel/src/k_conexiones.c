@@ -9,7 +9,7 @@ int fd_memoria;
 char* archivo_pseudocodigo_main;
 int tamanio_proceso_main;
 
-uint32_t pid = 0;
+
 
 //uint32_t tid_main = 0;
 pthread_t hilo_cpu_dispatch;
@@ -20,11 +20,9 @@ t_queue* cola_new;
 t_queue* cola_exec;
 t_queue* cola_ready;
 t_queue* cola_blocked;
-t_queue* cola_exit;
 
 t_list* lista_procesos;
 
-sem_t sem_binario_memoria;
 
 void inicializar_kernel(){
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
@@ -54,123 +52,7 @@ void configurar_kernel() {
 
 	//free(config);
 }
-//Mandamos mensaje a memoria para saber si hay espacio disponible
-void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){//
-    int result;
 
-    //CReamos el buffer para pcb
-    t_buffer* buffer = malloc(sizeof(t_buffer)); //liberar
-    buffer->size = sizeof(uint32_t)
-                    + sizeof(int);
-    
-    buffer->offset = 0;
-    buffer->stream = malloc(buffer->size); //liberar
-
-    memcpy(buffer->stream + buffer->offset, &pid, sizeof(uint32_t));
-    buffer->offset += sizeof(uint32_t);
-    memcpy(buffer->stream + buffer->offset, &tam_proceso, sizeof(int));
-    buffer->offset += sizeof(int);
-
-    //llenar el paquete con el buffer
-    t_paquete* paquete = malloc(sizeof(t_paquete)); //liberar
-    paquete->codigo_operacion= ASIGNAR_MEMORIA;
-    paquete->buffer = buffer;
-
-    //Armamos el stream a enviar
-    void* a_enviar = malloc(buffer->size + sizeof(uint8_t)+sizeof(uint32_t));
-    int offset = 0;
-    memcpy(a_enviar + offset,&(paquete->codigo_operacion),sizeof(uint8_t));
-    offset+= sizeof(uint8_t);
-    memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
-    // Por último enviamos
-    send(fd_memoria, a_enviar, buffer->size + sizeof(uint8_t) + sizeof(uint32_t), 0);
-    //Obtenemos el resultado
-	recv(fd_memoria, &result, sizeof(int32_t), 0);
-	if (result == 0){
-        printf("Hay espacio en memoria\n");//debemos crear el espacio de memoria para el proceso?
-        //Hacer un signal del sem_binario_memoria
-        sem_post(&sem_binario_memoria);
-    } else
-		printf("No hay espacio en memoria\n");
-    
-    // No nos olvidamos de liberar la memoria que ya no usaremos
-    free(a_enviar);
-    free(paquete->buffer->stream);
-    free(paquete->buffer);
-    free(paquete);
-}
-//inicializar el hilo
-TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid){
-    
-    TCB* tcb = malloc(sizeof(TCB));
-    if(tcb == NULL){
-        printf("Error al crear TCB\n");
-    }
-    
-    tcb->tid = tid;
-    tcb->pid = pid;
-    tcb->prioridad = prioridad;
-    tcb->registro->AX = 0;
-    tcb->registro->BX = 0;
-    tcb->registro->CX = 0;
-    tcb->registro->DX = 0;
-    tcb->registro->EX = 0;
-    tcb->registro->FX = 0;
-    tcb->registro->GX = 0;
-    tcb->registro->HX = 0;
-
-    return tcb;
-}
-
-//Inicializar el primer proceso
-void iniciar_proceso(int tamanio_proceso){
-
-    PCB* pcb = malloc(sizeof(PCB));
-    if (pcb == NULL){
-        printf("Error al crear pcb\n");
-    }
-    
-    pid++;
-    pcb->pid = pid;
-    pcb->tid = list_create();
-    pcb->mutex = list_create();
-    pcb->pc = 0;
-    pcb->tam_proceso = tamanio_proceso;
-    pcb->estado = NEW;
-    
-    //Planificador de Largo Plazo -> Creación de procesos
-    //agregar proceso a cola de NEW 
-    queue_push(cola_new,pcb);
-    //agregar a la lista de procesos al proceso
-    list_add(lista_procesos, pcb);
-
-    //mandamos mensaje a memoria para saber si hay espacio,
-    asignar_espacio_memoria(fd_memoria, pid, tamanio_proceso);
-    sem_wait(&sem_binario_memoria);
-    
-    //Si hay Espacio , pasa a ready al proceso
-    PCB* pcb_ready = queue_pop(cola_new); //donde se debería guardar si es que es el hilo el que pasa a ready?
-    
-    //crea el hilo tid 0
-    uint32_t tid_main = 0;
-    int prioridad = 0; //la prioridad máxima 0 (cero).
-
-    // Agrega el tid_main a la lista de hilos del proceso (pcb->tid)
-    uint32_t* ptr_tid_main = malloc(sizeof(uint32_t));  // Reserva memoria para almacenar tid_main
-    *ptr_tid_main = tid_main;
-    list_add(pcb_ready->tid, ptr_tid_main);  // Agrega el puntero a la lista de hilos en el PCB
-
-    TCB* hilo_main = malloc(sizeof(TCB));
-    hilo_main = iniciar_hilo(tid_main,prioridad,pcb_ready->pid);
-
-    
-    //enviar_a_mempria(archivo,tamaño del archivo,tid,pid);
-    queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
-    //crear_hilo(prioridad);
-    
- }
 
 //Revisar mas adelante
 void conectar_cpu_dispatch(){
@@ -208,6 +90,20 @@ void planificador_cortoPlazo(){
     pthread_detach (hilo_planificador_corto_plazo);
 }
 
+void planificador_largoPlazo(){
+    pthread_t hilo_planificador_largo_plazo;
+    pthread_create (&hilo_planificador_largo_plazo, NULL, (void*)planificador_de_largo_plazo, NULL);
+    pthread_join (hilo_planificador_largo_plazo,NULL);
+}
+/*
+void planificador_de_largo_plazo(){
+    while(1){
+        int tam_proceso_main= tamanio_proceso_main;
+        iniciar_proceso(tam_proceso_main);
+    }
+}
+
+
 void planificador_corto_plazo(){
     if(strcmp(valores_config_kernel->algoritmo_planificacion,"FIFO")==0){
         printf("Planificacion fifo\n");
@@ -219,16 +115,4 @@ void planificador_corto_plazo(){
         printf("Planificacion CMN\n");
     }
 }
-void planificador_largoPlazo(){
-    pthread_t hilo_planificador_largo_plazo;
-    pthread_create (&hilo_planificador_largo_plazo, NULL, (void*)planificador_de_largo_plazo, NULL);
-    pthread_join (hilo_planificador_largo_plazo,NULL);
-}
-
-void planificador_de_largo_plazo(){
-    while(1){
-        int tam_proceso_main= tamanio_proceso_main;
-        iniciar_proceso(tam_proceso_main);
-    }
-}
-
+*/

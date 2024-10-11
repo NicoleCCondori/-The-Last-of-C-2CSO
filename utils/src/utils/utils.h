@@ -22,7 +22,8 @@ typedef enum
 {
 	MENSAJE,
 	ASIGNAR_MEMORIA,
-	PAQUETE
+	PAQUETE,
+	HILO_READY
 	
 }op_code;
 
@@ -74,7 +75,8 @@ typedef struct
 	uint32_t tid; //Identificador del hilo
 	int prioridad;//0 maxima prioridad
 	RegistrosCPU* registro;
-	
+	char* path;
+	int path_length;
 } TCB;
 
 

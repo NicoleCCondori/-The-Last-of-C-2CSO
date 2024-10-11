@@ -2,6 +2,8 @@
 #define K_CONEXIONES_H_
 
 #include <utils/utils.h>
+//#include <utils/serializar.h>
+
 //#include <kernel_escucha_cpu_dispatch.h>
 
 typedef struct{
@@ -16,6 +18,11 @@ typedef struct{
 	char* quantum;
 	char* log_level;
 }t_config_kernel;
+
+ typedef struct {
+        uint32_t pid;
+        int tam_proceso;
+    } t_asignar_memoria;
 
 //Variables globales
 extern t_log* kernel_logger;
@@ -38,16 +45,23 @@ extern t_queue* cola_new;
 extern t_queue* cola_exec;
 extern t_queue* cola_ready;
 extern t_queue* cola_blocked;
-extern t_queue* cola_exit;
+
 
 //Listas
 extern t_list* lista_procesos;
 
+//semaforos
+//sem_t sem_binario_memoria;
+
+//inicializacion
 void inicializar_kernel();
 void configurar_kernel();
-void iniciar_proceso(int tamanio_proceso);
-void asignar_espacio_memoria(int fd_memoria, uint32_t pid,int tam_proceso);
-TCB* iniciar_hilo(uint32_t tid,int prioridad,uint32_t pid);
+
+//iniciar proceso
+//void iniciar_proceso(int tamanio_proceso);
+//void asignar_espacio_memoria(int fd_memoria, uint32_t pid,int tam_proceso);
+//TCB* iniciar_hilo(uint32_t tid,int prioridad,uint32_t pid);
+//void enviar_a_memoria(int fd_memoria,TCB* hilo_main);
 
 void conectar_cpu_dispatch();
 void conectar_cpu_interrupt();
@@ -57,6 +71,7 @@ void kernel_escucha_cpu_dispatch();
 void kernel_escucha_cpu_interrupt();
 void kernel_escucha_memoria();
 
+//planificadores
 void planificador_cortoPlazo();
 void planificador_largoPlazo();
 void planificador_corto_plazo();
