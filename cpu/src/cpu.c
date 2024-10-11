@@ -1,4 +1,6 @@
 #include <cpu.h>
+sem_t sem_syscall;
+
 
 int main(int argc, char* argv[]) {
 
@@ -92,13 +94,40 @@ uint32_t MMU(uint32_t direccion_logica){
 
 
 int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
-    int flags= (send(fd_memoria,&PC,sizeof(uint32_t),0));
-    if (flags==-1)
-    {
+    t_paquete paquete=malloc(sizeof(t_paquete));
+    paquete->codigo_operacion=PAQUETE;
+    paquete->buffer=malloc(sizeof(t_buffer));
+
+    paquete->buffer->size=sizeof(uint32_t);
+    paquete->buffer->stream=malloc(paquete->buffer->size);
+
+    memccpy(paquete->buffer->stream,&PC,sizeof(uint32_t));
+
+    int bytes=sizeof(op_code)+sizeof(int)+paquete->buffer->size;
+    void* a_enviar=malloc(bytes);
+    int offset;
+
+    memccpy(a_enviar+offset,&(paquete->codigo_operacion),sizeof(op_code));
+    offset+=sizeof(op_code);
+
+    memccpy(a_enviar+offset,&(paquete->buffer->size),sizeof(int));
+    offset+=sizeof(int);
+
+     memccpy(a_enviar+offset,&(paquete->buffer->stream),paquete->buffer->size);
+
+     int flags=send(fd_memoria,a_enviar,bytes,0);
+     if(flags==-1){
         log_error(cpu_logger,"Error al enviar PC a MEMORIA");
         return -1;
-    }
+     }
+
+    free(paquete->buffer->stream);
+    free(paquete->buffer);
+    free(paquete);
+    free(a_enviar);
+
     return 0;
+
 }
 
 char* recibir_instruccion_de_memoria(int fd_memoria){
@@ -120,8 +149,11 @@ void fetch(){
 
     // int fd_memoria   uint32_t tid,uint32_t* PC
     log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",PCB->tid,PCB->pc);
-    
-    enviar_pc_a_memoria(fd_memoria,PCB->pc);
+    if (enviar_pc_a_memoria(fd_memoria,PCB->pc)==-1);
+    {
+        log_error(cpu_logger,"EROR al enviar PC a MEMORIA");
+        exit(EXIT_FAILURE);
+    }
     // Busca la nueva inscruccion
     log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",PCB->tid);
     instruccionActual =recibir_instruccion_de_memoria(fd_memoria);
@@ -337,7 +369,7 @@ uint32_t obtenerRegistro(char* registro){
 /////////// System Calls //////////
 
 //Primero compara a que Syscall corresponde y le manda el mensaje a kernel. Mensaje es serializado y empaquetado.
-void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
+void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     t_syscall_mensaje mensaje;
 
     if (strcmp(instruccion->operacion, "PROCESS_CREATE") == 0) {
@@ -351,8 +383,10 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.tamanio = instruccion->tamanio;
         mensaje.prioridad = instruccion->prioridad;
 
-      enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
-      sem_wait(&sem_syscall);
+        t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
+        sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
     }
@@ -364,7 +398,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion = instruccion->operacion
         mensaje.tiempo = instruccion->tiempo;
 
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+       t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -380,7 +416,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.archivo = instruccion->archivo;
         mensaje.prioridad = instruccion->prioridad;
 
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -398,10 +436,11 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.tid=instruccion->tid;
 
        
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
-
 
     }
     else if (strcmp(instruccion->operacion, "THREAD_CANCEL") == 0) {
@@ -412,8 +451,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion = instruccion->operacion;
         mensaje.tid=instruccion->tid;
 
-
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -428,8 +468,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion = instruccion->operacion;
         mensaje.recursoinstruccion->recurso;
 
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
-               
+  t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -444,7 +485,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion = instruccion->operacion;
         mensaje.recursoinstruccion->recurso;
 
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+      t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -459,7 +502,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion = instruccion->operacion;
         mensaje.recursoinstruccion->recurso;
 
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+      t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -473,7 +518,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion_length=strlen(instruccion->operacion)+1;
         mensaje.operacion = instruccion->operacion;
  
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+ t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -487,7 +534,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion_length=strlen(instruccion->operacion)+1;
         mensaje.operacion = instruccion->operacion;
  
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+   t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -501,7 +550,9 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
         mensaje.operacion_length=strlen(instruccion->operacion)+1;
         mensaje.operacion = instruccion->operacion;
  
-        enviar_syscall_a_kernel(&mensaje,fd_kernel_interrupt);
+    t_paquete* paquete=serializar_syscall(%mensaje);
+        paquete->codigo_operacion=PAQUETE;
+        enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_interrupt);
 
@@ -510,66 +561,75 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_interrupt) {
 
 }
 //SERIALIZO LAS SYSCALL
-char* serializar_syscall(t_syscall_mensaje* mensaje,int* bytes_serializados){
-   
-    int size_total=sizeof(uint32_t)*2
+t_paquete* serializar_syscall(t_syscall_mensaje* mensaje){
+    
+    t_buffer* buffer=malloc(sizeof(t_buffer));
+
+    buffer->size=sizeof(uint32_t)*2
     +sizeof(int)*5
     +mensaje->operacion_length
     +mensaje->archivo_length;
     
-    char* buffer=malloc(size_total);
-    int offset=0;
+    buffer->stream=malloc(buffer->size);
+    buffer->offset=0;
     
-
-    memcpy(stream + offset,&mensaje.tamanio,sizeof(int));
-    offset+=sizeof(int);
-
-    memcpy(stream + offset,&mensaje.prioridad,sizeof(int));
-    offset+=sizeof(int);
-
-    memcpy(stream + offset,&mensaje.tiempo,sizeof(int));
-    offset+=sizeof(int);
-
-    memcpy(stream + offset,&mensaje.recurso,sizeof(int));
-    offset+=sizeof(int);
-
-    memcpy(stream + offset,&mensaje.tid,sizeof(int));
-    offset+=sizeof(int);
-
-    memcpy(stream + offset,&(mensaje->operacion_length),sizeof(uint32_t));
+    //tamanio
+    memcpy(buffer->stream + buffer->offset,&mensaje->tamanio,sizeof(int));
+    buffer->offset+=sizeof(int);
+    //prioridad
+     memcpy(buffer->stream + buffer->offset,&mensaje->prioridad,sizeof(int));
+    buffer->offset+=sizeof(int);
+    //tiempo
+    memcpy(buffer->stream + buffer->offset,&mensaje->tiempo,sizeof(int));
+    buffer->offset+=sizeof(int);
+    //recurso
+    memcpy(buffer->stream + buffer->offset,&mensaje->recurso,sizeof(int));
+    buffer->offset+=sizeof(int);
+    //tid
+    memcpy(buffer->stream + buffer->offset,&mensaje->tid,sizeof(int));
+    buffer->offset+=sizeof(int);
+   
+   
+    //operacion_lenght
+    memcpy(buffer->stream + buffer->offset,&(mensaje->operacion_length),sizeof(uint32_t));
     buffer->offset+=sizeof(uint32_t);
-    
-    memcpy(stream + offset,&mensaje->operacion,mensaje->operacion_length);
-    offset+=mensaje->operacion_length;
+    //operacion
+    memcpy(buffer->stream + buffer->offset,&mensaje->operacion,mensaje->operacion_length);
+    buffer->offset+=mensaje->operacion_length;
 
-  
-    memcpy(stream + offset,(&mensaje->archivo_length),sizeof(uint32_t));
-    offset+=sizeof(uint32_t);
-    memcpy(stream + offset,&mensaje->archivo,mensaje->archivo_length);
-    offset+=mensaje.archivo_length;
+    //archivo
+    memcpy(buffer->stream + buffer->offset,(&mensaje->archivo_length),sizeof(uint32_t));
+    buffer->offset+=sizeof(uint32_t);
+    memcpy(buffer->stream + buffer->offset,&mensaje->archivo,mensaje->archivo_length);
+    buffer->offset+=mensaje.archivo_length;
+    t_paquete* paquete=malloc(sizeof(t_paquete));
+    paquete->codigo_operacion=SYSCALL;
+    paquete->buffer=buffer;
 
-    *bytes_serializados=size_total;
-
-    return buffer;
+    return paquete;
 
 }
 //ENVIA
-void enviar_sysscall_a_kernel(t_syscall_mensaje* mensaje,int fd_kernel_interrupt){
-    int bytes_serializados;
-    char* buffer_serializado=serializar_syscall(mensaje,&bytes_serializados);
+void enviar_sysscall_a_kernel(t_paquete* paquete,int fd_kernel_dispatch){
 
-    int bytes_enviados=send(fd_kernel_interrupt,buffer_serializado,bytes_serializados,0);
+    int total_size=sizeof(op_code)+ sizeof(uint32_t)+ paquete->buffer->size;
 
-    if(bytes_eviados<0){
-        log_error(cpu_logger,"Error enviando syscall al KERNEL");
+    void* a_enviar= malloc(total_size);
+    int offset=0;
 
-    }else{
-        log_info(cpu_logger,"SYSCALL enviada correctamente al kernel");
-    }
+    memccpy(a_enviar+offset,&(paquete->codigo_operacion),sizeof(op_code));
+    offset+=sizeof(op_code);
 
-    free(buffer_serializado);
+    memccpy(a_enviar+offset,&(paquete->buffer->size),sizeof(uint32_t));
+    offset+=sizeof(uint32_t);
+
+    memccpy(a_enviar+offset,&paquete->buffer->stream,paquete->buffer->size);
+
+    send(fd_kernel_dispatch,a_enviar,total_size,0);
+
+    free(a_enviar);
+   
 }
-sem_t sem_syscall;
 void inicializar_semaforo_syscall(){
     sem_init(&sem_syscall,0,0)
 }
@@ -583,4 +643,36 @@ void recibir_respuesta_kernel(int fd_kernel_interrupt){
 }
 void destruir_semaforo_syscall(){
     sem_destroy(&sem_syscall);
+}
+void actualizar_contexto_de_ejecucion(int fd_memoria,PCB* PCB){
+    log_info(cpu_logger,"## TID: <%d> - Actualizo Contexto Ejecucion",pcb->tid);
+
+    uint32_t cantidad_tids=list_size(PCB->tid);
+
+    if(send(fd_memoria,&cantidad_tids,sizeof(uint32_t),0)<0){
+        log_error(cpu_logger,"Error enviando la cantidad de TIDs");
+        return;
+    }
+    
+    for (int i = 0; i < cantidad_tids; i++)
+    {
+        uint32_t* tid=list_get(PCB->tid,i);
+
+        if(send(fd_memoria,tid,sizeof(uint32_t),0)<0){
+            log_error(cpu_logger,"Error enviando el TID %d",*tid);
+        }
+        else{
+            log_info(cpu_logger,"TID enviado %d",*tid);
+        }
+    }
+    uint32_t pc=PCB->pc;
+
+    if(send(fd_memoria,&pc,sizeof(uint32_t),0)<0){
+        log_error(cpu_logger,"Error enviando el PC al modulo de MEMORIA");
+        else{
+            log_info(cpu_logger,"PC enviado: %d",pc);
+        }
+    }
+    
+
 }

@@ -44,6 +44,14 @@ typedef struct
 
 particionMemoria parteActual;
 
+typedef struct 
+{
+    t_list* tid;
+    uint32_t pc;
+}t_contexto;
+
+
+
 
 
 typedef struct{
