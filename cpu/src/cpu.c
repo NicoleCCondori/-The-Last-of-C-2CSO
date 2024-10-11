@@ -31,7 +31,6 @@ void ciclo_de_instruccion(){
     execute(instruccionDecodificada,fd_memoria,fd_kernel_dispatch,PCB->PC);
     check_interrupt();
 
-
 }
 
 t_instruccion* decode(char* instruccion){
@@ -93,19 +92,23 @@ uint32_t MMU(uint32_t direccion_logica){
 
 
 
-int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
-    t_paquete paquete=malloc(sizeof(t_paquete));
-    paquete->codigo_operacion=PAQUETE;
+int enviar_pc_a_memoria(int fd_memoria,uint32_t PC,uint32_t TID){
+    t_paquete* paquete=malloc(sizeof(t_paquete));
+    paquete->codigo_operacion=OBTENER_CONTEXTO;
     paquete->buffer=malloc(sizeof(t_buffer));
 
-    paquete->buffer->size=sizeof(uint32_t);
+    paquete->buffer->size=sizeof(uint32_t)*2;
     paquete->buffer->stream=malloc(paquete->buffer->size);
+    int offset=0;
 
     memccpy(paquete->buffer->stream,&PC,sizeof(uint32_t));
+    offset+=sizeof(uint32_t);
+    memccpy(paquete->buffer->stream,&TID,sizeof(uint32_t));
+
 
     int bytes=sizeof(op_code)+sizeof(int)+paquete->buffer->size;
     void* a_enviar=malloc(bytes);
-    int offset;
+    int offset=0;
 
     memccpy(a_enviar+offset,&(paquete->codigo_operacion),sizeof(op_code));
     offset+=sizeof(op_code);
@@ -117,7 +120,7 @@ int enviar_pc_a_memoria(int fd_memoria,uint32_t PC){
 
      int flags=send(fd_memoria,a_enviar,bytes,0);
      if(flags==-1){
-        log_error(cpu_logger,"Error al enviar PC a MEMORIA");
+        log_error(cpu_logger,"Error al enviar PC y TID a MEMORIA");
         return -1;
      }
 
