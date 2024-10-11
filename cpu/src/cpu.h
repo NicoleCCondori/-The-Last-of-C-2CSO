@@ -20,7 +20,8 @@ typedef struct {
     int prioridad;     // Prioridad (para operaciones como PROCESS_CREATE)
     int tiempo;        // Tiempo de IO (si es la syscall IO)
     int recurso;       // Para MUTEX_CREATE, MUTEX_LOCK, etc.
-    int tid;           // Para syscalls que manejan TID, como THREAD_JOIN, THREAD_CANCEL
+    int tid;
+    uint32_t TID;         // Para syscalls que manejan TID, como THREAD_JOIN, THREAD_CANCEL
 } t_instruccion;
 // Struc para dividir la instruccion
 
@@ -35,6 +36,7 @@ typedef struct{
     int tiempo;
     int recurso;
     int tid;
+    uint32_t TID;
 }t_syscall_mensaje;
 typedef struct 
 {
@@ -136,7 +138,8 @@ uint32_t obtenerRegistro(char* );
 //Syscall
 void execute_syscall(t_instruccion* , int );
 char* serializar_syscall(t_syscall_mensaje* ,int* );
-void enviar_sysscall_a_kernel(t_syscall_mensaje* ,int );
+void enviar_sysscall_a_kernel(t_syscall_mensaje* );
+void actualizar_contexto_de_ejecucion(int ,PCB*);
 
 
 

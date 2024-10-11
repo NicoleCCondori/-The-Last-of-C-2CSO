@@ -11,6 +11,10 @@ void escuchar_kernel_dispatch(){
 		{
 		case MENSAJE:
 
+		case RECIBIR_TID:
+		t_paquete* paquete_aux=recibir_paquete(fd_kernel_dispatch);
+		tidHilo=leer_buffer_uint32(paquete_aux->buffer);
+
 		case PAQUETE:
 
 			break;

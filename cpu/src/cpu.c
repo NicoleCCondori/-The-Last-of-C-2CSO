@@ -6,8 +6,7 @@ int main(int argc, char* argv[]) {
 
     inicializar_cpu();
     inicializar_semaforo_syscall();
-
-
+    
     conectar_memoria();
     conectar_kernel_dispatch();
     conectar_kernel_interrupt();
@@ -47,6 +46,7 @@ t_instruccion* decode(char* instruccion){
     instruccionDecodificada->tiempo=0;
     instruccionDecodificada->recurso=0;
     instruccionDecodificada->tid=0;
+    instruccionDecodificada->TID=tidHilo;
     if(strcmp(instruccionDecodificada->operacion,"PROCESS_CREATE")==0 ||
     strcmp(    instruccionDecodificada->operacion,"TRHEAD_CREATE")==0)
     {
@@ -151,14 +151,14 @@ char* recibir_instruccion_de_memoria(int fd_memoria){
 void fetch(){
 
     // int fd_memoria   uint32_t tid,uint32_t* PC
-    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",PCB->tid,PCB->pc);
+    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tidHilo,PCB->pc);
     if (enviar_pc_a_memoria(fd_memoria,PCB->pc)==-1);
     {
         log_error(cpu_logger,"EROR al enviar PC a MEMORIA");
         exit(EXIT_FAILURE);
     }
     // Busca la nueva inscruccion
-    log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",PCB->tid);
+    log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",tidHilo);
     instruccionActual =recibir_instruccion_de_memoria(fd_memoria);
     if(instruccionActual==NULL){
         log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
@@ -179,37 +179,37 @@ void execute(t_instruccion* instruccion,int fd_memoria,int fd_kernel,uint32_t* P
     }
     if(strcmp(instruccion->operacion,"SET")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
         set_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"SUM")==0){
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
 
         sum_registro(instruccion->operando1,instruccion->operando2);
     }
     else if (strcmp(instruccion->operacion,"SUB")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
         sub_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"JNZ")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
 
         jnz_registro(instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"LOG")==0)
     {
         log_registro(instruccion->operando1);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"WRITE_MEM")==0){
         write_mem(instruccion->operando1,instruccion->operando2);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
     }
     else if(strcmp(instruccion->operacion,"READ_MEM")==0){
         read_mem(instruccion->operando1,instruccion->operando2);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",PCB->tid,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
     }
 
     else{
@@ -289,7 +289,7 @@ void leer_desde_memoria(int fd_memoria,uint32_t direccion_fisica){
         log_error(cpu_logger,"Error al recibir dato desde memoria");
         exit(EXIT_FAILURE);
     }
-    log_info(cpu_logger,"## TID: <TID> - Acción: <LEER > - Dirección Física: <DIRECCION_FISICA>")
+    log_info(cpu_logger,"## TID: <%d> - Acción: <LEER > - Dirección Física: <%d>",tidHilo,direccion_fisica)
     return dato;
 }
 
@@ -568,7 +568,7 @@ t_paquete* serializar_syscall(t_syscall_mensaje* mensaje){
     
     t_buffer* buffer=malloc(sizeof(t_buffer));
 
-    buffer->size=sizeof(uint32_t)*2
+    buffer->size=sizeof(uint32_t)*3
     +sizeof(int)*5
     +mensaje->operacion_length
     +mensaje->archivo_length;
@@ -591,6 +591,9 @@ t_paquete* serializar_syscall(t_syscall_mensaje* mensaje){
     //tid
     memcpy(buffer->stream + buffer->offset,&mensaje->tid,sizeof(int));
     buffer->offset+=sizeof(int);
+    //TID IDENTIFACADOR DEL PROCESO
+    memcpy(buffer->stream + buffer->offset,&mensaje->TID,sizeof(uint32_t));
+    buffer->offset+=sizeof(uint32_t);
    
    
     //operacion_lenght

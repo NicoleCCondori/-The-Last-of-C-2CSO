@@ -27,6 +27,8 @@ extern int fd_memoria;
 extern pthread_t hilo_kernel_dispatch;
 extern pthread_t hilo_kernel_interrupt;
 extern pthread_t hilo_memoria;
+extern uint32_t tidHilo;
+
 
 void inicializar_cpu();
 void configurar_cpu();
