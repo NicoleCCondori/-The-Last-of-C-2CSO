@@ -12,7 +12,12 @@ int main(int argc, char* argv[]) {
     conectar_kernel_interrupt();
     while (true)
     {
-        ciclo_de_instruccion();
+        obetner_contexto(fd_memoria,pid,tid_Hilo);
+        t_paquete* contextoEje=recibir_paquete(fd_memoria)
+        t_ContextoEjecucion* contexto=leer_contexto_de_memoria(contextoEje->buffer);
+        
+        inicializar_particion_de_memoria(contexto-> base,contexto->limite);
+        ciclo_de_instruccion(tidHilo,contexto->RegistrosCPU->PC,fd_memoria, fd_kernel_dispatch);
     }
     
     
@@ -21,13 +26,18 @@ int main(int argc, char* argv[]) {
     free(valores_config_cpu);
     return 0;
 }
-void ciclo_de_instruccion(){
+void ciclo_de_instruccion(uint32_t tidHilo,uint32_t pc,int fd_memoria,int fd_kernel_dispatch){
     //Obtenemos la insstruccion de memoria y la llamamos instruccion actual
-    fetch(); 
+    
+    fetch(tidHilo,pc,fd_memoria); 
+    
     //INSTRUCCION ACTUAL ES LA INSTRUCCION QUE RECIBIMOS DE MEMORIA, LA CUAL DECODIFICADA Y GUARDA EN UNA NUEVA VARIABLE
+    
     t_instruccion* instruccionDecodificada = decode(instruccionActual); 
+    
     //Revisa si es syscall,de serlo envia la syscall a kernel, en caso de no serlo ejecuta segun sus operandos
-    execute(instruccionDecodificada,fd_memoria,fd_kernel_dispatch,PCB->PC);
+    
+    execute(instruccionDecodificada,fd_memoria,fd_kernel_dispatch,pc);
     check_interrupt();
 
 }
@@ -79,6 +89,8 @@ void inicializar_particion_de_memoria(uint32_t base,uint32_t limite){
     parteActual.limite=limite;
     log_info(cpu_logger,"Particion de memoria inicializada: Base=%d , Limite=%d",base,limite);
 }
+
+
 uint32_t MMU(uint32_t direccion_logica){
     uint32_t direccion_fisica=parteActual.base+ direccion_logica;
 
@@ -92,9 +104,49 @@ uint32_t MMU(uint32_t direccion_logica){
 
 
 
-int enviar_pc_a_memoria(int fd_memoria,uint32_t PC,uint32_t TID){
+int obetner_contexto(int fd_memoria,uint32_t pid,uint32_t tid){
+    log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",tidHilo);
     t_paquete* paquete=malloc(sizeof(t_paquete));
     paquete->codigo_operacion=OBTENER_CONTEXTO;
+    paquete->buffer=malloc(sizeof(t_buffer));
+
+    paquete->buffer->size=sizeof(uint32_t)*2;
+    paquete-->buffer->stream=malloc(paquete->buffer->size);
+    int offset=0;
+
+    memccpy(paquete->buffer->stream,&pid,sizeof(uint32_t));
+    offset+=sizeof(uint32_t);
+    memccpy(paquete->buffer->stream,&tid,sizeof(uint32_t));
+
+    int bytes=sizeof(op_code)+sizeof(int)+paquete->buffer->size;
+    void* a_enviar=malloc(bytes);
+    
+    memccpy(a_enviar+offset,&(paquete->codigo_operacion),sizeof(op_code));
+    offset+=sizeof(op_code);
+    
+    memccpy(a_enviar+offset,&(paquete->buffer->size),sizeof(int));
+    offset=sizeof(int);
+
+    memccpy(a_enviar+offset,&(paquete->buffer->stream),paquete->buffer->size);
+
+    int flags=send(fd_memoria,a_enviar,bytes,0);
+    if (flags==-1)
+    {
+        log_error(cpu_logger,"Error al enviar PID y TID");
+    }
+    free(paquete->buffer->stream);
+    free(paquete->buffer);
+    free(paquete);
+    free(a_enviar);
+    return 0;
+    
+}
+
+
+
+int enviar_pc_a_memoria(int fd_memoria,uint32_t PC,uint32_t TID){
+    t_paquete* paquete=malloc(sizeof(t_paquete));
+    paquete->codigo_operacion=OBTENER_INSTRUCCION;
     paquete->buffer=malloc(sizeof(t_buffer));
 
     paquete->buffer->size=sizeof(uint32_t)*2;
@@ -108,7 +160,7 @@ int enviar_pc_a_memoria(int fd_memoria,uint32_t PC,uint32_t TID){
 
     int bytes=sizeof(op_code)+sizeof(int)+paquete->buffer->size;
     void* a_enviar=malloc(bytes);
-    int offset=0;
+    //int offset=0;
 
     memccpy(a_enviar+offset,&(paquete->codigo_operacion),sizeof(op_code));
     offset+=sizeof(op_code);
@@ -132,11 +184,41 @@ int enviar_pc_a_memoria(int fd_memoria,uint32_t PC,uint32_t TID){
     return 0;
 
 }
+t_contextoEjecucion* leer_contexto_de_memoria(t_buffer* buffer){
+    t_contextoEjecucion* contexto=malloc(sizeof(RegistrosCPU));
+    void* stream=buffer->stream;
 
+    memccpy(&contexto->RegistrosCPU->AX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->BX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->CX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->DX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->EX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->FX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->GX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->RegistrosCPU->HX,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->PC,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->base,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+    memccpy(&contexto->limite,stream,sizeof(uint32_t));
+    stream+=sizeof(uint32_t);
+
+    return contexto;
+
+}
 char* recibir_instruccion_de_memoria(int fd_memoria){
     char* instruccion=malloc(128);//Buffer para recibir instruccion, suponemos el tamanio maximo de la instruccion
     memset(instruccion,0,128);// utilizo memset para evitar datos basura
-
+    t_paquete* paquete=recibir_paquete(fd_memoria);
+    
     int bytes_recibidos=recv(fd_memoria,instruccion,128,0);
     if (bytes_recibidos<=0)
     {
@@ -148,17 +230,16 @@ char* recibir_instruccion_de_memoria(int fd_memoria){
     return instruccion;
 }
 
-void fetch(){
+void fetch(uint32_t tidHilo,uint32_t pc,int fd_memoria){
 
     // int fd_memoria   uint32_t tid,uint32_t* PC
-    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tidHilo,PCB->pc);
-    if (enviar_pc_a_memoria(fd_memoria,PCB->pc)==-1);
+    log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tidHilo,pc);
+    if (enviar_pc_a_memoria(fd_memoria,pc,tidHilo)==-1);
     {
         log_error(cpu_logger,"EROR al enviar PC a MEMORIA");
         exit(EXIT_FAILURE);
     }
     // Busca la nueva inscruccion
-    log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",tidHilo);
     instruccionActual =recibir_instruccion_de_memoria(fd_memoria);
     if(instruccionActual==NULL){
         log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
@@ -171,7 +252,7 @@ void fetch(){
 
 
 
-void execute(t_instruccion* instruccion,int fd_memoria,int fd_kernel,uint32_t* PC{
+void execute(t_instruccion* instruccion,int fd_memoria,int fd_kernel,uint32_t* PC){
     if(instruccion->es_syscall){
         log_info(cpu_logger,"Ejecutando syscall: %s",instruccion->operacion);
         execute_syscall(instruccion,fd_kernel);

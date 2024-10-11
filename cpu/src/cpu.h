@@ -98,11 +98,10 @@ void conectar_memoria();
 void cpu_escucha_memoria();
 void escuchar_kernel_dispatch();
 void escuchar_kernel_interrupt();
-
-void ciclo_de_instruccion();
-void fetch();
+void ciclo_de_instruccion(uint32_t ,uint32_t ,int ,int);
+void fetch(uint32_t ,uint32_t ,int )
 t_instruccion* decode(char*);
-void execute(t_instruccion*);
+void execute(t_instruccion* ,int ,int ,uint32_t* )
 uint32_t MMU(uint32_t);
 void check_interrupt();
 

@@ -227,7 +227,7 @@ typedef struct
 } TCB;
 
 ////////////////////////////////////////////////////////
-
+/*
 void agregar_buffer_char* (t_buffer buffer,char)
 
 //PARA SERIALIZAR
