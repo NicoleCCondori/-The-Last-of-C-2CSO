@@ -22,7 +22,12 @@ typedef enum
 {
 	MENSAJE,
 	ASIGNAR_MEMORIA,
-	PAQUETE
+	PAQUETE,
+	OBTENER_CONTEXTO,
+	ACTUALIZAR_CONTEXTO,
+	OBTENER_INSTRUCCION,
+	ENVIAR_CONTEXTO
+
 	
 }op_code;
 
@@ -70,11 +75,12 @@ typedef struct
 
 typedef struct 
 {
-	uint32_t pid; //Identificador del proceso al que pertenece
-	uint32_t tid; //Identificador del hilo
-	int prioridad;//0 maxima prioridad
-	RegistrosCPU* registro;
-	
+    uint32_t pid; //Identificador del proceso al que pertenece
+    uint32_t tid; //Identificador del hilo
+    int prioridad;//0 maxima prioridad
+    RegistrosCPU* registro;
+    char* path;
+    uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 } TCB;
 
 //Funciones para cliente
@@ -91,10 +97,19 @@ void handshakeServer(int fd_client);
 t_log *iniciar_logger(char *path_log, char *nombre_log);
 t_config* iniciar_configs(char* path_config);
 void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
-void* recibir_buffer(int* size, int socket_cliente);
+
+/*void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
-t_list* recibir_paquete(int socket_cliente);
+t_list* recibir_paquete(int socket_cliente);**/
 
 
+typedef struct {
+    RegistrosCPU registrosCPU;
+	uint32_t PC;
+    uint32_t base;
+    uint32_t limite;
+} t_ContextoEjecucion;
+
+extern t_list* lista_tcb;
 
 #endif

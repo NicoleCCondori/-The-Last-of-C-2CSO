@@ -180,6 +180,7 @@ t_config* iniciar_configs(char* path_config)
     return nuevo_config;
 }
 
+/*
 void* recibir_buffer(int* size, int socket_cliente)
 {
 	void * buffer;
@@ -221,7 +222,7 @@ t_list* recibir_paquete(int socket_cliente)
 	return valores;
 }
 
-/**
+
 void finalizar_conexiones(int num_sockets, ...) {
   va_list args;
   va_start(args, num_sockets);

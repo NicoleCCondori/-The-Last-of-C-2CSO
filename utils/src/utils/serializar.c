@@ -1,8 +1,8 @@
+#include "serializar.h"
 
-#include<serializar.h>
 
 t_paquete* crear_paquete(op_code codigo_op){
-    t_paquete* paquete = malloc(sizeof(t_paquete);
+    t_paquete* paquete = malloc(sizeof(t_paquete));
     paquete->codigo_operacion = codigo_op;
     crear_buffer(paquete);
     return paquete;
@@ -22,21 +22,21 @@ void destruir_buffer_paquete(t_paquete* paquete){
 
 
 //PARA SERIALIZAR
-void agregar_buffer_int(t_buffer buffer, int entero){
+void agregar_buffer_int(t_buffer* buffer, int entero){
     buffer->stream = realloc(buffer->stream, buffer->size + sizeof(int));
     buffer->size += sizeof(int);
-    memcpy(buffer->stream + buffer->offset, &entero, sizeof(int));
+    memcpy(buffer->stream+ buffer->offset, &entero, sizeof(int));
     buffer->offset += sizeof(int);
 }
 
-void agregar_buffer_Uint32(t_buffer buffer, uint32_t entero){
+void agregar_buffer_Uint32(t_buffer* buffer, uint32_t entero){
     buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t));
     buffer->size += sizeof(uint32_t);
     memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint32_t));
     buffer->offset += sizeof(uint32_t);
 }
 
-void agregar_buffer_Uint8(t_buffer *buffer, uint8_t entero)
+void agregar_buffer_Uint8(t_buffer* buffer, uint8_t entero)
 {
     buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint8_t));
     buffer->size += sizeof(uint8_t);
@@ -79,12 +79,12 @@ uint8_t leer_buffer_Uint8(t_buffer* buffer)
     return entero;
 }
 
-char *leer_buffer_string(tipo_buffer* buffer)
+char *leer_buffer_string(t_buffer* buffer)
 {
     char *cadena;
     uint32_t tamanio;
 
-    tamanio = leer_buffer_enteroUint32(buffer);
+    tamanio = leer_buffer_Uint32(buffer);
     cadena = malloc((tamanio) + 1);
     memcpy(cadena, buffer->stream + buffer->offset, tamanio);
     buffer->offset += tamanio;
@@ -163,6 +163,24 @@ void *recibir_buffer(int *size, int socket_cliente)
 
 	return buffer;
 }
+
+
+void agregar_buffer_contextoEjecucion(t_buffer* buffer, t_ContextoEjecucion* contexto) {
+    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(t_ContextoEjecucion));
+    if (buffer->stream == NULL) {
+        perror("Error al reallocar memoria");
+        return;
+    }
+    memcpy(buffer->stream + buffer->offset, contexto, sizeof(t_ContextoEjecucion));
+    buffer->size += sizeof(t_ContextoEjecucion);
+    buffer->offset += sizeof(t_ContextoEjecucion);
+}
+
+
+
+
+
+
    /*
    EJEMPLO PARA LUEGO HACER LA SERIALIZACION Y DESERIALIZACION
     typedef struct {
@@ -200,3 +218,48 @@ void *recibir_buffer(int *size, int socket_cliente)
         free(asignar_memoria_deserializado);
         destruir_buffer_paquete(paquete_asignar_memoria_recibido);
    */
+
+
+/*AGREGADO DE MEMORIA*/
+    t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete){
+    t_crear_hilo*  datos_hilo = malloc(sizeof(t_crear_hilo));
+
+    datos_hilo->PID = leer_buffer_Uint32(paquete->buffer);
+    datos_hilo->TID = leer_buffer_Uint32(paquete->buffer);
+    datos_hilo-> prioridad = leer_buffer_int(paquete->buffer);
+    datos_hilo-> path = leer_buffer_string(paquete->buffer);
+    
+    return datos_hilo;
+}
+
+t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete){
+    t_enviar_contexto* enviar_contexto = malloc(sizeof(t_enviar_contexto));
+
+    enviar_contexto->PID = leer_buffer_Uint32(paquete->buffer);
+    enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
+    
+    return enviar_contexto;
+}
+
+t_obtener_instruccion* deserializar_obtener_instruccion(t_paquete* paquete){
+    t_obtener_instruccion* enviar_contexto = malloc(sizeof(t_obtener_instruccion));
+
+    enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
+    enviar_contexto->PC = leer_buffer_Uint32(paquete->buffer);
+    
+    return enviar_contexto;
+}
+
+void serializar_enviar_contexto(t_paquete* paquete_devolver_contexto, t_ContextoEjecucion* contextoEjecucion){
+    agregar_buffer_contextoEjecucion(paquete_devolver_contexto->buffer, contextoEjecucion);
+}
+
+void serializar_enviar_instruccion(t_paquete* paquete_enviar_instruccion, char* instruccion){
+    agregar_buffer_string(paquete_enviar_instruccion->buffer, instruccion);
+}
+
+void eliminar_paquete(t_paquete* paquete){
+	free(paquete->buffer->stream);
+	free(paquete->buffer);
+	free(paquete);
+}

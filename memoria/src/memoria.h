@@ -3,4 +3,8 @@
 
 #include <m_conexiones.h>
 
+void *memoria; //ESPACIO DE MEMORIA
+
+void inicializar_lista_tcb();
+
 #endif

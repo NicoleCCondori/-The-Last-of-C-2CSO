@@ -34,6 +34,10 @@ void inicializar_memoria(){
 
     configurar_memoria();
 
+	memoria = malloc(valores_config_memoria->tam_memoria);
+
+	inicializar_lista_tcb();
+
 }
 
 void configurar_memoria(){
@@ -50,6 +54,15 @@ void configurar_memoria(){
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
     /**valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");*/
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
+}
+
+void inicializar_lista_tcb() {
+    lista_tcb = list_create();
+    if (lista_tcb == NULL) {
+        log_error(memoria_logger, "Error al crear la lista de TCBs");
+        exit(EXIT_FAILURE);
+    }
+    log_info(memoria_logger, "Lista global de TCBs inicializada correctamente");
 }
 
 void conectar_con_FS(){
@@ -71,19 +84,30 @@ void conectar_cpu(){
     handshakeServer(fd_cpu);
 
     //se crea un hilo para escuchar mensajes de CPU
-    pthread_create(&hilo_cpu, NULL, (void*)memoria_escucha_cpu, NULL);
+    pthread_create(&hilo_cpu, NULL, (void*)escuchar_cpu, NULL);
     pthread_detach(hilo_cpu);
 }
 
+//Conexión con multihilos
 void conectar_kernel(){
     //Esperar conexion kernel
     log_info(memoria_logger, "Esperando kernel...");
-	fd_kernel = esperar_cliente(fd_memoria, memoria_logger,"kernel");
-	handshakeServer(fd_kernel);
+	while (true) //siempre está esperando
+	{
+		fd_kernel = esperar_cliente(fd_memoria, memoria_logger,"kernel");
+		if(fd_kernel == -1){
+			log_error(memoria_logger, "Error creando conexión con kernel");
+		}
+		log_info(memoria_logger, "Conexión exitosa con kernel");
 
-    //se crea un hilo para escuchar mensajes de kernel // ->>>> cambiar como multihilo
-    pthread_create(&hilo_kernel,NULL,(void*)memoria_escucha_kernel,NULL);
-    pthread_join(hilo_kernel,NULL);
+		handshakeServer(fd_kernel);
+
+		pthread_t hilo_kernel;
+        int* fd_nueva_conexion_ptr = malloc(sizeof(int));
+        *fd_nueva_conexion_ptr = fd_kernel;
+		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,fd_nueva_conexion_ptr);
+		pthread_detach(hilo_kernel);
+	}
 }
 
 void memoria_escucha_cpu(){
@@ -109,7 +133,10 @@ void memoria_escucha_cpu(){
 	}	
 } 
 
-void memoria_escucha_kernel(){
+void memoria_escucha_kernel(void* arg){
+	int fd_kernel = *(int*)arg;
+    free(arg);
+
     bool control_key=1;
     while (control_key)
 	{
@@ -130,6 +157,9 @@ void memoria_escucha_kernel(){
 			break;
 		}
 	}
+	log_info(memoria_logger, "Cerrando conexión con kernel");
+    close(fd_kernel);
+    pthread_exit(NULL);
 }
 
 void memoria_escucha_FS(){
