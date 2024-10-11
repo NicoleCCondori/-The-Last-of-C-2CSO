@@ -1,4 +1,4 @@
-#include <utils/serializar.h>
+#include "serializar.h"
 
 t_paquete* crear_paquete(op_code codigo_op){
     t_paquete* paquete = malloc(sizeof(t_paquete));
@@ -21,14 +21,14 @@ void destruir_buffer_paquete(t_paquete* paquete){
 
 
 //PARA SERIALIZAR
-void agregar_buffer_int(t_buffer buffer, int entero){
+void agregar_buffer_int(t_buffer* buffer, int entero){
     buffer->stream = realloc(buffer->stream , buffer->size + sizeof(int));
     buffer->size += sizeof(int);
     memcpy(buffer->stream + buffer->offset, &entero, sizeof(int));
     buffer->offset += sizeof(int);
 }
 
-void agregar_buffer_Uint32(t_buffer buffer, uint32_t entero)
+void agregar_buffer_Uint32(t_buffer *buffer, uint32_t entero)
 {
     buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t));
     buffer->size += sizeof(uint32_t);
@@ -89,12 +89,12 @@ uint8_t leer_buffer_Uint8(t_buffer* buffer)
     return entero;
 }
 
-char *leer_buffer_string(tipo_buffer* buffer)
+char *leer_buffer_string(t_buffer* buffer)
 {
     char *cadena;
     uint32_t tamanio;
 
-    tamanio = leer_buffer_enteroUint32(buffer);
+    tamanio = leer_buffer_Uint32(buffer);
     cadena = malloc((tamanio) + 1);
     memcpy(cadena, buffer->stream + buffer->offset, tamanio);
     buffer->offset += tamanio;
@@ -106,7 +106,27 @@ char *leer_buffer_string(tipo_buffer* buffer)
 
 RegistrosCPU* leer_buffer_registro(t_buffer* buffer)
 {
-
+    RegistrosCPU* registro = malloc(sizeof(RegistrosCPU));
+    void* stream = buffer->stream;
+    
+    memcpy(&registro->AX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->BX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->CX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->DX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->EX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->FX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->GX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    memcpy(&registro->HX, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+    
+    return registro;
 }
 
 void *serializar_paquete(t_paquete *paquete, int bytes){
@@ -155,17 +175,6 @@ t_paquete* recibir_paquete(int socket_cliente){
 	return paquete;
 }
 
-int recibir_operacion(int socket_cliente)
-{
-	int cod_op;
-	if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
-		return cod_op;
-	else
-	{
-		close(socket_cliente);
-		return -1;
-	}
-}
 
 void *recibir_buffer(int *size, int socket_cliente)
 {
@@ -177,51 +186,32 @@ void *recibir_buffer(int *size, int socket_cliente)
 
 	return buffer;
 }
-   /*
-   EJEMPLO PARA LUEGO HACER LA SERIALIZACION Y DESERIALIZACION
-    typedef struct {
-        uint_32 pid;
-        int tam_proceso;
-    } t_asignar_memoria
-
-    Ejemplo en kernel: lo que iria en k_conexiones.c
-
-    void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){
-    t_paquete* paquete_asignar_memoria = crear_paquete(ASIGNAR_MEMORIA);
-    serializar_asignar_memoria(paquete_asignar_memoria, pid, tam_proceso);
-    enviar_paquete(paquete_asignar_memoria, fd_memoria);
-    destruir_buffer_paquete(paquete_asignar_memoria);
-    }
-
-    Ejemplo en kernel: lo que iria en serializar.c (aca)
 
 void* serializar_asignar_memoria(t_paquete* paquete_asignar_memoria, uint32_t pid, int tam_proceso){
     agregar_buffer_Uint32(paquete_asignar_memoria->buffer, pid);
     agregar_buffer_int(paquete_asignar_memoria->buffer, tam_proceso);
 }
 
-    t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete){
-        t_asignar_memoria* asignar_memoria = malloc(sizeof(t_asignar_memoria));
+t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete){
+    t_asignar_memoria* asignar_memoria = malloc(sizeof(t_asignar_memoria));
 
-        asignar_memoria->pid = leer_buffer_Uint32(paquete_asignar_memoria->buffer);
-        asignar_memoria-> tam_proceso = leer_buffer_int(paquete_asignar_memoria->buffer);
+    asignar_memoria->pid = leer_buffer_Uint32(paquete->buffer);
+    asignar_memoria-> tam_proceso = leer_buffer_int(paquete->buffer);
+}
 
-    }
 
-    LO QUE IRIA CUANDO QUIERO DESERIALZAR EN MI MODULO:
-        t_paquete* paquete_asignar_memoria_recibido = recibir_paquete(fd_kernel);
-        t_asignar_memoria* asignar_memoria_deserializado = deserializar_asignar_memoria(paquete_asignar_memoria_recibido);
-        free(asignar_memoria_deserializado);
-        destruir_buffer_paquete(paquete_asignar_memoria_recibido);
-   */
-
-  /*
-  
-  void* serealizar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo){
+void* serializar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo){
     agregar_buffer_Uint32(paquete_hilo, hilo->pid);
-    agregar_buffer_Uint32(paquete_hilo, hilo->tid;
+    agregar_buffer_Uint32(paquete_hilo, hilo->tid);
     agregar_buffer_int(paquete_hilo, hilo->prioridad);
     agregar_buffer_registrosCPU(paquete_hilo, hilo->registro);
     agregar_buffer_string(paquete_hilo, hilo->path);
-  }
-*/
+    agregar_buffer_Uint32(paquete_hilo, hilo->pc);
+}
+
+ void* serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid)
+ {
+    agregar_buffer_Uint32(hilo_cpu->buffer, pid);
+    agregar_buffer_Uint32(hilo_cpu->buffer, tid);
+
+ }

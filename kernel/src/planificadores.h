@@ -13,6 +13,9 @@ void asignar_espacio_memoria(int fd_memoria, uint32_t pid,int tam_proceso);
 TCB* iniciar_hilo(uint32_t tid,int prioridad,uint32_t pid, char* path);
 void enviar_a_memoria(int fd_memoria,TCB* hilo_main);
 void iniciar_proceso(PCB* proceso_new);
+void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid);
+void* finalizar_proceso(PCB* proceso);
+void* finalizar_hilo(TCB* hilo);
 
 void planificador_de_largo_plazo();
 

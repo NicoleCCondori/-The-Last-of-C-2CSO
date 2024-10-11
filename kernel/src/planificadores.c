@@ -2,11 +2,8 @@
 #include <k_conexiones.h>
 
 
-
-
 void planificador_de_largo_plazo()
 {
-
     sem_init(&sem_binario_memoria, 0, 0);// semaforo binario para otorgarle espacio de memoria a un proceso nuevo
     //sem_init(&sem_binario_memoria, 1, 0);//es uno porque lo compartiria con memoria
     sem_init(&sem_mutex_cola_ready,0,1);//mutex de cola de ready
@@ -24,7 +21,11 @@ void planificador_corto_plazo(TCB* hilo){
         sem_wait(&sem_mutex_cola_ready);
         queue_push(cola_ready,hilo);
         sem_post(&sem_mutex_cola_ready);
-        
+        //mandar a cpu tid y pid
+        t_paquete* hilo_cpu = crear_paquete(RECIBIR_TID);
+        serializar_hilo_cpu(hilo_cpu, hilo->pid, hilo->tid);
+
+        enviar_paquete(hilo_cpu, fd_cpu_dispatch);
     }
     if(strcmp(valores_config_kernel->algoritmo_planificacion,"PRIORIDADES")==0){
         printf("Planificacion prioridades\n");
@@ -41,7 +42,7 @@ void planificador_corto_plazo(TCB* hilo){
 //Mandamos hilo a memoria
 void enviar_a_memoria(int fd_memoria,TCB* hilo){
     t_paquete* paquete_hilo = crear_paquete(HILO_READY);
-    serealizar_hilo_ready(paquete_hilo, hilo);
+    serializar_hilo_ready(paquete_hilo, hilo);
     enviar_paquete(paquete_hilo, fd_memoria);
 }
 
@@ -81,6 +82,7 @@ void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){//
 
     t_paquete* paquete_asignar_memoria = crear_paquete(ASIGNAR_MEMORIA);
     serializar_asignar_memoria(paquete_asignar_memoria, pid, tam_proceso);
+    
     enviar_paquete(paquete_asignar_memoria, fd_memoria);
     
     //sem_wait(&sem_binario_memoria);
@@ -90,10 +92,11 @@ void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){//
 	if (result == 0){
         printf("Hay espacio en memoria\n");//debemos crear el espacio de memoria para el proceso?
         //Hacer un signal del sem_binario_memoria
-        sem_post(&sem_binario_memoria);//provocaria varias recursos no necesarios. deberi ir en memoria
+        //sem_post(&sem_binario_memoria);//provocaria varias recursos no necesarios. deberi ir en memoria
+        
     } else {
 		printf("No hay espacio en memoria\n");
-        sem_wait(&sem_binario_memoria);
+        //sem_wait(&sem_binario_memoria);
     }
 
     destruir_buffer_paquete(paquete_asignar_memoria);
@@ -116,16 +119,8 @@ TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
     tcb->tid = tid;
     tcb->pid = pid;
     tcb->prioridad = prioridad;
-    tcb->registro->AX = 0;
-    tcb->registro->BX = 0;
-    tcb->registro->CX = 0;
-    tcb->registro->DX = 0;
-    tcb->registro->EX = 0;
-    tcb->registro->FX = 0;
-    tcb->registro->GX = 0;
-    tcb->registro->HX = 0;
     tcb->path = strdup(path);
-    //tcb->path_length = strlen(path)+1;
+
     log_info(kernel_logs_obligatorios, "Creación de Hilo: “## (<PID>: %u <TID>: %u) Se crea el Hilo - Estado: READY”", tcb->pid, tcb->tid);
     return tcb;
 }
@@ -156,7 +151,7 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     pcb->pid = pid;
     pcb->tid = list_create();
     pcb->mutex = list_create();
-    pcb->pc = 0;
+    //pcb->pc = 0;
     pcb->tam_proceso = tamanio_proceso;
     pcb->estado = NEW;
     
@@ -172,20 +167,21 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
 
     iniciar_proceso(pcb_new);
     
+  
     
     //Si hay Espacio se crea el hilo main
     //crea el hilo tid 0
     uint32_t tid_main = 0;
 
     // Agrega el tid_main a la lista de hilos del proceso (pcb->tid)
-    list_add(pcb->tid, tid_main);  // Agrega el hilo main a la lista de hilos del proceso
+    list_add(pcb->tid, &tid_main);  // Agrega el hilo main a la lista de hilos del proceso
     //queue_push(cola_ready,pcb_ready); //el proceso no pasa a la cola de ready
     
     //CREACION DE HILO MAIN
     TCB* hilo_main = malloc(sizeof(TCB));//liberar
     hilo_main = iniciar_hilo(tid_main,prioridad_main,pcb->pid,archivo_pseudocodigo_main);
 
-    //imformar a memoria
+    //informar a memoria
     enviar_a_memoria(fd_memoria,hilo_main);
 
     //encolar el hilo a la cola de ready
@@ -200,6 +196,9 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     //liberar hilo_main
  }
 
+void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid){
+
+}
 //FINALIZACION DE PROCESO
 void* finalizar_proceso(PCB* proceso)
 {
@@ -207,7 +206,7 @@ void* finalizar_proceso(PCB* proceso)
     mensaje_finalizar_proceso(fd_memoria,proceso->pid);
     //confirmacion de parte de memoria
 
-    log_info(kernel_logs_obligatorios, "Fin de Proceso: “## Finaliza el proceso <PID>: %u”", proceso->pid);
+    log_info(kernel_logs_obligatorios, "Fin de Proceso: ## Finaliza el proceso <PID>: %u", proceso->pid);
 
 
     //liberar proceso
@@ -217,15 +216,16 @@ void* finalizar_proceso(PCB* proceso)
     PCB* pcb_new = queue_pop(cola_new);
 
     iniciar_proceso(pcb_new);
-    
+    return 0;
 }
 //FINALIZACION DE HILO
 void* finalizar_hilo(TCB* hilo)
 {
     //informar a memoria
 
-    log_info(kernel_logs_obligatorios, "Fin de Hilo: “## (<PID>: %u <TID>: %u ) Finaliza el hilo”", hilo->pid, hilo->tid);
+    log_info(kernel_logs_obligatorios, "Fin de Hilo: ## (<PID>: %u <TID>: %u ) Finaliza el hilo", hilo->pid, hilo->tid);
     //liberar tcb
 
     //mover al estado ready a todos los hilos bloqueados por este hilo??
+    return 0;
 }

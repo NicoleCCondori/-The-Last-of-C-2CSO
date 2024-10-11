@@ -23,7 +23,8 @@ typedef enum
 	MENSAJE,
 	ASIGNAR_MEMORIA,
 	PAQUETE,
-	HILO_READY
+	HILO_READY,
+	RECIBIR_TID
 	
 }op_code;
 
@@ -34,18 +35,6 @@ typedef enum{
 	EXIT,
 	EXEC
 } estado_proceso_hilo;
-typedef struct
-{
-	int size;
-	uint32_t offset;
-	void* stream;
-} t_buffer;
-
-typedef struct
-{
-	op_code codigo_operacion;
-	t_buffer* buffer;
-} t_paquete;
 
 typedef struct
 {
@@ -64,7 +53,7 @@ typedef struct
 	uint32_t pid; //Identificador del proceso
 	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
 	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
-	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	//uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
 	int tam_proceso;
 } PCB;
@@ -76,7 +65,7 @@ typedef struct
 	int prioridad;//0 maxima prioridad
 	RegistrosCPU* registro;
 	char* path;
-	int path_length;
+	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 } TCB;
 
 
@@ -96,7 +85,7 @@ t_config* iniciar_configs(char* path_config);
 void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
 void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
-t_list* recibir_paquete(int socket_cliente);
+t_list* recibir_paquete_lista(int socket_cliente);//cambio
 
 
 

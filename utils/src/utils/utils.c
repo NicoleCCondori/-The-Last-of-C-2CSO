@@ -1,5 +1,8 @@
-#include <utils/utils.h>
+#include "utils.h"
 
+void* buscar_proceso(t_list* lista, PCB* proceso){
+	return 0;
+}
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
 int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 {
@@ -130,6 +133,7 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
+
 void handshakeServer(int fd_client)
 {
 	int32_t handshake;
@@ -199,7 +203,7 @@ void recibir_mensaje(int socket_cliente, t_log* logger)
 	free(buffer);
 }
 
-t_list* recibir_paquete(int socket_cliente)
+t_list* recibir_paquete_lista(int socket_cliente)
 {
 	int size;
 	int desplazamiento = 0;

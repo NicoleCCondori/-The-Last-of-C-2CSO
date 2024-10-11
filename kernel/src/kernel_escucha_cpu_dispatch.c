@@ -4,6 +4,7 @@
 void kernel_escucha_cpu_dispatch(){
     //atender los msjs de cpu-dispatch , otra funcion?
     printf("Ejecuto kernel_escucha_cpu_dispatch.c \n");
+	
     bool control_key = 1;
     while (control_key){
 		int cod_op = recibir_operacion(fd_cpu_dispatch);

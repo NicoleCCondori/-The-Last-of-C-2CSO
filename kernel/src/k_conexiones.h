@@ -1,8 +1,8 @@
 #ifndef K_CONEXIONES_H_
 #define K_CONEXIONES_H_
 
-#include <utils/utils.h>
-//#include <utils/serializar.h>
+//#include <utils/utils.h>
+#include <utils/serializar.h>
 
 //#include <kernel_escucha_cpu_dispatch.h>
 
@@ -19,10 +19,6 @@ typedef struct{
 	char* log_level;
 }t_config_kernel;
 
- typedef struct {
-        uint32_t pid;
-        int tam_proceso;
-    } t_asignar_memoria;
 
 //Variables globales
 extern t_log* kernel_logger;
