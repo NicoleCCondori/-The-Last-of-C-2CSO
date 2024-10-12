@@ -27,7 +27,6 @@ char *leer_buffer_string(t_buffer* buffer);
 void *serializar_paquete(t_paquete *paquete, int bytes);
 void enviar_paquete(t_paquete *paquete, int socket_cliente);
 t_paquete* recibir_paquete(int socket_cliente);
-void enviar_paquete(t_paquete *paquete, int socket_cliente);
 
 
 /*AGREGADO DE MEMORIA*/

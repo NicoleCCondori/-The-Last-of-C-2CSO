@@ -187,7 +187,7 @@ void agregar_buffer_contextoEjecucion(t_buffer* buffer, t_contextoEjecucion* con
 }
 
 /*AGREGADO DE MEMORIA*/
-    t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete){
+t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete){
     t_crear_hilo*  datos_hilo = malloc(sizeof(t_crear_hilo));
 
     datos_hilo->PID = leer_buffer_Uint32(paquete->buffer);

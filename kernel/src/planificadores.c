@@ -1,6 +1,10 @@
 #include <planificadores.h>
 #include <k_conexiones.h>
 
+//semaforos
+sem_t sem_binario_memoria;
+sem_t sem_mutex_cola_ready;
+uint32_t pid=0;
 
 void planificador_de_largo_plazo()
 {
@@ -48,7 +52,6 @@ void planificador_corto_plazo(TCB* hilo){
     }
 }
 void buscar_hilo_mayor_prioridad(TCB* hilo){
-    return 0;
 }
 
 //Mandamos hilo a memoria
@@ -132,7 +135,7 @@ TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
 //INICIAR_PROCESO
 void iniciar_proceso()
 {
-    PCB* proceso_new = queue_peak(cola_new);
+    PCB* proceso_new = queue_peek(cola_new);
 
     if (proceso_new != NULL) {
         //mandamos mensaje a memoria para saber si hay espacio,
@@ -186,9 +189,9 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
 void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid){
 
 }
-
-bool condicion_pid(PCB* pcb, uint32_t pid){
-	return pcb->pid == pid;
+void destruir_pcb(void* elemento) {
+    PCB* pcb = (PCB*)elemento; // Convertir void* a PCB*
+    free(pcb); // Liberar la memoria del PCB
 }
 //FINALIZACION DE PROCESO
 void* finalizar_proceso(PCB* pcb_afuera)
@@ -204,24 +207,31 @@ void* finalizar_proceso(PCB* pcb_afuera)
     //debo cambiar el estado del pid a EXIT
     pcb_afuera->estado = EXIT;
 
-	int i=0;
-	for(i; i<list_size(pcb_afuera->tid);i++){ //libero los tcb
-		int32_t* tid = list_get(pcb_afuera->tid,i);
+    //Si la lista pcb_afuera->tid solo tiene enteros solo hago un destroy, ya que no es necesario
+	/*for(int i=0; i<list_size(pcb_afuera->tid);i++){ //libero los tcb
+		uint32_t* tid = list_get(pcb_afuera->tid, i);
 		free(tid);
-	}
+	}*/
 	list_destroy(pcb_afuera->tid); //destruye la lista
 
 	// Avisar a memoria de la finalizacion
 	//creo que seria algo como los cases de cpu pero con memoria, primero el fd_memoria, el pid,cod op y el send
 				
 	//sacarlo de la lista_procesos
-	list_remove_and_destroy_by_condition(lista_procesos, (void*)condicion_pid, pcb_afuera);
+    for (int i = 0; i < list_size(lista_procesos); i++) {
+        PCB* pcb_en_lista = (PCB*)list_get(lista_procesos, i);
+        if (pcb_en_lista->pid == pcb_afuera->pid) {
+            // Encontramos el PCB a eliminar
+            list_remove_and_destroy_element(lista_procesos, i, destruir_pcb);
+            break; // Salir del bucle después de eliminar
+        }
+    }
 
     //iniciar otro proceso que estaba en new
 
     iniciar_proceso();
 
-    return 0;
+    return NULL;
 }
 //FINALIZACION DE HILO
 void* finalizar_hilo(TCB* hilo)

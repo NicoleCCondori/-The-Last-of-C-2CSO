@@ -20,7 +20,7 @@ t_queue* cola_new;
 t_queue* cola_exec;
 t_queue* cola_blocked;
 
-t_lista* lista_ready;
+t_list* lista_ready;
 t_list* lista_procesos;
 
 
