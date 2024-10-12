@@ -24,8 +24,19 @@ typedef enum
 	ASIGNAR_MEMORIA,
 	PAQUETE,
 	HILO_READY,
-	RECIBIR_TID
-	
+	RECIBIR_TID,
+
+	PROCESS_CREATE,
+	PROCESS_EXIT,
+	THREAD_CREATE,
+	THREAD_JOIN,
+	THREAD_CANCEL,
+	THREAD_EXIT,
+	MUTEX_CREATE,
+	MUTEX_LOCK,
+	MUTEX_UNLOCK,
+	DUMP_MEMORY,
+	IO
 }op_code;
 
 typedef enum{
@@ -56,6 +67,8 @@ typedef struct
 	//uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
 	int tam_proceso;
+	int prioridad_main;
+	char* path_main;
 } PCB;
 
 typedef struct 
@@ -67,6 +80,8 @@ typedef struct
 	char* path;
 	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 } TCB;
+
+PCB* buscar_proceso(t_list* lista, uint32_t pid);
 
 
 //Funciones para cliente

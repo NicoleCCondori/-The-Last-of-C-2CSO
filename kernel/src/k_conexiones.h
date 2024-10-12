@@ -39,7 +39,7 @@ extern pthread_t hilo_memoria;
 //Colas para diagrama de 5 estados
 extern t_queue* cola_new;
 extern t_queue* cola_exec;
-extern t_queue* cola_ready;
+extern t_list* lista_ready;
 extern t_queue* cola_blocked;
 
 

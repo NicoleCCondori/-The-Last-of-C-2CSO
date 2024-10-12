@@ -18,9 +18,9 @@ pthread_t hilo_memoria;
 
 t_queue* cola_new;
 t_queue* cola_exec;
-t_queue* cola_ready;
 t_queue* cola_blocked;
 
+t_lista* lista_ready;
 t_list* lista_procesos;
 
 
@@ -32,6 +32,7 @@ void inicializar_kernel(){
     configurar_kernel();
 
     lista_procesos = list_create();
+    lista_ready = list_create();
 }
 
 void configurar_kernel() {
@@ -116,3 +117,4 @@ void planificador_corto_plazo(){
     }
 }
 */
+

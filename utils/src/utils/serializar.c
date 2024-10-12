@@ -175,21 +175,10 @@ t_paquete* recibir_paquete(int socket_cliente){
 	return paquete;
 }
 
-
-void *recibir_buffer(int *size, int socket_cliente)
-{
-	void *buffer;
-
-	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
-	buffer = malloc(*size);
-	recv(socket_cliente, buffer, *size, MSG_WAITALL);
-
-	return buffer;
-}
-
 void* serializar_asignar_memoria(t_paquete* paquete_asignar_memoria, uint32_t pid, int tam_proceso){
     agregar_buffer_Uint32(paquete_asignar_memoria->buffer, pid);
     agregar_buffer_int(paquete_asignar_memoria->buffer, tam_proceso);
+    return NULL; // retorno por defecto
 }
 
 t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete){
@@ -197,21 +186,23 @@ t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete){
 
     asignar_memoria->pid = leer_buffer_Uint32(paquete->buffer);
     asignar_memoria-> tam_proceso = leer_buffer_int(paquete->buffer);
+    return asignar_memoria;
 }
 
 
 void* serializar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo){
-    agregar_buffer_Uint32(paquete_hilo, hilo->pid);
-    agregar_buffer_Uint32(paquete_hilo, hilo->tid);
-    agregar_buffer_int(paquete_hilo, hilo->prioridad);
-    agregar_buffer_registrosCPU(paquete_hilo, hilo->registro);
-    agregar_buffer_string(paquete_hilo, hilo->path);
-    agregar_buffer_Uint32(paquete_hilo, hilo->pc);
+    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->pid);
+    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->tid);
+    agregar_buffer_int(paquete_hilo->buffer, hilo->prioridad);
+    agregar_buffer_registrosCPU(paquete_hilo->buffer, hilo->registro);
+    agregar_buffer_string(paquete_hilo->buffer, hilo->path);
+    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->pc);
+    return NULL; // retorno por defecto
 }
 
  void* serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid)
  {
     agregar_buffer_Uint32(hilo_cpu->buffer, pid);
     agregar_buffer_Uint32(hilo_cpu->buffer, tid);
-
+    return NULL; // retorno por defecto
  }
