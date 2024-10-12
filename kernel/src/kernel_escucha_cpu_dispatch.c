@@ -1,5 +1,6 @@
 #include <kernel_escucha_cpu_dispatch.h>
 #include <k_conexiones.h>
+#include <planificadores.h>
 
 void kernel_escucha_cpu_dispatch(){
     //atender los msjs de cpu-dispatch , otra funcion?
@@ -15,38 +16,11 @@ void kernel_escucha_cpu_dispatch(){
 		{
 			
 			case PROCESS_CREATE:
-				//Debo deserializar el buffer que contiene los parametros de nombreAcrh,tamProceso y prioridad del hilo main
-	
+				//Debo deserializar el buffer que contiene los parametros de nombreArch,tamProceso y prioridad del hilo main
 				//Crea el pcb. Tal vez crear funcion de crear pcb asi no se repite código
-				PCB* pcb = malloc(sizeof(PCB));
-				if (pcb == NULL){
-					printf("Error al crear pcb\n");
-				}
-				
-				pid++;
-				pcb->pid = pid;
-				pcb->tid = list_create();
-				pcb->mutex = list_create();
-				pcb->pc = 0;
-				pcb->tam_proceso = tamanio_proceso;
-				pcb->estado = NEW;	
 
-    			//Consulta a memoria si hay espacio
-				if(asignar_espacio_memoria(fd_memoria, pid, tamanio_proceso)){
-					// Si hay, crea el tid0. Tambien ver si hacer una función
-					iniciar_hilo(tid,prioridad,pid)
-					// Se pasa al estado READY
-					// recordar agregarlo a la lista_procesos
+				//crear_proceso(tamProceso, nombreArch, prioridad);
 
-				} else{ // Si no hay, se lo coloca en la cola NEW
-					queue_push(cola_new, pcb);
-				}
-
-				//Problema: no quiero duplicar el código con el iniciar_proceso(int tamanio_proceso)}
-				// ver tambien si hay funciones en el planificador de largo plazo e la sección de "creación de procesos" y asi los pueda relacionar:
-					//Consultar e memoria de si hay espacio
-					//Crear PCB y TCB para el tid0
-					//Ponerlo en estado NEW
 				break;
 			
 			case PROCESS_EXIT: //Finalizo el pcb correspondiente al tcb, solo lo llama el tid 0
@@ -55,45 +29,31 @@ void kernel_escucha_cpu_dispatch(){
 
 				//Deserializo el buffer y de ahi debo obtener el pid_afuera del proceso
 				
-				PCB* pcb_afuera = buscar(pid_afuera, lista_procesos);
+				/*PCB* pcb_afuera = buscar_proceso(lista_procesos, pid_afuera);
 				if(pcb_afuera == NULL){
 					printf("No se encontro el PID: %d", pid_afuera);
 				}
-				//debo cambiar el estado del pid a EXIT
-				pcb_afuera->estado = EXIT;
-				int i=0;
-				for(i;i<list_size(pcb_afuera->tid);i++){ //libero los tcb
-					TCB* tcb = list_get(pcb_afuera->tid,i);
-					free(tcb->registro);
-					free(tcb);
-				}
-				list_destroy(pcb_afuera->tid); //destruye la lista
-
-				// Avisar a memoria de la finalizacion
-				//creo que seria algo como los cases de cpu pero con memoria, primero el fd_memoria, el pid,cod op y el send
+				finalizar_proceso(pcb_afuera);
 				
-				//sacarlo de la lista_procesos
-				list_remove_and_destroy_by_condition(lista_procesos, (void*)condicion_pid, pcb_afuera)
-				// Colocarlo en la cola EXIT
-				queue_push(cola_exit,pid_afuera);
-				log_info(kernel_logs_obligatorios,"## Finaliza el proceso <PID %d>", pid_afuera);
 
+				log_info(kernel_logs_obligatorios,"## Finaliza el proceso <PID %d>", pid_afuera);
+				*/
 				break;
 			case THREAD_CREATE://genera un nuevo TCB con un TID autoincremental - mandarlo a READY
 				//Deserializamos, debe tener el nombre del archivo y su prioridad
 				//debemos ya tener el pid_inv y tid_inv de quien lo invoco
-				PCB* pcb_buscado = buscar(pid_inv, lista_procesos);
+				/*PCB* pcb_buscado = buscar(pid_inv, lista_procesos);
 				if(pcb_buscado == NULL){
 					printf("No se encontro el PID: %d", pid_afuera);
-				}
+				}*/
 
 				//creo el nuevo tcb con el mismo pid
 				//
-				iniciar_hilo(); // ver al final como quedo ya que es parecido al process_create
+				//iniciar_hilo(); // ver al final como quedo ya que es parecido al process_create
 				//debe pasarse al estado ready tcb->estado=ready;
 				//agregar el tcb a la lista de tids: list_add()
 				//queue_push(cola_ready,ver si quedo con pcb o tcb)
-				log_info(kernel_logs_obligatorios, "## (<PID %d>:<TID %d>) Se crea el Hilo - Estado: READY");
+				//log_info(kernel_logs_obligatorios, "## (<PID %d>:<TID %d>) Se crea el Hilo - Estado: READY");
 				
 				break;
 			case THREAD_JOIN:

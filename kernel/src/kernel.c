@@ -24,9 +24,8 @@ int main(int argc, char* argv[]) {
     
     cola_new = queue_create();
     cola_exec = queue_create();
-    cola_ready = queue_create();
     cola_blocked = queue_create();
-    cola_exit = queue_create();
+
     
 
     planificador_largoPlazo();

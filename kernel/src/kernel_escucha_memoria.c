@@ -9,7 +9,6 @@ void kernel_escucha_memoria(){
 		switch (cod_op)
 		{
 		case MENSAJE:
-		
 			break;
 		case PAQUETE:
 

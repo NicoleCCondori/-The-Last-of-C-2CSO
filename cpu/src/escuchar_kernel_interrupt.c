@@ -2,8 +2,6 @@
 #include <c_conexiones.h>
 
 
-
-
 void escuchar_kernel_interrupt(){
     //atender los msjs de kernel-interrupt 
     bool control_key=1;

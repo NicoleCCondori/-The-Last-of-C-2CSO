@@ -1,5 +1,19 @@
 #include <utils/utils.h>
 
+t_list* lista_tcb;
+
+PCB* buscar_proceso(t_list* lista, uint32_t pid){
+	for(int i=0; i<list_size(lista);i++)
+	{
+		PCB* proceso_actual = list_get(lista, i);
+		if (proceso_actual->pid == pid) {
+            return proceso_actual;
+        }
+
+	}
+	return NULL;
+}
+
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
 int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 {
@@ -180,9 +194,10 @@ t_config* iniciar_configs(char* path_config)
     return nuevo_config;
 }
 
-void* recibir_buffer(int* size, int socket_cliente)
+
+void *recibir_buffer(int *size, int socket_cliente)
 {
-	void * buffer;
+	void *buffer;
 
 	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
 	buffer = malloc(*size);
@@ -199,7 +214,7 @@ void recibir_mensaje(int socket_cliente, t_log* logger)
 	free(buffer);
 }
 
-t_list* recibir_paquete(int socket_cliente)
+t_list* recibir_paquete_lista(int socket_cliente)
 {
 	int size;
 	int desplazamiento = 0;

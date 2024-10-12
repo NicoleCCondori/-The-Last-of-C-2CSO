@@ -9,7 +9,6 @@ int fd_memoria;
 char* archivo_pseudocodigo_main;
 int tamanio_proceso_main;
 
-uint32_t pid = 0;
 
 //uint32_t tid_main = 0;
 pthread_t hilo_cpu_dispatch;
@@ -18,13 +17,11 @@ pthread_t hilo_memoria;
 
 t_queue* cola_new;
 t_queue* cola_exec;
-t_queue* cola_ready;
 t_queue* cola_blocked;
-t_queue* cola_exit;
 
+t_list* lista_ready;
 t_list* lista_procesos;
 
-sem_t sem_binario_memoria;
 
 void inicializar_kernel(){
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
@@ -34,6 +31,7 @@ void inicializar_kernel(){
     configurar_kernel();
 
     lista_procesos = list_create();
+    lista_ready = list_create();
 }
 
 void configurar_kernel() {
@@ -208,6 +206,20 @@ void planificador_cortoPlazo(){
     pthread_detach (hilo_planificador_corto_plazo);
 }
 
+void planificador_largoPlazo(){
+    pthread_t hilo_planificador_largo_plazo;
+    pthread_create (&hilo_planificador_largo_plazo, NULL, (void*)planificador_de_largo_plazo, NULL);
+    pthread_join (hilo_planificador_largo_plazo,NULL);
+}
+/*
+void planificador_de_largo_plazo(){
+    while(1){
+        int tam_proceso_main= tamanio_proceso_main;
+        iniciar_proceso(tam_proceso_main);
+    }
+}
+
+
 void planificador_corto_plazo(){
     if(strcmp(valores_config_kernel->algoritmo_planificacion,"FIFO")==0){
         printf("Planificacion fifo\n");
@@ -219,16 +231,5 @@ void planificador_corto_plazo(){
         printf("Planificacion CMN\n");
     }
 }
-void planificador_largoPlazo(){
-    pthread_t hilo_planificador_largo_plazo;
-    pthread_create (&hilo_planificador_largo_plazo, NULL, (void*)planificador_de_largo_plazo, NULL);
-    pthread_join (hilo_planificador_largo_plazo,NULL);
-}
-
-void planificador_de_largo_plazo(){
-    while(1){
-        int tam_proceso_main= tamanio_proceso_main;
-        iniciar_proceso(tam_proceso_main);
-    }
-}
+*/
 

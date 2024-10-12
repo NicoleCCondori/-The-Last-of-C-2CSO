@@ -2,8 +2,16 @@
 #define ESCUCHAR_CPU_H_
 
 #include <utils/utils.h>
+#include <utils/serializar.h>
 
 
 void escuchar_cpu();
+void devolver_contexto_ejecucion();
+TCB* buscar_tcb_por_tid(uint32_t tid_buscado);
+void obtener_instruccion();
+void actualizar_contexto_de_ejecucion();
+
+
+
 
 #endif
