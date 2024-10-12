@@ -93,7 +93,7 @@ void ciclo_de_instruccion(t_contextoEjecucion* contexto){
     //Revisa si es syscall,de serlo envia la syscall a kernel, en caso de no serlo ejecuta segun sus operandos
     
     execute(instruccionDecodificada, contexto->RegistrosCPU, &contexto->PC, contexto->TID);
-    //check_interrupt();
+    check_interrupt(fd_kernel_interrupt,fd_memoria, contexto);
 
 }
 
@@ -277,29 +277,75 @@ void execute(t_instruccion* instruccion, RegistrosCPU* registros, uint32_t* pc,u
     }
 }
 
-/*
-void check_interrupt(t_instruccion* instruc, int fd_kernel,int fd_memoria){
-    // Verificar el TID
+void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucion* contexto) {
+    int interrup_signal;  // Variable para almacenar la senial de interrupcion
 
-    if (instruc->es_syscall == 1)
-    {
-        log_info(cpu_logger,"SE A DETECTADO UNA INTERRUPCION %s", instruc->operacion);
-        execute_syscall(instruc,fd_kernel);
-        //mandar senial a memoria
-        t_buffer buContexExecut;
-        buContexExecut.stream = NULL;
-        buContexExecut.size = 0;
-        buContexExecut.offset = 0;
-        agregar_buffer_string(&buContexExecut,instruc->operacion);
-        if(send(fd_memoria,buContexExecut.stream,buContexExecut.size,0)==-1){
-            log_error(cpu_logger, "Error enviando el buffer a memoria para el Contexto de Ejecucion");
+    // Leer si hay interrupcion desde el CPU
+    if (recv(fd_kernel_interrupt, &interrup_signal, sizeof(int), 0) > 0) {
+        log_info(cpu_logger, "Interrupcion detectada desde el Kernel");
+
+        // Actualizar el contexto de ejecucion: Registros, PC y TID
+        actualizar_contexto(fd_memoria, contexto);
+
+        // Enviar una confirmacion al Kernel si es necesario
+        int respuesta = 1;  // Por ejemplo, enviar un valor que represente exito
+        if (send(fd_kernel_interrupt, &respuesta, sizeof(int), 0) == -1) {
+            log_error(cpu_logger, "Error al enviar la confirmacion de manejo de interrupcion al Kernel.");
+        } else {
+            log_info(cpu_logger, "Confirmacion de interrupcion enviada al Kernel.");
         }
-        free(buContexExecut.stream);
 
-    }else{
-        log_info(cpu_logger,"NO SE A DETECTADO UNA INTERRUPCION");
-        
+    } else {
+        log_info(cpu_logger, "No se ha detectado una interrupcion. Continuando ejecucion normal.");
     }
+}
+void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion) {
+    log_info(cpu_logger, "Actualizando contexto en memoria: TID = %d, PC = %d", contexto_ejecucion->TID, contexto_ejecucion->PC);
+
+    
+    t_paquete* paquete_contexto = crear_paquete(ACTUALIZAR_CONTEXTO); 
+
+    serializar_enviar_contexto(paquete_contexto, contexto_ejecucion);
+
+    // Enviar el paquete serializado al socket de memoria 
+    enviar_paquete(paquete_contexto, fd_memoria);
+
+    // Liberar la memoria del paquete
+    eliminar_paquete(paquete_contexto);  
+}
+/*
+void actualizar_contexto(int fd_memoria, RegistrosCPU* registros_cpu, uint32_t* pc, uint32_t* tid) {
+    log_info(cpu_logger, "Actualizando contexto en memoria: TID = %d, PC = %d", *tid, *pc);
+
+    t_paquete* nuevo_contexto;
+    /////////////////////////// Serializar el contexto
+
+    serializar_enviar_contexto(t_paquete* paquete_devolver_contexto, t_contextoEjecucion* contextoEjecucion);
+    enviar_paquete(t_paquete *paquete, int socket_cliente);
+
+
+
+    // Enviar el TID al módulo de memoria
+    if (send(fd_memoria, tid, sizeof(uint32_t), 0) < 0) {
+        log_error(cpu_logger, "Error al enviar el TID al modulo de memoria.");
+    } else {
+        log_info(cpu_logger, "TID enviado: %d", *tid);
+    }
+
+    // Enviar el Program Counter (PC) al modulo de memoria
+    if (send(fd_memoria, pc, sizeof(uint32_t), 0) < 0) {
+        log_error(cpu_logger, "Error al enviar el PC al modulo de memoria.");
+    } else {
+        log_info(cpu_logger, "PC enviado: %d", *pc);
+    }
+
+    // Enviar los registros del CPU al modulo de memoria
+    if (send(fd_memoria, registros_cpu, sizeof(RegistrosCPU), 0) < 0) {
+        log_error(cpu_logger, "Error al enviar los registros del CPU al modulo de memoria.");
+    } else {
+        log_info(cpu_logger, "Registros del CPU enviados al modulo de memoria.");
+    }
+
 }
 */
 void set_registro(char* registro,char* valor, RegistrosCPU* registros){

@@ -104,7 +104,7 @@ void actualizar_contexto_de_ejecucion() {
 
     log_info(memoria_logger, "Contexto actualizado para TID %d", datos_contexto->TID);
 
-    }
+}
 
 
 

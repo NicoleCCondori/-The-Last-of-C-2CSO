@@ -83,7 +83,8 @@ void execute(t_instruccion* instruccion, RegistrosCPU* registros,uint32_t *pc, u
 void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch);
 
 //INTERRUPCIONES
-void check_interrupt();
+void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucion* contexto);
+void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion);
 
 
 //PETICIONES A MEMORIA
