@@ -13,18 +13,51 @@
 #include<commons/collections/list.h>
 #include<string.h>
 #include<assert.h>
-#include <pthread.h>
+#include<pthread.h>
 #include<signal.h>
+#include <commons/collections/queue.h>
+#include <semaphore.h>
 
 typedef enum
 {
 	MENSAJE,
-	PAQUETE
+	PAQUETE,
+	OBTENER_CONTEXTO,
+	ACTUALIZAR_CONTEXTO,
+	OBTENER_INSTRUCCION,
+	ENVIAR_CONTEXTO,
+	ENVIAR_INSTRUCCION,
+	ASIGNAR_MEMORIA,
+
+	HILO_READY,
+	RECIBIR_TID,
+
+	PROCESS_CREATE,
+	PROCESS_EXIT,
+	THREAD_CREATE,
+	THREAD_JOIN,
+	THREAD_CANCEL,
+	THREAD_EXIT,
+	MUTEX_CREATE,
+	MUTEX_LOCK,
+	MUTEX_UNLOCK,
+	DUMP_MEMORY,
+	IO,
+	SYSCALL
 }op_code;
+
+typedef enum{
+	NEW,
+	BLOCKED,
+	READY,
+	EXIT,
+	EXEC
+} estado_proceso_hilo;
 
 typedef struct
 {
 	int size;
+	uint32_t offset;
 	void* stream;
 } t_buffer;
 
@@ -44,21 +77,32 @@ typedef struct
 	uint32_t GX;
 	uint32_t HX;
 } RegistrosCPU;
-typedef struct
 
+typedef struct 
 {
 	uint32_t pid; //Identificador del proceso
 	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
-	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
-	RegistrosCPU* registro;
-	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
+	//uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
+	int tam_proceso;
+	int prioridad_main;
+	char* path_main;
 } PCB;
 
 typedef struct 
 {
-	uint32_t tid;
+	uint32_t pid; //Identificador del proceso al que pertenece
+	uint32_t tid; //Identificador del hilo
 	int prioridad;//0 maxima prioridad
+	RegistrosCPU* registro;
+	char* path;
+	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 } TCB;
+
+PCB* buscar_proceso(t_list* lista, uint32_t pid);
+
+extern t_list* lista_tcb;
 
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
@@ -76,7 +120,7 @@ t_config* iniciar_configs(char* path_config);
 void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
 void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
-t_list* recibir_paquete(int socket_cliente);
+t_list* recibir_paquete_lista(int socket_cliente);
 
 
 

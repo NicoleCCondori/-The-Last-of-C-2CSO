@@ -10,6 +10,7 @@ void kernel_escucha_memoria(){
 		{
 		case MENSAJE:
 
+			break;
 		case PAQUETE:
 
 			break;

@@ -6,10 +6,23 @@ t_config_kernel* valores_config_kernel;
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;
 int fd_memoria;
+char* archivo_pseudocodigo_main;
+int tamanio_proceso_main;
 
+
+
+//uint32_t tid_main = 0;
 pthread_t hilo_cpu_dispatch;
 pthread_t hilo_cpu_interrupt;
 pthread_t hilo_memoria;
+
+t_queue* cola_new;
+t_queue* cola_exec;
+t_queue* cola_blocked;
+
+t_lista* lista_ready;
+t_list* lista_procesos;
+
 
 void inicializar_kernel(){
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
@@ -18,6 +31,8 @@ void inicializar_kernel(){
     
     configurar_kernel();
 
+    lista_procesos = list_create();
+    lista_ready = list_create();
 }
 
 void configurar_kernel() {
@@ -26,7 +41,6 @@ void configurar_kernel() {
     valores_config_kernel->config = iniciar_configs("src/kernel.config");
 
     valores_config_kernel->ip_memoria = config_get_string_value(valores_config_kernel->config,"IP_MEMORIA");
-    valores_config_kernel->puerto_escucha= config_get_string_value (valores_config_kernel->config , "PUERTO_ESCUCHA" );
     valores_config_kernel->puerto_memoria = config_get_string_value (valores_config_kernel->config , "PUERTO_MEMORIA" );
 	valores_config_kernel->ip_cpu = config_get_string_value (valores_config_kernel->config , "IP_CPU");
 	valores_config_kernel->puerto_cpu_dispatch = config_get_string_value (valores_config_kernel->config , "PUERTO_CPU_DISPATCH" );
@@ -36,7 +50,6 @@ void configurar_kernel() {
     valores_config_kernel->log_level = config_get_string_value(valores_config_kernel->config, "LOG_LEVEL");
 
 	//valores_config_kernel = config;
-    printf("dsp %s \n",valores_config_kernel->puerto_escucha); //se ASIGNA BIEN
 
 	//free(config);
 }
@@ -70,75 +83,38 @@ void conectar_memoria(){
 
     //hilo para conectarse con memoria / atender
     pthread_create(&hilo_memoria, NULL, (void*)kernel_escucha_memoria,NULL);
-    pthread_join(hilo_memoria,NULL);
+    pthread_detach(hilo_memoria);
+}
+void planificador_cortoPlazo(){
+    pthread_t hilo_planificador_corto_plazo;
+    pthread_create (&hilo_planificador_corto_plazo, NULL, (void*)planificador_corto_plazo, NULL);
+    pthread_detach (hilo_planificador_corto_plazo);
+}
+
+void planificador_largoPlazo(){
+    pthread_t hilo_planificador_largo_plazo;
+    pthread_create (&hilo_planificador_largo_plazo, NULL, (void*)planificador_de_largo_plazo, NULL);
+    pthread_join (hilo_planificador_largo_plazo,NULL);
 }
 /*
-void kernel_escucha_memoria(){
-    //atender los msjs de memoria
-    bool control_key = 1;
-    while (control_key){
-		int cod_op = recibir_operacion(fd_memoria);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(kernel_logger, "Desconexion de MEMORIA");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(kernel_logger, "Operacion desconocida de MEMORIA");
-			break;
-		}
-	}
+void planificador_de_largo_plazo(){
+    while(1){
+        int tam_proceso_main= tamanio_proceso_main;
+        iniciar_proceso(tam_proceso_main);
+    }
 }
 
-void kernel_escucha_cpu_dispatch(){
-    //atender los msjs de cpu-dispatch , otra funcion?
-    bool control_key = 1;
-    while (control_key){
-		int cod_op = recibir_operacion(fd_cpu_dispatch);
-		switch (cod_op)
-		{
-		case MENSAJE:
 
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(kernel_logger, "Desconexion de CPU-Dispatch");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(kernel_logger, "Operacion desconocida de CPU-Dispatch");
-			break;
-		}
-	}
-	//close(fd_cpu_dispatch); //liberar_conexion(fd_cpu_dispatch);
+void planificador_corto_plazo(){
+    if(strcmp(valores_config_kernel->algoritmo_planificacion,"FIFO")==0){
+        printf("Planificacion fifo\n");
+    }
+    if(strcmp(valores_config_kernel->algoritmo_planificacion,"PRIORIDADES")==0){
+        printf("Planificacion prioridades\n");
+    }
+    if(strcmp(valores_config_kernel->algoritmo_planificacion,"CMN")==0){
+        printf("Planificacion CMN\n");
+    }
 }
+*/
 
-void kernel_escucha_cpu_interrupt(){
-
-    //atender los msjs de cpu-interrupt , otra funcion?
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_cpu_interrupt);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(kernel_logger, "Desconexion de CPU-Interrupt");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(kernel_logger, "Operacion desconocida de CPU-Interrupt");
-			break;
-		}
-	}
-	//close(fd_cpu_interrupt); //liberar_conexion(fd_cpu_interrupt);
-}*/

@@ -47,4 +47,8 @@ void memoria_escucha_FS();
 void escuchar_cpu();
 void escuchar_kernel();
 
+void inicializar_lista_tcb();
+
+extern void *memoria;
+
 #endif
