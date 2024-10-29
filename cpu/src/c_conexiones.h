@@ -34,6 +34,8 @@ typedef struct {
     int tiempo;        // Tiempo de IO (si es la syscall IO)
     int recurso;       // Para MUTEX_CREATE, MUTEX_LOCK, etc.
     int tid;
+    //Son esenciales para todas las syscall
+    uint32_t PID;
     uint32_t TID;         // Para syscalls que manejan TID, como THREAD_JOIN, THREAD_CANCEL
 } t_instruccion;
 
@@ -96,10 +98,34 @@ char* recibir_instruccion_de_memoria();
 
 //PETICIONES A KERNEL
 void recibir_respuesta_kernel(int fd_kernel_interrupt);
-void enviar_syscall_a_kernel(t_paquete* paquete,int fd_kernel_dispatch);
+//void enviar_syscall_a_kernel(t_paquete* paquete,int fd_kernel_dispatch);
+
+void enviar_a_kernel_PROCESS_CREATE(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_IO(int fd_kernel_dispatch, t_syscall_mensaje* mensaje);
+void enviar_a_kernel_THREAD_CREATE(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_THREAD_JOIN(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_THREAD_CANCEL(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_MUTEX_CREATE(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_MUTEX_LOCK(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_MUTEX_UNLOCK(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_DUMP_MEMORY(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,t_syscall_mensaje* mensaje);
+
+void* serializar_process_create(t_paquete* paquete_process_create, t_syscall_mensaje* mensaje);
+void* serializar_IO(t_paquete* paquete_IO, t_syscall_mensaje* mensaje);
+void* serializar_thread_create(t_paquete* paquete_thread_create,t_syscall_mensaje* mensaje);
+void* serializar_thread_join(t_paquete* paquete_thread_join,t_syscall_mensaje* mensaje);
+void* serializar_thread_cancel(t_paquete* paquete_thread_cancel,t_syscall_mensaje* mensaje);
+void* serializar_mutex_create(t_paquete* paquete_mutex_create,t_syscall_mensaje* mensaje);
+void* serializar_mutex_lock(t_paquete* paquete_mutex_lock,t_syscall_mensaje* mensaje);
+void* serializar_mutex_unlock(t_paquete* paquete_mutex_unlock,t_syscall_mensaje* mensaje);
+void* serializar_dump_memory(t_paquete* paquete_dump_memory,t_syscall_mensaje* mensaje);
+void* serializar_thread_exit(t_paquete* paquete_thread_exit,t_syscall_mensaje* mensaje);
+void* serializar_process_exit(t_paquete* paquete_process_exit, t_syscall_mensaje* mensaje);
 
 //SEREALIZACION
-t_paquete* serializar_syscall(t_syscall_mensaje* mensaje);
+//t_paquete* serializar_syscall(t_syscall_mensaje* mensaje);
 
 
 //REGISTROS

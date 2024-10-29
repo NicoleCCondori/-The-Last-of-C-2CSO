@@ -1,6 +1,9 @@
 #include <escuchar_kernel_dispatch.h>
 #include <c_conexiones.h>
 
+uint32_t pidHilo;
+uint32_t tidHilo;
+
 void escuchar_kernel_dispatch(){
     //atender los msjs de kernel-dispatch
     bool control_key=1;
@@ -12,9 +15,18 @@ void escuchar_kernel_dispatch(){
 		case MENSAJE:
 
 		case RECIBIR_TID:
-			t_paquete* paquete_aux=recibir_paquete(fd_kernel_dispatch);
-			uint32_t pidHilo= leer_buffer_Uint32(paquete_aux->buffer);
-			uint32_t tidHilo = leer_buffer_Uint32(paquete_aux->buffer);
+			t_paquete* paquete_aux = recibir_paquete(fd_kernel_dispatch);
+
+            //deserializo llamando a la función "deserializar_enviar_contexto"
+			    
+            t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_aux);
+            //uint32_t pidHilo= leer_buffer_Uint32(paquete_aux->buffer);
+		    //uint32_t tidHilo = leer_buffer_Uint32(paquete_aux->buffer);
+            pidHilo = contexto->PID;
+            tidHilo = contexto->TID;
+            //Debo liberar la memoria
+            //free(contexto); no sé si liberaba aca por el tema del malloc
+            destruir_buffer_paquete(paquete_aux);
 			obtener_contexto(fd_memoria, pidHilo, tidHilo); //se envia a memoria el tid y pid para obtener el contexto de ejecucion
 
 		case PAQUETE:
