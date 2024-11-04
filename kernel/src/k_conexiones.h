@@ -53,7 +53,7 @@ extern t_list* lista_procesos;
 void inicializar_kernel();
 void configurar_kernel();
 void iniciar_proceso(int tamanio_proceso);
-void asignar_espacio_memoria(int fd_memoria, uint32_t pid,int tam_proceso);
+//void asignar_espacio_memoria(int fd_memoria, uint32_t pid,int tam_proceso);
 TCB* iniciar_hilo(uint32_t tid,int prioridad,uint32_t pid);
 
 //iniciar proceso

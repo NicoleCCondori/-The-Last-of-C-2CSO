@@ -53,7 +53,8 @@ void configurar_kernel() {
 	//free(config);
 }
 //Mandamos mensaje a memoria para saber si hay espacio disponible
-void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){//
+//Se encuentra en planificadores.c por eso lo comento. Tambien  comento en k_conexiones.h
+/*void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){//
     int result;
 
     //CReamos el buffer para pcb
@@ -98,7 +99,7 @@ void asignar_espacio_memoria(int fd_memoria, uint32_t pid, int tam_proceso){//
     free(paquete->buffer->stream);
     free(paquete->buffer);
     free(paquete);
-}
+}*/
 //inicializar el hilo
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid){
     
@@ -145,7 +146,7 @@ void iniciar_proceso(int tamanio_proceso){
     list_add(lista_procesos, pcb);
 
     //mandamos mensaje a memoria para saber si hay espacio,
-    asignar_espacio_memoria(fd_memoria, pid, tamanio_proceso);
+    //asignar_espacio_memoria(fd_memoria, pid, tamanio_proceso);
     sem_wait(&sem_binario_memoria);
     
     //Si hay Espacio , pasa a ready al proceso

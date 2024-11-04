@@ -133,8 +133,8 @@ t_instruccion* decode(char* instruccion){
     else if (strcmp(instruccionDecodificada->operacion,"MUTEX_CREATE")==0 ||
     strcmp(instruccionDecodificada->operacion,"MUTEX_LOCK")==0 ||
     strcmp(instruccionDecodificada->operacion,"MUTEX_UNLOCK")==0){
-        instruccionDecodificada->es_syscall=true;
-        instruccionDecodificada->recurso=atoi(instruccionDecodificada->operando1);
+        instruccionDecodificada->es_syscall = true;
+        instruccionDecodificada->recurso = strtok(NULL," ");
     }
     else if(strcmp(instruccionDecodificada->operacion,"THREAD_JOIN")==0 ||
     strcmp(    instruccionDecodificada->operacion,"TRHEAD_CANCEL")==0){
@@ -440,27 +440,27 @@ uint32_t MMU(uint32_t direccion_logica){
 }
 void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
 
-    t_syscall_mensaje* mensaje = malloc(sizeof(t_syscall_mensaje)) ; //debemos LIBERARLOOOO
+    //t_syscall_mensaje* mensaje = malloc(sizeof(t_syscall_mensaje)) ; //debemos LIBERARLOOOO
     //lo necesitan todas las syscall
-    mensaje->PID = instruccion->PID;
-    mensaje->TID = instruccion->TID;
-
+    //mensaje->PID = instruccion->PID;
+    //mensaje->TID = instruccion->TID;
+    //mensaje->operacion_length = strlen(instruccion->operacion) + 1;
+    //mensaje->operacion = instruccion->operacion;
+    
     if (strcmp(instruccion->operacion, "PROCESS_CREATE") == 0) {
         log_info(cpu_logger, "Syscall: Creando proceso con archivo %s, tamanio %d, prioridad %d",
         instruccion->archivo, instruccion->tamanio, instruccion->prioridad);
 
         //PRIMERO DEBO ASIGNARLE A CADA TIPO DE DATO LO QUE CORRESPONDE DE t_syscall_mensaje
-        mensaje->operacion_length = strlen(instruccion->operacion) + 1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->archivo_length = strlen(instruccion->archivo) + 1;
-        mensaje->archivo = instruccion->archivo;
-        mensaje->tamanio = instruccion->tamanio;
-        mensaje->prioridad = instruccion->prioridad;
+        //mensaje->archivo = instruccion->archivo;
+        //mensaje->archivo_length = strlen(instruccion->archivo) + 1;
+        //mensaje->tamanio = instruccion->tamanio;
+        //mensaje->prioridad = instruccion->prioridad;
 
         //t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_PROCESS_CREATE(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_PROCESS_CREATE(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->archivo,instruccion->tamanio,instruccion->prioridad);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
     }
@@ -468,14 +468,12 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
         log_info(cpu_logger, "Syscall: Ejecutando IO por %d segundos", instruccion->tiempo);
 
         // Enviar mensaje de IO al Kernel
-        mensaje->operacion_length = strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->tiempo = instruccion->tiempo;
+        //mensaje->tiempo = instruccion->tiempo;
 
         //t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_IO(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_IO(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->tiempo);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
@@ -483,16 +481,15 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     else if (strcmp(instruccion->operacion, "THREAD_CREATE") == 0) {
         log_info(cpu_logger, "Syscall: Creando hilo con archivo %s, prioridad %d",
         instruccion->archivo, instruccion->prioridad);
-
-        mensaje->operacion_length = strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->archivo = instruccion->archivo;
-        mensaje->prioridad = instruccion->prioridad;
+        
+        //mensaje->archivo_length = strlen(instruccion->archivo) + 1;
+        //mensaje->archivo = instruccion->archivo;
+        //mensaje->prioridad = instruccion->prioridad;
 
         //t_paquete* paquete = serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_THREAD_CREATE(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_THREAD_CREATE(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->archivo,instruccion->prioridad);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
      
@@ -501,14 +498,12 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     {
         log_info(cpu_logger, "Syscall: THREAD_JOIN a con tid: %d",instruccion->tid);
    
-        mensaje->operacion_length =strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->tid=instruccion->tid;
+        //mensaje->tid=instruccion->tid;
 
 		//t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_THREAD_JOIN(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_THREAD_JOIN(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->tid);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
@@ -516,14 +511,12 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     else if (strcmp(instruccion->operacion, "THREAD_CANCEL") == 0) {
        log_info(cpu_logger, "Syscall: THREAD_CANCEL con tid: %d",instruccion->tid);
 
-        mensaje->operacion_length =strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->tid = instruccion->tid;
+        //mensaje->tid = instruccion->tid;
 
         //t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_THREAD_CANCEL(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_THREAD_CANCEL(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->tid);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
@@ -531,49 +524,42 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
 
     }
     else if (strcmp(instruccion->operacion, "MUTEX_CREATE") == 0) {
-         log_info(cpu_logger, "Syscall: MUTEX_CREATE con recurso: %d",instruccion->recurso);
-
-
-        mensaje->operacion_length = strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->recurso = instruccion->recurso;
+         log_info(cpu_logger, "Syscall: MUTEX_CREATE con recurso: %s",instruccion->recurso);
+        //mensaje->recurso_length = strlen(instruccion->recurso) + 1;
+        //mensaje->recurso = instruccion->recurso;
 
         //t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_MUTEX_CREATE(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_MUTEX_CREATE(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->recurso);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
     else if (strcmp(instruccion->operacion, "MUTEX_LOCK") == 0) {
-        log_info(cpu_logger, "Syscall: MUTEX_LOCK con recurso: %d",instruccion->recurso);
-      
-        mensaje->operacion_length=strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->recurso = instruccion->recurso;
-
+        log_info(cpu_logger, "Syscall: MUTEX_LOCK con recurso: %s",instruccion->recurso);
+        //mensaje->recurso_length = strlen(instruccion->recurso) + 1;
+        //mensaje->recurso = instruccion->recurso;
+        
       	//t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_MUTEX_LOCK(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_MUTEX_LOCK(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->recurso);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
 
     }
     else if (strcmp(instruccion->operacion, "MUTEX_UNLOCK") == 0) {
-    log_info(cpu_logger, "Syscall: MUTEX_LOCK con recurso: %d",instruccion->recurso);
-      
-        mensaje->operacion_length=strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
-        mensaje->recurso=instruccion->recurso;
+    log_info(cpu_logger, "Syscall: MUTEX_LOCK con recurso: %s",instruccion->recurso);
+        //mensaje->recurso_length = strlen(instruccion->recurso) + 1;
+        //mensaje->recurso = instruccion->recurso;
 
       	//t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_MUTEX_UNLOCK(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_MUTEX_UNLOCK(fd_kernel_dispatch,instruccion->PID,instruccion->TID,instruccion->recurso);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
@@ -581,16 +567,11 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     }
     else if (strcmp(instruccion->operacion, "DUMP_MEMORY") == 0) {
     log_info(cpu_logger, "SYSCALL: DUMP_MEMORY");
-
-
-      
-        mensaje->operacion_length = strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
  
  		//t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_DUMP_MEMORY(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_DUMP_MEMORY(fd_kernel_dispatch,instruccion->PID,instruccion->TID);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
@@ -599,14 +580,11 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     else if (strcmp(instruccion->operacion, "THREAD_EXIT") == 0)
     {
         log_info(cpu_logger, "SYSCALL: THREAD_EXIT");
-
-        mensaje->operacion_length = strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
  
    		//t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_THREAD_EXIT(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_THREAD_EXIT(fd_kernel_dispatch,instruccion->PID,instruccion->TID);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
 
@@ -614,14 +592,11 @@ void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch) {
     else if (strcmp(instruccion->operacion, "PROCESS_EXIT") == 0) 
     {
         log_info(cpu_logger, "SYSCALL: PROCESS_EXIT");
-      
-        mensaje->operacion_length=strlen(instruccion->operacion)+1;
-        mensaje->operacion = instruccion->operacion;
  
     	//t_paquete* paquete=serializar_syscall(mensaje);
         //paquete->codigo_operacion=PAQUETE;
         //enviar_syscall_a_kernel(paquete,fd_kernel_dispatch);
-        enviar_a_kernel_PROCESS_EXIT(fd_kernel_dispatch,mensaje);
+        enviar_a_kernel_PROCESS_EXIT(fd_kernel_dispatch,instruccion->PID,instruccion->TID);
         sem_wait(&sem_syscall);
         recibir_respuesta_kernel(fd_kernel_dispatch);
     }
@@ -723,182 +698,123 @@ void inicializar_particion_de_memoria(uint32_t base, uint32_t limite){
 
 //Creo una función que envie el mensaje
 //CONSULTAR CON EL GRUPO: si creen que es mejor sacar la variable operacion ya que se sabe por medio del op_code
-void enviar_a_kernel_PROCESS_CREATE(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void serializar_datos_esenciales(t_paquete* paquete,uint32_t PID, uint32_t TID){
+    agregar_buffer_Uint32(paquete->buffer, PID);
+    agregar_buffer_Uint32(paquete->buffer, TID);
+}
+
+void enviar_a_kernel_PROCESS_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t TID, char* archivo,uint32_t tamanio,uint32_t prioridad){
     t_paquete* paquete_process_create = crear_paquete(PROCESS_CREATE);
-    serializar_process_create(paquete_process_create,mensaje);
+    serializar_datos_esenciales(paquete_process_create,PID,TID);
+    serializar_process_create(paquete_process_create,archivo,tamanio,prioridad);
+
     enviar_paquete(paquete_process_create, fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_process_create);
 }
-void* serializar_process_create(t_paquete* paquete_process_create, t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_process_create->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_process_create->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_process_create->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_process_create->buffer, mensaje->operacion);
-    agregar_buffer_Uint32(paquete_process_create->buffer, mensaje->archivo_length);
-    agregar_buffer_string(paquete_process_create->buffer, mensaje->archivo);
-    agregar_buffer_int(paquete_process_create->buffer, mensaje->tamanio);
-    agregar_buffer_int(paquete_process_create->buffer, mensaje->prioridad);
-    return NULL;
+void serializar_process_create(t_paquete* paquete_process_create, char* archivo,uint32_t tamanio,uint32_t prioridad){
+    agregar_buffer_string(paquete_process_create->buffer,archivo);
+    agregar_buffer_Uint32(paquete_process_create->buffer,tamanio);
+    agregar_buffer_Uint32(paquete_process_create->buffer,prioridad);
 }
 
-void enviar_a_kernel_IO(int fd_kernel_dispatch, t_syscall_mensaje* mensaje){
+void enviar_a_kernel_IO(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,int tiempo){
     t_paquete* paquete_IO = crear_paquete(IO);
-    serializar_IO(paquete_IO, mensaje);
+    serializar_datos_esenciales(paquete_IO,PID,TID);
+    serializar_IO(paquete_IO, tiempo);
+
     enviar_paquete(paquete_IO,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_IO);
 }
-void* serializar_IO(t_paquete* paquete_IO, t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_IO->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_IO->buffer, mensaje->TID);
-
-    agregar_buffer_Uint32(paquete_IO->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_IO->buffer, mensaje->operacion);
-    agregar_buffer_int(paquete_IO->buffer, mensaje->tiempo);
-    return NULL;
+void serializar_IO(t_paquete* paquete_IO, int tiempo){
+    agregar_buffer_int(paquete_IO->buffer, tiempo);
 }
 
-void enviar_a_kernel_THREAD_CREATE(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_THREAD_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* archivo,uint32_t prioridad){
     t_paquete* paquete_thread_create = crear_paquete(THREAD_CREATE);
-    serializar_thread_create(paquete_thread_create, mensaje);
+    serializar_datos_esenciales(paquete_thread_create,PID,TID);
+    serializar_thread_create(paquete_thread_create, archivo,prioridad);
+
     enviar_paquete(paquete_thread_create,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_thread_create);
 }
-void* serializar_thread_create(t_paquete* paquete_thread_create,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_thread_create->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_thread_create->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_thread_create->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_thread_create->buffer, mensaje->operacion);
-    agregar_buffer_string(paquete_thread_create->buffer, mensaje->archivo);
-    agregar_buffer_int(paquete_thread_create->buffer, mensaje->prioridad);
-    return NULL;
+void serializar_thread_create(t_paquete* paquete_thread_create,char* archivo, uint32_t prioridad){
+    agregar_buffer_string(paquete_thread_create->buffer,archivo);
+    agregar_buffer_Uint32(paquete_thread_create->buffer,prioridad);
 }
 
-void enviar_a_kernel_THREAD_JOIN(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_THREAD_JOIN(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,uint32_t tid){
     t_paquete* paquete_thread_join = crear_paquete(THREAD_JOIN);
-    serializar_thread_join(paquete_thread_join, mensaje);
+    serializar_datos_esenciales(paquete_thread_join,PID,TID);
+    serializar_thread_join_y_cancel(paquete_thread_join, tid);
+
     enviar_paquete(paquete_thread_join,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_thread_join);
 }
-void* serializar_thread_join(t_paquete* paquete_thread_join,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_thread_join->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_thread_join->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_thread_join->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_thread_join->buffer, mensaje->operacion);
-    agregar_buffer_int(paquete_thread_join->buffer, mensaje->tid);
-    return NULL;
+void serializar_thread_join_y_cancel(t_paquete* paquete_thread_join_y_cancel,uint32_t tid){
+    agregar_buffer_Uint32(paquete_thread_join_y_cancel->buffer,tid);
 }
 
-void enviar_a_kernel_THREAD_CANCEL(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_THREAD_CANCEL(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,uint32_t tid){
     t_paquete* paquete_thread_cancel = crear_paquete(THREAD_CANCEL);
-    serializar_thread_cancel(paquete_thread_cancel, mensaje);
+    serializar_datos_esenciales(paquete_thread_cancel,PID,TID);
+    serializar_thread_join_y_cancel(paquete_thread_cancel, tid);
+
     enviar_paquete(paquete_thread_cancel,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_thread_cancel);
 }
-void* serializar_thread_cancel(t_paquete* paquete_thread_cancel,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_thread_cancel->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_thread_cancel->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_thread_cancel->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_thread_cancel->buffer, mensaje->operacion);
-    agregar_buffer_int(paquete_thread_cancel->buffer, mensaje->tid);
-    return NULL;
-}
 
-void enviar_a_kernel_MUTEX_CREATE(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+
+void enviar_a_kernel_MUTEX_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* recurso){
     t_paquete* paquete_mutex_create = crear_paquete(MUTEX_CREATE);
-    serializar_mutex_create(paquete_mutex_create, mensaje);
+    serializar_datos_esenciales(paquete_mutex_create,PID,TID);
+    serializar_mutex(paquete_mutex_create, recurso);
+
     enviar_paquete(paquete_mutex_create,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_mutex_create);
 }
-void* serializar_mutex_create(t_paquete* paquete_mutex_create,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_mutex_create->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_mutex_create->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_mutex_create->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_mutex_create->buffer, mensaje->operacion);
-    agregar_buffer_int(paquete_mutex_create->buffer, mensaje->recurso);
-    return NULL;
+void serializar_mutex(t_paquete* paquete_mutex,char* recurso){
+    agregar_buffer_string(paquete_mutex->buffer,recurso);  
 }
 
-void enviar_a_kernel_MUTEX_LOCK(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_MUTEX_LOCK(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* recurso){
     t_paquete* paquete_mutex_lock = crear_paquete(MUTEX_LOCK);
-    serializar_mutex_lock(paquete_mutex_lock, mensaje);
+    serializar_datos_esenciales(paquete_mutex_lock,PID,TID);
+    serializar_mutex(paquete_mutex_lock, recurso);
+
     enviar_paquete(paquete_mutex_lock,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_mutex_lock);
 }
-void* serializar_mutex_lock(t_paquete* paquete_mutex_lock,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_mutex_lock->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_mutex_lock->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_mutex_lock->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_mutex_lock->buffer, mensaje->operacion);
-    agregar_buffer_int(paquete_mutex_lock->buffer, mensaje->recurso);
-    return NULL;
-}
 
-void enviar_a_kernel_MUTEX_UNLOCK(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_MUTEX_UNLOCK(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* recurso){
     t_paquete* paquete_mutex_unlock = crear_paquete(MUTEX_UNLOCK);
-    serializar_mutex_unlock(paquete_mutex_unlock, mensaje);
+    serializar_datos_esenciales(paquete_mutex_unlock,PID,TID);
+    serializar_mutex(paquete_mutex_unlock, recurso);
     enviar_paquete(paquete_mutex_unlock,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_mutex_unlock);
 }
-void* serializar_mutex_unlock(t_paquete* paquete_mutex_unlock,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_mutex_unlock->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_mutex_unlock->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_mutex_unlock->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_mutex_unlock->buffer, mensaje->operacion);
-    agregar_buffer_int(paquete_mutex_unlock->buffer, mensaje->recurso);
-    return NULL;
-}
 
-void enviar_a_kernel_DUMP_MEMORY(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_DUMP_MEMORY(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_dump_memory = crear_paquete(DUMP_MEMORY);
-    serializar_dump_memory(paquete_dump_memory, mensaje);
+    serializar_datos_esenciales(paquete_dump_memory,PID,TID);
     enviar_paquete(paquete_dump_memory,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_dump_memory);
 }
-void* serializar_dump_memory(t_paquete* paquete_dump_memory,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_dump_memory->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_dump_memory->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_dump_memory->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_dump_memory->buffer, mensaje->operacion);
-    return NULL;
-}
 
-void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_thread_exit = crear_paquete(THREAD_EXIT);
-    serializar_thread_exit(paquete_thread_exit, mensaje);
+    serializar_datos_esenciales(paquete_thread_exit,PID,TID);
     enviar_paquete(paquete_thread_exit,fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_thread_exit);
 }
-void* serializar_thread_exit(t_paquete* paquete_thread_exit,t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_thread_exit->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_thread_exit->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_thread_exit->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_thread_exit->buffer, mensaje->operacion);
-    return NULL;
-}
 
-void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,t_syscall_mensaje* mensaje){
+
+void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_process_exit = crear_paquete(PROCESS_EXIT);
-    serializar_process_exit(paquete_process_exit,mensaje);
+    serializar_datos_esenciales(paquete_process_exit,PID,TID);
     enviar_paquete(paquete_process_exit, fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_process_exit);
 }
-void* serializar_process_exit(t_paquete* paquete_process_exit, t_syscall_mensaje* mensaje){
-    agregar_buffer_Uint32(paquete_process_exit->buffer, mensaje->PID);
-    agregar_buffer_Uint32(paquete_process_exit->buffer, mensaje->TID);
-    
-    agregar_buffer_Uint32(paquete_process_exit->buffer, mensaje->operacion_length);
-    agregar_buffer_string(paquete_process_exit->buffer, mensaje->operacion);
-    return NULL;
-}
+
 
 
 
