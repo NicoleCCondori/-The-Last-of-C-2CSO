@@ -52,7 +52,7 @@ void configurar_memoria(){
     valores_config_memoria->retardo_respuesta = config_get_string_value(valores_config_memoria->config,"RETARDO_RESPUESTA");
     valores_config_memoria->esquema = config_get_string_value(valores_config_memoria->config,"ESQUEMA");
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
-    /**valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");*/
+    valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
 
      printf("dsp %s \n",valores_config_memoria->puerto_escucha);
@@ -84,7 +84,6 @@ void conectar_cpu(){
 
 //Conexión con multihilos
 void conectar_kernel(){
-    //Esperar conexion kernel
     log_info(memoria_logger, "Esperando kernel...");
 	while (true) //siempre está esperando
 	{
@@ -92,14 +91,13 @@ void conectar_kernel(){
 		if(fd_kernel == -1){
 			log_error(memoria_logger, "Error creando conexión con kernel");
 		}
-		log_info(memoria_logger, "Conexión exitosa con kernel");
 
+		log_info(memoria_logger, "Conexión exitosa con kernel");
 		handshakeServer(fd_kernel);
 
 		pthread_t hilo_kernel;
-        int* fd_nueva_conexion_ptr = malloc(sizeof(int));
-        *fd_nueva_conexion_ptr = fd_kernel;
-		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,fd_nueva_conexion_ptr);
+        
+		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);
 		pthread_detach(hilo_kernel);
 	}
 }
