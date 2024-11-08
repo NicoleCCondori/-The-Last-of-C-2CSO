@@ -8,7 +8,7 @@ t_config_filesystem* valores_config_FS;
 int fd_memoria;
 int fd_FS;
 
-pthread_t hilo_memoria;
+//pthread_t hilo_memoria;
 
 void inicializar_FS(){
     FS_logger = iniciar_logger("fileSystem.log", "FILESYSTEM.log");
@@ -31,7 +31,7 @@ void configurar_FS() {
 
 }
 
-void conectar_memoria() {
+/*void conectar_memoria() {
     //Esperar conexion memoria
 
     fd_FS = iniciar_servidor (valores_config_FS->puerto_escucha, FS_logger, "Servidor FS iniciado");
@@ -43,31 +43,31 @@ void conectar_memoria() {
 
 	pthread_create(&hilo_memoria, NULL, (void *) escuchar_memoria, NULL);
 	pthread_join(hilo_memoria, NULL);
+}*/
+
+//Conexión con multihilos
+void conectar_memoria(){
+    //Esperar conexion memoria
+
+    log_info(FS_logger, "Esperando memoria...");
+	while (1) //siempre está esperando
+	{
+		fd_memoria = esperar_cliente(fd_FS, FS_logger,"MEMORIA");
+		if(fd_FS == -1){
+			log_error(FS_logger, "Error creando conexión con memoria");
+		}
+		//log_info(FS_logger, "Conexión exitosa con MEMORIA");
+
+		handshakeServer(fd_memoria);
+        
+        pthread_t hilo_memoria;
+        int* fd_nueva_conexion_ptr = malloc(sizeof(int));
+        *fd_nueva_conexion_ptr = fd_memoria;
+		pthread_create(&hilo_memoria,NULL,(void*)escuchar_memoria,fd_nueva_conexion_ptr);
+		pthread_detach(hilo_memoria);
+	}
 }
 
-/*void escuchar_memoria(){
-	while(1){
-
-		int op_code_memoria = recibir_operacion(fd_memoria);
-
-		switch(op_code_memoria){
-            case MENSAJE:
-                //recibir_mensaje(cliente_memoria, logger_FS);
-                break;
-            case PAQUETE:
-                //t_list* lista = recibir_paquete(fd_memoria);
-                //log_info(logger_FS, "Me llegaron los siguientes valores:\n");
-                //list_iterate(lista, (void*) iterator);
-                break;
-            case -1:
-                log_error(FS_logger, "Desconexion de FS");
-                exit(EXIT_FAILURE);
-            default:
-                log_warning(FS_logger,"Operacion desconocida de FS");
-                break;
-		}
-	}
-}*/
 
 /*
 void iterator(char* value) {

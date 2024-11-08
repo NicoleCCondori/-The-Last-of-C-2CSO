@@ -10,15 +10,17 @@ void escuchar_cpu(){
         op_code codigo_operacion = paquete_cpu->codigo_operacion;
 		switch (codigo_operacion)
 		{
+        case MENSAJE:
+            break;
 		case OBTENER_CONTEXTO:
 			devolver_contexto_ejecucion();
-
+            break;
 		case ACTUALIZAR_CONTEXTO:
 			actualizar_contexto_de_ejecucion();
-
+            break;
 		case OBTENER_INSTRUCCION:
 			obtener_instruccion();
-
+            break;
 		default:
 			log_warning(memoria_logger, "Operacion desconocida de CPU");
 			break;

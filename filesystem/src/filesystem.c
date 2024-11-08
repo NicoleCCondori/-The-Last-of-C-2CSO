@@ -3,7 +3,7 @@
 int main(int argc, char* argv[]) {
 
     inicializar_FS();
-
+    fd_FS = iniciar_servidor (valores_config_FS->puerto_escucha, FS_logger, "Servidor FS iniciado");
     conectar_memoria();
 
     //liberar los logs y config
