@@ -3,4 +3,6 @@
 
 #include <f_conexiones.h>
 
+void inicializar_bitmap();
+void inicializar_bloques();
 #endif

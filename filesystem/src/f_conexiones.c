@@ -22,12 +22,12 @@ void configurar_FS() {
     
     valores_config_FS->config = iniciar_configs("src/filesystem.config");
 
-    valores_config_FS->puerto_escucha = config_get_string_value(valores_config_FS->config, "PUERTO_ESCUCHA");
-    valores_config_FS->mount_dir = config_get_string_value(valores_config_FS->config, "MOUNT_DIR");
-    valores_config_FS->block_size = config_get_int_value(valores_config_FS->config, "BLOCK_SIZE");
-    valores_config_FS->block_count = config_get_int_value(valores_config_FS->config, "BLOCK_COUNT");
-    valores_config_FS->retardo_acceso_bloque = config_get_int_value(valores_config_FS->config, "RETARDO_ACCESO_BLOQUE");
-    valores_config_FS->log_level = config_get_string_value(valores_config_FS->config, "LOG_LEVEL");
+    valores_config_FS->puerto_escucha = config_get_string_value(valores_config_FS->puerto_escucha, "PUERTO_ESCUCHA");
+    valores_config_FS->mount_dir = config_get_string_value(valores_config_FS->mount_dir, "MOUNT_DIR");
+    valores_config_FS->block_size = config_get_int_value(valores_config_FS->block_size, "BLOCK_SIZE");
+    valores_config_FS->block_count = config_get_int_value(valores_config_FS->block_count, "BLOCK_COUNT");
+    valores_config_FS->retardo_acceso_bloque = config_get_int_value(valores_config_FS->retardo_acceso_bloque, "RETARDO_ACCESO_BLOQUE");
+    valores_config_FS->log_level = config_get_string_value(valores_config_FS->log_level, "LOG_LEVEL");
 
 }
 
