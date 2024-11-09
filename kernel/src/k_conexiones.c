@@ -15,12 +15,13 @@ pthread_t hilo_cpu_dispatch;
 pthread_t hilo_cpu_interrupt;
 pthread_t hilo_memoria;
 
-t_queue* cola_new;
-t_queue* cola_exec;
+t_queue* cola_new; //Tiene PCBs
+t_queue* cola_exec; //Tiene TCBs
 t_queue* cola_blocked;
 
-t_list* lista_ready;
-t_list* lista_procesos;
+t_list* lista_ready; //Tiene TCBs
+t_list* lista_procesos; //VA a estar compuesto por PCBs
+t_list* lista_tcbs; //Va a estar compuesto por TCBs
 
 
 void inicializar_kernel(){
@@ -31,7 +32,9 @@ void inicializar_kernel(){
     configurar_kernel();
 
     lista_procesos = list_create();
+    lista_tcbs = list_create();
     lista_ready = list_create();
+
 }
 
 void configurar_kernel() {
@@ -100,8 +103,8 @@ void configurar_kernel() {
     free(paquete->buffer);
     free(paquete);
 }*/
-//inicializar el hilo
-TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid){
+//inicializar el hilo  --> LO COMENTO YA QUE ESTÁ EN planificadores.c
+/*TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid){
     
     TCB* tcb = malloc(sizeof(TCB));
     if(tcb == NULL){
@@ -122,9 +125,9 @@ TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid){
 
     return tcb;
 }
-
-//Inicializar el primer proceso
-void iniciar_proceso(int tamanio_proceso){
+*/
+//Inicializar el primer proceso   --> LO COMENTO YA QUE ESTÁ EN planificadores.c
+/*void iniciar_proceso(int tamanio_proceso){
 
     PCB* pcb = malloc(sizeof(PCB));
     if (pcb == NULL){
@@ -169,7 +172,7 @@ void iniciar_proceso(int tamanio_proceso){
     queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
     //crear_hilo(prioridad);
     
- }
+}*/
 
 //Revisar mas adelante
 void conectar_cpu_dispatch(){

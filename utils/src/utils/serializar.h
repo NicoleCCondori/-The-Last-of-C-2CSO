@@ -89,10 +89,13 @@ typedef struct{
 
 typedef struct{
     int tid;
-}t_thread_join_y_cancel;
+}t_thread_join_y_cancel;*/
 typedef struct{
-    char* recurso;
-}t_mutex;*/
+    char* recurso;//recurso
+    uint32_t tid;
+    t_queue* bloqueados_mutex; // va a tener los hilos que realizaron el mutex_lock y no pueden usar el recurso
+    //sem_t contador;
+}t_mutex;
 //=====================================
 
 t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete);

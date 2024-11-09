@@ -1,7 +1,5 @@
 #include <utils/utils.h>
-
 t_list* lista_tcb;
-
 PCB* buscar_proceso(t_list* lista, uint32_t pid){
 	for(int i=0; i<list_size(lista);i++)
 	{
@@ -10,6 +8,16 @@ PCB* buscar_proceso(t_list* lista, uint32_t pid){
             return proceso_actual;
         }
 
+	}
+	return NULL;
+}
+TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid){
+	for(int i=0; i<list_size(lista);i++)
+	{
+		TCB* tcb_actual = list_get(lista, i);
+		if (tcb_actual->pid == pid && tcb_actual->tid == tid){
+			return tcb_actual;
+        }
 	}
 	return NULL;
 }

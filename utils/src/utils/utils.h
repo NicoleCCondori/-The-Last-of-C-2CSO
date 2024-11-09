@@ -98,12 +98,12 @@ typedef struct
 	RegistrosCPU* registro;
 	char* path;
 	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estadoHilo;
 } TCB;
 
 PCB* buscar_proceso(t_list* lista, uint32_t pid);
-
+TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
 extern t_list* lista_tcb;
-
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
 void handshakeClient(int fd_servidor, int32_t handshake);
