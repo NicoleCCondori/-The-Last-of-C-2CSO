@@ -22,6 +22,20 @@ typedef struct{
     char* log_level;
 }t_config_memoria;
 
+typedef struct {
+    uint32_t id;
+    uint32_t tamanio;
+    bool ocupada;
+    uint32_t pid;
+} particion_t;
+
+typedef struct {
+    uint32_t id;
+    uint32_t tamanio;
+    bool ocupada;
+    uint32_t pid;
+} particionD_t;
+
 extern t_log* memoria_logger;
 extern t_log* memoria_log_obligatorios;
 

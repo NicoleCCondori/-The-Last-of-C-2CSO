@@ -11,13 +11,12 @@ void escuchar_kernel(){
 		switch (codigo_operacion)
 		{
 		case ASIGNAR_MEMORIA:
-		asignar_memoria();
-		break;
+            asignar_memoria();
+            break;
 
 		case HILO_READY:
 		     crear_hilo();
 			break;
-
 
 		default:
 			log_warning(memoria_logger, "Operacion desconocida de KERNEL");
@@ -25,12 +24,123 @@ void escuchar_kernel(){
 		}
 		eliminar_paquete(paquete_kernel);
 	}
-
 }
 
 void asignar_memoria(){
-	int valor_a_enviar = 0;
-	send(fd_kernel, &valor_a_enviar, sizeof(valor_a_enviar), 0);
+    if (strcmp(valores_config_memoria->esquema, "FIJAS")==0){
+        asignar_particiones_fijas();
+    }
+    else if (strcmp(valores_config_memoria->esquema, "DINAMICAS")==0){
+        asignar_particiones_dinamicas();
+    }
+}
+
+void asignar_particiones_fijas(uint32_t tamanio_proceso, uint32_t pid){
+    t_list* particiones = list_create();
+      for (int i = 0; valores_config_memoria->particiones[i] != NULL; i++) {
+
+        uint32_t tamanio = atoi(valores_config_memoria->particiones[i]);
+
+        particion_t* particion = malloc(sizeof(particion_t));
+        particion->id = i;
+        particion->tamanio = tamanio;
+        particion->ocupada = false;
+        particion->pid = 0;
+
+        list_add(particiones, particion);
+    }
+
+    particion_t* particion_asignada = NULL;
+
+    if (strcmp(valores_config_memoria->algoritmo_busqueda, "FIRST") == 0) {
+        particion_asignada = algoritmo_first_fit(tamanio_proceso);
+    } else if (strcmp(valores_config_memoria->algoritmo_busqueda, "BEST") == 0) {
+        particion_asignada = algoritmo_best_fit(tamanio_proceso);
+    } else if (strcmp(valores_config_memoria->algoritmo_busqueda, "WORST") == 0) {
+        particion_asignada = algoritmo_worst_fit(tamanio_proceso);
+    }
+
+    if (particion_asignada != NULL) {
+        particion_asignada->ocupada = true;
+        particion_asignada->pid = pid;
+
+	    send(fd_kernel, &valor_a_enviar, sizeof(int), 0);}
+    
+    else send(fd_kernel, &valor_a_enviar, sizeof(int), -1);
+}
+
+void asignar_particiones_dinamicas(uint32_t tamanio_proceso, uint32_t pid){
+    particion_t* particion_asignada = NULL;
+
+    if (strcmp(valores_config_memoria->algoritmo_busqueda, "FIRST") == 0) {
+        particion_asignada = algoritmo_first_fit(tamanio_proceso);
+    } else if (strcmp(valores_config_memoria->algoritmo_busqueda, "BEST") == 0) {
+        particion_asignada = algoritmo_best_fit(tamanio_proceso);
+    } else if (strcmp(valores_config_memoria->algoritmo_busqueda, "WORST") == 0) {
+        particion_asignada = algoritmo_worst_fit(tamanio_proceso);
+    }
+
+    if (particion_asignada != NULL) {
+        particion_asignada->ocupada = true;
+        particion_asignada->pid = pid;
+
+        if (particion_asignada->tamanio > tamanio_proceso) {
+            dividir_particion(particion_asignada, tamanio_proceso);
+            send(fd_kernel, &valor_a_enviar, sizeof(int), 0);}
+    
+    else send(fd_kernel, &valor_a_enviar, sizeof(int), -1);
+}
+
+void dividir_particion(particion_t* particion, uint32_t tamanio_proceso) {
+    uint32_t espacio_restante = particion->tamanio - tamanio_proceso;
+    particion->tamanio = tamanio_proceso;
+
+    particion_t* nueva_particion_libre = malloc(sizeof(particion_t));
+    nueva_particion_libre->tamanio = espacio_restante;
+    nueva_particion_libre->ocupada = false;
+    nueva_particion_libre->pid = 0;
+    nueva_particion_libre->direccion = particion->direccion + tamanio_proceso;
+
+    list_add(particiones_libres, nueva_particion_libre);
+}
+
+
+particion_t* algoritmo_first_fit(uint32_t tamanio_proceso) {
+    for (int i = 0; i < list_size(particiones_libres); i++) {
+        particion_t* particion = list_get(particiones_libres, i);
+        if (!particion->ocupada && particion->tamanio >= tamanio_proceso) {
+            return particion;
+        }
+    }
+    return NULL;
+}
+
+particion_t* algoritmo_best_fit(uint32_t tamanio_proceso) {
+    particion_t* particion_elegida = NULL;
+
+    for (int i = 0; i < list_size(particiones_libres); i++) {
+        particion_t* particion = list_get(particiones_libres, i);
+        if (!particion->ocupada && particion->tamanio >= tamanio_proceso) {
+            if (particion_elegida == NULL || particion->tamanio < particion_elegida->tamanio) {
+                particion_elegida = particion;
+            }
+        }
+    }
+    return particion_elegida;
+}
+
+particion_t* algoritmo_worst_fit(uint32_t tamanio_proceso) {
+    particion_t* particion_elegida = NULL;
+
+    for (int i = 0; i < list_size(particiones_libres); i++) {
+        particion_t* particion = list_get(particiones_libres, i);
+        if (!particion->ocupada && particion->tamanio >= tamanio_proceso) {
+            if (particion_elegida == NULL || particion->tamanio > particion_elegida->tamanio) {
+                particion_elegida = particion;
+            }
+        }
+    }
+    return particion_elegida;
 }
 
 void crear_hilo(){
