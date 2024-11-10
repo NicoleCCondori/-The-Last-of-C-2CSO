@@ -61,11 +61,42 @@ typedef struct{
     int tamanio;
     int prioridad;
     int tiempo;
-    int recurso;
+    uint32_t recurso_length;
+    char* recurso;
     int tid;
     uint32_t TID;
     uint32_t PID;
 }t_syscall_mensaje;
+
+//=====================================
+typedef struct {
+    uint32_t pid_inv;
+	uint32_t tid_inv;
+}t_datos_esenciales;
+
+typedef struct{
+    char* nomArchP;
+    int tamProceso;
+    int prioridadHM;
+}t_process_create;
+typedef struct{
+    char* nombreArchT;
+    uint32_t prioridadH;
+}t_thread_create;
+/*typedef struct{
+    int tiempo;
+}t_IO;
+
+typedef struct{
+    int tid;
+}t_thread_join_y_cancel;*/
+typedef struct{
+    char* recurso;//recurso
+    uint32_t tid;
+    t_queue* bloqueados_mutex; // va a tener los hilos que realizaron el mutex_lock y no pueden usar el recurso
+    //sem_t contador;
+}t_mutex;
+//=====================================
 
 t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete);
 t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete);
@@ -88,4 +119,11 @@ void* serializar_asignar_memoria(t_paquete* paquete_asignar_memoria, uint32_t pi
 t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete);
 RegistrosCPU* leer_buffer_registro(t_buffer* buffer);
 
+//========================================================
+t_datos_esenciales* deserializar_datos_esenciales(t_paquete* paquete);
+t_process_create* deserializar_process_create(t_paquete* paquete);
+int deserializar_IO(t_paquete* paquete);
+t_thread_create* deserializar_thread_create(t_paquete* paquete);
+uint32_t deserializar_thread_join_y_cancel(t_paquete* paquete);
+void* deserializar_mutex(t_paquete* paquete);
 #endif

@@ -35,13 +35,13 @@ void agregar_buffer_Uint32(t_buffer* buffer, uint32_t entero){
     buffer->offset += sizeof(uint32_t);
 }
 
-void agregar_buffer_Uint8(t_buffer* buffer, uint8_t entero)
+/*void agregar_buffer_Uint8(t_buffer* buffer, uint8_t entero)
 {
     buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint8_t));
     buffer->size += sizeof(uint8_t);
     memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint8_t));
     buffer->offset += sizeof(uint8_t);
-}
+}*/
 
 void agregar_buffer_string(t_buffer* buffer, char* args){
     uint32_t tamanio = strlen(args) +1;
@@ -302,4 +302,43 @@ void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro)
     buffer->size += sizeof(RegistrosCPU);
     memcpy(buffer->stream + buffer->offset, registro, sizeof(RegistrosCPU));
     buffer->offset += sizeof(RegistrosCPU);
+}
+
+//===================================================================
+t_datos_esenciales* deserializar_datos_esenciales(t_paquete* paquete){
+    t_datos_esenciales* invocadores = malloc(sizeof(t_datos_esenciales));
+    invocadores->pid_inv = leer_buffer_Uint32(paquete->buffer);
+    invocadores->tid_inv = leer_buffer_Uint32(paquete->buffer);
+    return invocadores;
+}
+
+t_process_create* deserializar_process_create(t_paquete* paquete){
+    t_process_create* pc_hiloMain = malloc(sizeof(t_process_create));
+    
+    pc_hiloMain->nomArchP = leer_buffer_string(paquete->buffer);
+    pc_hiloMain->tamProceso = leer_buffer_Uint32(paquete->buffer);
+    pc_hiloMain->prioridadHM = leer_buffer_Uint32(paquete->buffer);
+    return pc_hiloMain;
+}
+
+t_thread_create* deserializar_thread_create(t_paquete* paquete){
+    t_thread_create* tc_hilo = malloc(sizeof(t_thread_create));
+    tc_hilo->nombreArchT = leer_buffer_string(paquete->buffer);
+    tc_hilo->prioridadH = leer_buffer_Uint32(paquete->buffer);
+    return tc_hilo;
+}
+
+uint32_t deserializar_thread_join_y_cancel(t_paquete* paquete){
+    uint32_t tid = leer_buffer_Uint32(paquete->buffer);
+    return tid;
+}
+
+int deserializar_IO(t_paquete* paquete){
+    int tiempo = leer_buffer_int(paquete->buffer);
+    return tiempo;
+}
+
+void* deserializar_mutex(t_paquete* paquete){
+    char* recurso = leer_buffer_string(paquete->buffer);
+    return recurso;
 }
