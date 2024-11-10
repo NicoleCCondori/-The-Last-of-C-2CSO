@@ -37,6 +37,7 @@ void asignar_memoria(){
 
 void asignar_particiones_fijas(uint32_t tamanio_proceso, uint32_t pid){
     t_list* particiones = list_create();
+      //for (int i = 0; list_size( valores_config_memoria->particiones)!= 0; i++) {//
       for (int i = 0; valores_config_memoria->particiones[i] != NULL; i++) {
 
         uint32_t tamanio = atoi(valores_config_memoria->particiones[i]);
