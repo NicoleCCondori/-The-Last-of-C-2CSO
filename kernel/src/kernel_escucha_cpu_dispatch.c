@@ -12,9 +12,11 @@ void kernel_escucha_cpu_dispatch(){
 		//debo hacer los recv para lo que queda del paquete que seria el buffer
 		//debo deserializar el buffer según el caso que corresponda
 		t_paquete* datos_de_cpu = recibir_paquete(fd_cpu_dispatch);
+		
 		t_datos_esenciales* invocadores = deserializar_datos_esenciales(datos_de_cpu);
 		
 		log_info(kernel_logs_obligatorios, "## (<%d>:<%d>) - Solicitó syscall: <%d>", invocadores->pid_inv,invocadores->tid_inv, datos_de_cpu->codigo_operacion);
+		
 		switch (datos_de_cpu->codigo_operacion) //siempre debo saber el pid y el tid de quien invocó
 		{
 			case PROCESS_CREATE:
@@ -77,6 +79,7 @@ void kernel_escucha_cpu_dispatch(){
 				// Avisar a memoria de la finalizacion.
 				// Aclaración: el hilo que lo invocó sigue con su ejecución si es que el hilo pasado por parámetro no existe o finalizo hace rato
 				uint32_t tid_cancel = deserializar_thread_join_y_cancel(datos_de_cpu);
+				
 				break;
 			case THREAD_EXIT:
 				// Finaliza el hilo que lo invocó --> conectar con la funcion
