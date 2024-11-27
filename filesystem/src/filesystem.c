@@ -85,5 +85,54 @@ void inicializar_metadata(uint32_t size, uint32_t index_block,char* nombre_archi
     
     fclose(metadata_file);
     log_info(FS_logger,"Archivo metadata inicializado correctamente");
+}
 
+int reservar_bloques (uint32_t bloques_necesarios, uint32_t* bloques_reservados){
+    char bitmap_path[100];
+    sprintf(bitmap_path,"%s/bitmap.dat",valores_config_FS->mount_dir);
+
+    FILE* file_bitmap=fopen(bitmap_path,"rb+");
+    if (!file_bitmap)
+    {
+        log_error(FS_logger,"Error al abrir el archivo bitmap impidiendo verificar el espacio");
+        return -1;
+    }
+    uint8_t byte;
+    uint32_t bloques_libres=0;
+    uint32_t block_count=valores_config_FS->block_count;
+    uint32_t bitmap_size=(block_count+7)/8;
+
+    for (uint32_t i= 0; i <bitmap_size; i++)
+    {
+        fread(&byte,sizeof(uint8_t),1,file_bitmap);
+        for (uint8_t j = 0; i < 8; j++)
+        {
+            uint32_t bloque_actual=i*8+j;
+
+            if (bloque_actual>=block_count)
+            {
+                break;//evitamos leer fuera del rango
+            }
+
+            if(!(byte & (1<<j)))//lee el anterior a la posicion de j, es para verificar si el bloque esta libre.
+            {
+                bloques_reservados[bloques_libres++]=bloque_actual;
+
+                byte|=(1<<j);// reemplazo con OR bit a bit para marcarlo como ocupado
+                fseek(file_bitmap,-1,SEEK_CUR)//retroceder una posicion para actualizar el byte
+                fwrite(&byte,sizeof(uint8_t),1,file_bitmap);
+                fflush(file_bitmap); //no estoy seguro de eso, lo vi en google y es para asegurarme que los cambios se guardan rapido en disco
+
+                if (bloques_libres==bloques_necesarios)
+                {
+                    fclose(file_bitmap);
+                    return 1;// Se reservaron los bloques
+                }
+                
+            }
+        }
+    }
+    
+    fclose(file_bitmap);
+    return 0;
 }
