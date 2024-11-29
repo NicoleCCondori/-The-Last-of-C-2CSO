@@ -136,3 +136,53 @@ int reservar_bloques (uint32_t bloques_necesarios, uint32_t* bloques_reservados)
     fclose(file_bitmap);
     return 0;
 }
+
+void dump_memory(char* nombre,uint32_t tam,char* contenido){
+    uint32_t bloques_necesarios=tamvalores_config_FS->block_size;// me da la cantidad de bloques
+    uint32_t* bloques_reservados= malloc(bloques_necesarios*sizeof(uint32_t));
+
+    if(!bloques_reservados){
+        log_error(FS_logger,"Error al reservar memoria");
+        exit(EXIT_FAILURE);
+    }
+    if (reservar_bloques(bloques_necesarios,bloques_reservados)=-1)
+    {
+        log_error(FS_logger,"No hay espacio suficiente para el archivo %s",nombre);
+        free(bloques_reservados);
+        exit(EXIT_FAILURE);
+    }
+
+    char bloques_path[100];
+    sprintf(bloques_path,"%s/bloques.dat",valores_config_FS->mount_dir);
+    FILE* file_bloques=fopen(bloques_path,"rb+");
+    if(!file_bloques){
+        log_error(FS_logger,"Error al abrir el archivo de bloques para escritura");
+        free(bloques_reservados);
+        exit(EXIT_FAILURE);
+
+    }
+    
+    fseek(file_bloques,bloques_reservados[0]*valores_config_FS->block_size,SEEK_SET);//me escribo los punteros en el bloque indice
+    for (uint32_t i = 0; i <= bloques_necesarios; i++)
+    {
+        fwrite(&bloques_reservados[i],sizeof(uint32_t),1,file_bloques);
+    }
+    uint32_t bytes_escritos=0;
+    for (uint32_t i = 0; i <= bloques_necesarios; i++)
+    {
+        fseek(file_bloques,bloques_reservados[i]*valores_config_FS->block_size,SEEK_SET);
+        uint32_t cant_bytes_a_escribr= (tam-bytes_escritos > valores_config_FS->block_size ? valores_config_FS->block_size : tam-bytes_escritos );
+        fwrite(contenido + bytes_escritos,sizeof(char),cant_bytes_a_escribr,file_bloques);
+        bytes_escritos+=cant_bytes_a_escribr;
+
+        log_info(FS_logger,"## Acceso Bloque - Archivo %s - Tipo Bloque:<DATOS> - Bloque File System <%d>",nombre,,,bloques_reservados[i]);
+
+        bytes_escritos+= cant_bytes_a_escribr;
+
+        usleep(valores_config_FS->retardo_acceso_bloque*1000);
+
+    }
+    fclose(file_bloques);
+
+    log_info(FS_logger,"## Fin de solicitud - Archivo: %s ",nombre);
+}
