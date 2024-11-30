@@ -14,6 +14,13 @@ typedef struct{
 	char* log_level;
 }t_config_filesystem;
 
+typedef struct{
+
+	char* nombre_archivo;
+	uint32_t size;
+	uint32_t index_block;
+}archivo_metadata;
+
 //Variables globales
 extern t_log* FS_logger;
 extern t_log* FS_logs_obligatorios;

@@ -7,6 +7,11 @@ void escuchar_memoria(){
 		int op_code_memoria = recibir_operacion(fd_memoria);
 
 		switch(op_code_memoria){
+            case DUMP_MEMORY:
+            //
+                log_info(FS_logger,"OK");
+                break;
+            break;
             case MENSAJE:
                 //recibir_mensaje(cliente_memoria, logger_FS);
                 break;

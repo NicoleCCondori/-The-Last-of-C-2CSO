@@ -1,11 +1,11 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include<stdlib.h>
-#include<stdio.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-#include<commons/log.h>
-#include<commons/config.h>
+#include <commons/log.h>
+#include <commons/config.h>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -17,12 +17,19 @@
 #include <signal.h>
 #include <commons/collections/queue.h>
 #include <semaphore.h>
-
+#include <sys/mman.h>
 typedef enum
 {
 	MENSAJE,
+	PAQUETE,
+	OBTENER_CONTEXTO,
+	ACTUALIZAR_CONTEXTO,
+	OBTENER_INSTRUCCION,
+	ENVIAR_CONTEXTO,
+	ENVIAR_INSTRUCCION,
 	ASIGNAR_MEMORIA,
 	PAQUETE,
+
 	HILO_READY,
 	RECIBIR_TID,
 
@@ -36,7 +43,9 @@ typedef enum
 	MUTEX_LOCK,
 	MUTEX_UNLOCK,
 	DUMP_MEMORY,
-	IO
+	IO,
+	SYSCALL
+
 }op_code;
 
 typedef enum{
@@ -79,10 +88,12 @@ typedef struct
 	RegistrosCPU* registro;
 	char* path;
 	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estadoHilo;
 } TCB;
 
 PCB* buscar_proceso(t_list* lista, uint32_t pid);
-
+TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
+extern t_list* lista_tcb;
 
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
@@ -100,7 +111,9 @@ t_config* iniciar_configs(char* path_config);
 void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
 void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
+
 t_list* recibir_paquete_lista(int socket_cliente);//cambio
+
 
 
 
