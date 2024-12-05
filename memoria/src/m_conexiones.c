@@ -30,16 +30,6 @@ void inicializar_memoria(){
 
 }
 
-void inicializar_lista_tcb() {
-    lista_tcb = list_create();
-    if (lista_tcb == NULL) {
-        log_error(memoria_logger, "Error al crear la lista de TCBs");
-        exit(EXIT_FAILURE);
-    }
-    log_info(memoria_logger, "Lista global de TCBs inicializada correctamente");
-}
-
-
 void configurar_memoria(){
     valores_config_memoria = malloc(sizeof(t_config_memoria));
     valores_config_memoria->config = iniciar_configs("src/memoria.config");
@@ -59,19 +49,16 @@ void configurar_memoria(){
 
 }
 
-void conectar_con_FS(){
-    //Cliente MEMORIA a Filesystem
-    fd_FS = crear_conexion(valores_config_memoria->ip_filesystem, valores_config_memoria->puerto_filesystem, "FILESYSTEM",memoria_logger);
-    handshakeClient(fd_FS,3);
-
-	//se crea un hilo para escuchar mensajes de FS
-    pthread_create(&hilo_FS, NULL, (void*)memoria_escucha_FS,NULL);
-    pthread_detach(hilo_FS);
+void inicializar_lista_tcb() {
+    lista_tcb = list_create();
+    if (lista_tcb == NULL) {
+        log_error(memoria_logger, "Error al crear la lista de TCBs");
+        exit(EXIT_FAILURE);
+    }
+    log_info(memoria_logger, "Lista global de TCBs inicializada correctamente");
 }
 
-
 void conectar_cpu(){
-   
     //Esperar conexion CPU
     log_info(memoria_logger,"Esperando CPU...");
     fd_cpu = esperar_cliente(fd_memoria,memoria_logger,"CPU");
@@ -80,6 +67,16 @@ void conectar_cpu(){
     //se crea un hilo para escuchar mensajes de CPU
     pthread_create(&hilo_cpu, NULL, (void*)escuchar_cpu, NULL);
     pthread_detach(hilo_cpu);
+}
+
+void conectar_con_FS(){
+    //Cliente MEMORIA a Filesystem
+    fd_FS = crear_conexion(valores_config_memoria->ip_filesystem, valores_config_memoria->puerto_filesystem, "FILESYSTEM",memoria_logger);
+    handshakeClient(fd_FS,3);
+
+	//se crea un hilo para escuchar mensajes de FS
+    pthread_create(&hilo_FS, NULL, (void*)memoria_escucha_FS,NULL);
+    pthread_detach(hilo_FS);
 }
 
 //Conexión con multihilos
