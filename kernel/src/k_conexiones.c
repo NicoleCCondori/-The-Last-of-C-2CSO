@@ -17,9 +17,11 @@ pthread_t hilo_memoria;
 
 t_queue* cola_new; //Tiene PCBs
 t_queue* cola_exec; //Tiene TCBs
-t_queue* cola_blocked;
+//t_queue* cola_blocked;
 
 t_list* lista_ready; //Tiene TCBs
+t_list* lista_blocked; //me va ayudar a buscar en toda la lista
+t_list* lista_exit; //Es mejor que tenga los TCBs sirve para los thread_join
 t_list* lista_procesos; //VA a estar compuesto por PCBs
 t_list* lista_tcbs; //Va a estar compuesto por TCBs
 
@@ -34,6 +36,8 @@ void inicializar_kernel(){
     lista_procesos = list_create();
     lista_tcbs = list_create();
     lista_ready = list_create();
+    lista_blocked = list_create();
+    lista_exit = list_create();
 
 }
 

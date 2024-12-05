@@ -214,13 +214,6 @@ void *recibir_buffer(int *size, int socket_cliente)
 	return buffer;
 }
 
-void recibir_mensaje(int socket_cliente, t_log* logger)
-{
-	int size;
-	char* buffer = recibir_buffer(&size, socket_cliente);
-	log_info(logger, "Me llego el mensaje %s", buffer);
-	free(buffer);
-}
 
 t_list* recibir_paquete_lista(int socket_cliente)
 {
@@ -269,4 +262,17 @@ void finalizar_modulo(t_log* logger,t_log* logger_obligatorio, t_config* config)
 	if (config){
 		config_destroy(config);
 	}
+}
+
+char* recibir_mensajeV2(int socket){
+	int size;
+	char* buffer = recibir_buffer(&size, socket);
+	return buffer;
+}
+void recibir_mensaje(int socket_cliente, t_log* logger)
+{
+	int size;
+	char* buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "Me llego el mensaje %s", buffer);
+	free(buffer);
 }

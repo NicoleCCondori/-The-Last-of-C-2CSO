@@ -342,3 +342,35 @@ void* deserializar_mutex(t_paquete* paquete){
     char* recurso = leer_buffer_string(paquete->buffer);
     return recurso;
 }
+
+//PAra informar(kernel) a memoria, la finalización de un hilo
+void serializar_finalizar_hilo(t_paquete* paquete_memoria, uint32_t pid, uint32_t tid){
+    agregar_buffer_Uint32(paquete_memoria->buffer,pid);
+    agregar_buffer_Uint32(paquete_memoria->buffer,pid);
+}
+t_datos_esenciales* deserializar_finalizar_hilo(t_paquete* paquete_memoria){
+    t_datos_esenciales* datos_mem =malloc(sizeof(t_datos_esenciales));
+    datos_mem->pid_inv = leer_buffer_Uint32(paquete_memoria->buffer);
+    datos_mem->tid_inv = leer_buffer_Uint32(paquete_memoria->buffer);
+    return datos_mem;
+}
+
+//================================================================
+void enviar_mensaje(char *mensaje, int socket){
+	t_paquete *paquete = malloc(sizeof(t_paquete));
+
+	paquete->codigo_operacion = MENSAJE;
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->size = strlen(mensaje) + 1;
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
+
+	int bytes = paquete->buffer->size + 2 * sizeof(int);
+
+	void *a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket, a_enviar, bytes, 0);
+
+	free(a_enviar);
+	eliminar_paquete(paquete);
+}
