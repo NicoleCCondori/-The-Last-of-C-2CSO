@@ -33,7 +33,7 @@ void kernel_escucha_cpu_dispatch(){
 				if(invocadores->tid_inv == 0){ //si el tid es 0, es decir que lo invoco el hilo main --> finaliza el proceso (PCB)
 					PCB* pcb_afuera = buscar_proceso(lista_procesos, invocadores->pid_inv);
 					if(pcb_afuera == NULL){
-						printf("No se encontro el PID: %d", invocadores->pid_inv);
+						printf("No se encontro el PID: %u \n", invocadores->pid_inv);
 					}
 					finalizar_proceso(pcb_afuera);
 					
@@ -47,7 +47,7 @@ void kernel_escucha_cpu_dispatch(){
 				//debemos ya tener el pid_inv y tid_inv de quien lo invoco
 				PCB* pcb_buscado = buscar_proceso(lista_procesos, invocadores->pid_inv);
 				if(pcb_buscado == NULL){
-					printf("No se encontro el PID: %d", invocadores->pid_inv);
+					printf("No se encontro el PID: %u \n", invocadores->pid_inv);
 				}
 				/*uint32_t nuevo_tid = pcb_buscado->tid_contador++;
 				list_add(pcb_buscado->tid, nuevo_tid);*/
@@ -73,7 +73,7 @@ void kernel_escucha_cpu_dispatch(){
 				TCB* tcb_a_bloquear = buscar_tcbs(lista_tcbs,invocadores->tid_inv ,invocadores->pid_inv);
 				TCB* tcb_buscado = buscar_tcbs(lista_tcbs, tid_join,invocadores->pid_inv);
 				if(tcb_buscado == NULL || tcb_buscado->estadoHilo == EXIT){
-					printf("No se encontro o ya FINALIZO el TID: %d del PID: %d ", tid_join,invocadores->pid_inv);
+					printf("No se encontro o ya FINALIZO el TID: %u del PID: %u \n", tid_join,invocadores->pid_inv);
 					tcb_a_bloquear->estadoHilo = READY;
 					list_add(lista_ready,tcb_a_bloquear);
 				}else{
@@ -91,7 +91,7 @@ void kernel_escucha_cpu_dispatch(){
 				uint32_t tid_cancel = deserializar_thread_join_y_cancel(datos_de_cpu);
 				TCB* tcb_a_exit = buscar_tcbs(lista_tcbs, tid_cancel,invocadores->pid_inv);
 				if(tcb_a_exit == NULL || tcb_a_exit->estadoHilo == EXIT){
-					printf("No se encontro o ya FINALIZO el TID: %d del PID: %d (thread_cancel)\n", tid_cancel,invocadores->pid_inv);
+					printf("No se encontro o ya FINALIZO el TID: %u del PID: %u (thread_cancel)\n", tid_cancel,invocadores->pid_inv);
 					//sigue con su ejecución
 				} else{
 					finalizar_hilo(tcb_a_exit);
@@ -101,7 +101,7 @@ void kernel_escucha_cpu_dispatch(){
 				// Finaliza el hilo que lo invocó --> conectar con la función
 				TCB* hilo_a_finalizar = buscar_tcbs(lista_tcbs, invocadores->tid_inv, invocadores->pid_inv);
 				if (hilo_a_finalizar == NULL) {
-					printf("No se encontró el TID: %d del PID: %d para finalizar (thread_exit)\n", invocadores->tid_inv, invocadores->pid_inv);
+					printf("No se encontró el TID: %u del PID: %u para finalizar (thread_exit)\n", invocadores->tid_inv, invocadores->pid_inv);
 				}else {
 					finalizar_hilo(hilo_a_finalizar);
 				}
@@ -122,7 +122,7 @@ void kernel_escucha_cpu_dispatch(){
 				
 				PCB* pcb_buscadoRC = buscar_proceso(lista_procesos, invocadores->pid_inv);
 				if(pcb_buscadoRC == NULL){
-					printf("No se encontro el PID: %d", invocadores->pid_inv);
+					printf("No se encontro el PID: %u", invocadores->pid_inv);
 				}
 				list_add(pcb_buscadoRC->mutex, creado); //las estructura t_mutex lo agregamos en la lista mutex de cada pcb
 				break;
@@ -132,7 +132,12 @@ void kernel_escucha_cpu_dispatch(){
 
 				PCB* pcb_buscadoRL = buscar_proceso(lista_procesos, invocadores->pid_inv);
 				if(pcb_buscadoRL == NULL){
-					printf("No se encontro el PID: %d", invocadores->pid_inv);
+					printf("No se encontro el PID: %u \n", invocadores->pid_inv);
+				}
+				//tmb el tcb para despues ingresarlo a la lista de bloqueados
+				TCB* hilo_block_mutex = buscar_tcbs(lista_tcbs, invocadores->tid_inv, invocadores->pid_inv);
+				if(hilo_block_mutex == NULL){
+					printf("No se encontro el TID: %u del PID:%u\n", invocadores->tid_inv,invocadores->pid_inv);
 				}
 				//1RO debe existir el mutex solicitado
 				t_mutex* lockeado = buscar_mutex(pcb_buscadoRL->mutex, recurso_lock);
@@ -143,8 +148,13 @@ void kernel_escucha_cpu_dispatch(){
 				if(lockeado->tid == -1){ //2do si no esta tomado -> se lo asigno a dicho hilo
 					lockeado->tid = invocadores->tid_inv;
 				}else{ //3ro si esta tomado -> 
+					//Ingresa a la cola de bloqueados de la lista mutex de la lista de procesos
 					queue_push(lockeado->bloqueados_mutex,invocadores->tid_inv);
 					//queue_push(lockeado->bloqueados_mutex, (void *)(uintptr_t)invocadores->tid_inv);
+					//Tmb ingresa a la lista de bloqueados general de hilos
+					hilo_block_mutex->estadoHilo = BLOCKED;
+					hilo_block_mutex->tid_que_lo_bloqueo = lockeado->tid;
+					list_add(lista_blocked,hilo_block_mutex);
 					log_info(kernel_logs_obligatorios, "Motivo de Bloqueo: ## (<PID>:%u <TID>:%u) - Bloqueado por: MUTEX", invocadores->pid_inv,invocadores->tid_inv);
 				}
 				
@@ -153,7 +163,7 @@ void kernel_escucha_cpu_dispatch(){
 				char* recurso_unlock = deserializar_mutex(datos_de_cpu);
 				PCB* pcb_buscadoRU = buscar_proceso(lista_procesos, invocadores->pid_inv);
 				if(pcb_buscadoRU == NULL){
-					printf("No se encontro el PID: %d", invocadores->pid_inv);
+					printf("No se encontro el PID: %u \n", invocadores->pid_inv);
 				}
 				//1RO verifico si existe el mutex solicitado
 				t_mutex* unlock = buscar_mutex(pcb_buscadoRU->mutex, recurso_unlock);
@@ -192,7 +202,7 @@ void kernel_escucha_cpu_dispatch(){
 				log_error(kernel_logger, "Desconexion de CPU-Dispatch");
 				exit(EXIT_FAILURE);*/
 			default:
-				log_warning(kernel_logger, "Operacion desconocida de CPU-Dispatch");
+				log_warning(kernel_logger, "Operacion desconocida de CPU-Dispatch\n");
 				break;
 		}
 		//destruir_buffer_paquete(datos_de_cpu);
