@@ -126,7 +126,7 @@ void serializar_mutex(t_paquete* paquete_mutex,char* recurso);
 
 
 //REGISTROS
-uint32_t obtenerRegistro(char* registro,RegistrosCPU* registros);
+uint32_t* obtenerRegistro (char *registro, RegistrosCPU *registros){
 
 void log_registro(char* registro, RegistrosCPU* registros);
 

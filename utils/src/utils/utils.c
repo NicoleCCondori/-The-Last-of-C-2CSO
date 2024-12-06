@@ -1,6 +1,4 @@
 #include <utils/utils.h>
-<<<<<<< HEAD
-=======
 t_list* lista_tcb;
 PCB* buscar_proceso(t_list* lista, uint32_t pid){
 	for(int i=0; i<list_size(lista);i++)
@@ -23,7 +21,6 @@ TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid){
 	}
 	return NULL;
 }
->>>>>>> origin/checkpoint3
 
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
 int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
@@ -74,11 +71,7 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 {
 	int result;
 
-// <<<<<<< HEAD
-	send(fd_servidor, &handshake, sizeof(int32_t), 0);
-// =======
 	send(fd_servidor, &handshake, sizeof(int32_t), 0); //tira error cuando conectamos kernel ---> falta liberar sockets?
-// >>>>>>> check1V2
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)
@@ -193,10 +186,7 @@ t_log *iniciar_logger(char *path_log, char *nombre_log)
 		//printf("Error al crear %s\n",nombre_log);
        	exit(2);
 	};
-//<<<<<<< HEAD
-//=======
 	log_info(nuevo_logger, "Se creo exitosamente, %s\n",nombre_log);
-//>>>>>>> check1V2
 	return nuevo_logger;
 }
 
@@ -211,45 +201,29 @@ t_config* iniciar_configs(char* path_config)
     }
     return nuevo_config;
 }
-//////////////////////////////////////////////
-typedef struct
-{
-	uint32_t AX;
-	uint32_t BX;
-	uint32_t CX;
-	uint32_t DX;
-	uint32_t EX;
-	uint32_t FX;
-	uint32_t GX;
-	uint32_t HX;
-} RegistrosCPU;
 
-typedef enum{
-	NEW,
-	BLOCKED,
-	READY,
-	EXIT,
-	EXEC
-} estado_proceso_hilo;
 
-typedef struct 
+void *recibir_buffer(int *size, int socket_cliente)
 {
-	uint32_t pid; //Identificador del proceso
-	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
-	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
-	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
-	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
-	int tam_proceso;
-} PCB;
+	void *buffer;
 
-typedef struct 
+	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	buffer = malloc(*size);
+	recv(socket_cliente, buffer, *size, MSG_WAITALL);
+
+	return buffer;
+}
+
+void recibir_mensaje(int socket_cliente, t_log* logger)
 {
-<<<<<<< HEAD
-	uint32_t pid; //Identificador del proceso al que pertenece
-	uint32_t tid; //Identificador del hilo
-	int prioridad;//0 maxima prioridad
-	RegistrosCPU* registro;
-=======
+	int size;
+	char* buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "Me llego el mensaje %s", buffer);
+	free(buffer);
+}
+
+t_list* recibir_paquete_lista(int socket_cliente)
+{
 	int size;
 	int desplazamiento = 0;
 	void * buffer;
@@ -285,100 +259,14 @@ void finalizar_conexiones(int num_sockets, ...) {
 }*/
 
 void finalizar_modulo(t_log* logger,t_log* logger_obligatorio, t_config* config){
->>>>>>> origin/checkpoint3
 	
-} TCB;
-
-////////////////////////////////////////////////////////
-/*
-void agregar_buffer_char* (t_buffer buffer,char)
-
-//PARA SERIALIZAR
-void agregar_buffer_int(t_buffer buffer, int entero){
-    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(int));
-    buffer->size += sizeof(int);
-    memcpy(buffer->stream + buffer->offset, &entero, sizeof(int));
-    buffer->offset += sizeof(int);
-}
-
-void agregar_buffer_Uint32(t_buffer buffer, uint32_t entero){
-    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t));
-    buffer->size += sizeof(uint32_t);
-    memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint32_t));
-    buffer->offset += sizeof(uint32_t);
-}
-
-void agregar_buffer_Uint8(t_buffer *buffer, uint8_t entero)
-{
-    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint8_t));
-    buffer->size += sizeof(uint8_t);
-    memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint8_t));
-    buffer->offset += sizeof(uint8_t);
-}
-
-void agregar_buffer_string(t_buffer* buffer, char* args){
-    uint32_t tamanio = strlen(args) +1;
-    agregar_buffer_Uint32(buffer, tamanio);
-
-    buffer->stream = realloc(buffer->stream, buffer->size + tamanio);
-    memcpy(buffer->stream + buffer->offset, args, tamanio);
-    buffer->offset += tamanio;
-    buffer->size += tamanio;
-}
-
-//PARA DESERIALIZAR
-uint32_t leer_buffer_int(t_buffer* buffer)
-{
-    int entero;
-    memcpy(&entero, buffer->stream + buffer->offset, sizeof(int));
-    buffer->offset += sizeof(int);
-    return entero;
-}
-
-uint32_t leer_buffer_Uint32(t_buffer* buffer)
-{
-    uint32_t entero;
-    memcpy(&entero, buffer->stream + buffer->offset, sizeof(uint32_t));
-    buffer->offset += sizeof(uint32_t);
-    return entero;
-}
-
-uint8_t leer_buffer_Uint8(t_buffer* buffer)
-{
-    uint8_t entero;
-    memcpy(&entero, buffer->stream + buffer->offset, sizeof(uint8_t));
-    buffer->offset += sizeof(uint8_t);
-    return entero;
-}
-
-char *leer_buffer_string(tipo_buffer* buffer)
-{
-    char *cadena;
-    uint32_t tamanio;
-
-    tamanio = leer_buffer_enteroUint32(buffer);
-    cadena = malloc((tamanio) + 1);
-    memcpy(cadena, buffer->stream + buffer->offset, tamanio);
-    buffer->offset += tamanio;
-
-    *(cadena + tamanio) = '\0';
-
-    return cadena;
-}
-
-
-void *serializar_paquete(t_paquete *paquete, int bytes){
-	void *magic = malloc(bytes); // Reserva memoria del tamaño del paquete completo
-	int offset = 0;
-
-	memcpy(magic + offset, &(paquete->codigo_operacion), sizeof(int));
-	offset += sizeof(int);
-
-	memcpy(magic + offset, &(paquete->buffer->size), sizeof(int));
-	offset += sizeof(int);
-
-	memcpy(magic + offset, paquete->buffer->stream, paquete->buffer->size);
-	offset += paquete->buffer->size;
-
-	return magic;
+	if (logger) {
+		log_destroy(logger);
+	}
+	if (logger_obligatorio){
+		log_destroy(logger_obligatorio);
+	}
+	if (config){
+		config_destroy(config);
+	}
 }

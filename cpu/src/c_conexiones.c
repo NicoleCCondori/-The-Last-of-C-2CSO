@@ -104,7 +104,16 @@ void ciclo_de_instruccion(t_contextoEjecucion* contexto){
 t_instruccion* decode(char* instruccion){
 
     t_instruccion* instruccionDecodificada= malloc(sizeof(t_instruccion));
-    instruccionDecodificada -> operacion = strtok(instruccion," ");
+    if(!instruccionDecodificada){
+        log_error(cpu_logger,"ERROR al asignar memoria para la instruccion decodificada");
+        exit(EXIT_FAILURE);
+    }
+    char* instruccionCopia= strdup(instruccion);
+    if(!instruccionCopia){
+        log_error(cpu_logger,"Error al duplicar instruccion");
+        exit(EXIT_FAILURE);
+    }
+    instruccionDecodificada -> operacion = strtok(instruccionCopia," ");
     instruccionDecodificada -> operando1 = strtok(NULL," ");
     instruccionDecodificada -> operando2 = strtok(NULL," ");
     //inicializo variables
@@ -141,7 +150,7 @@ t_instruccion* decode(char* instruccion){
         instruccionDecodificada->es_syscall = true;
         instruccionDecodificada->tid = atoi(instruccionDecodificada->operando1);
     }
-        
+    free(instruccionCopia);
     return instruccionDecodificada;
 }
 
@@ -278,15 +287,37 @@ void execute(t_instruccion* instruccion, RegistrosCPU* registros, uint32_t* pc,u
         
     }
     if(strcmp(instruccion->operacion,"JNZ")!=0){
-        pc++;
+       (*pc)++;
     }
 }
 
 void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucion* contexto) {
     int interrup_signal;  // Variable para almacenar la senial de interrupcion
+    int bytes_recibidos=recv(fd_kernel_interrupt,&interrup_signal,sizeof(int),MSG_DONTWAIT);//evitar bloqueo si es que no hay una interrupcion
+    if (bytes_recibidos>0)
+    {
+        log_info(cpu_logger,"Interrupcion detectada desde el kernel");
+        actualizar_contexto(fd_memoria,contexto);
 
+        int respuesta=1;
+        if (send(fd_kernel_interrupt,&respuesta,sizeof(int),0)==-1)
+        {
+            log_error(cpu_logger,"Error al enviar la confimaracion al Kernel");
+
+        }else{
+            log_info(cpu_logger,"Confirmacion de interrupcion");
+        }
+    }
+    /*else if (bytes_recibidos==0)
+    {
+        log_info(cpu_logger,"Conexion cerrda por el Kernel");
+        //exit(EXIT_FAILURE); preguntar que onda con esto, si hay
+    }
+    */
+    
+    
     // Leer si hay interrupcion desde el CPU
-    if (recv(fd_kernel_interrupt, &interrup_signal, sizeof(int), 0) > 0) {
+    /*if (recv(fd_kernel_interrupt, &interrup_signal, sizeof(int), 0) > 0) {
         log_info(cpu_logger, "Interrupcion detectada desde el Kernel");
 
         // Actualizar el contexto de ejecucion: Registros, PC y TID
@@ -302,7 +333,7 @@ void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucio
 
     } else {
         log_info(cpu_logger, "No se ha detectado una interrupcion. Continuando ejecucion normal.");
-    }
+    }*/
 }
 void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion) {
     log_info(cpu_logger, "Actualizando contexto en memoria: TID = %d, PC = %d", contexto_ejecucion->TID, contexto_ejecucion->PC);
@@ -314,6 +345,17 @@ void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion
 
     // Enviar el paquete serializado al socket de memoria 
     enviar_paquete(paquete_contexto, fd_memoria);
+    
+    int respuesta_memoria;
+    if(recv(fd_memoria,&respuesta_memoria,sizeof(int),0)<0){
+        log_error(cpu_logger,"Error al recibir confirmacion de memoria.");
+        exit(EXIT_FAILURE);
+    }
+    if(respuesta_memoria==1){
+        log_info(cpu_logger,"Contexto actualizado correctamente en eemoria.");
+    }else{
+        log_error(cpu_logger,"Error en la actualizacion de contexto en memoria.");
+    }
 
     // Liberar la memoria del paquete
     eliminar_paquete(paquete_contexto);  
@@ -364,13 +406,15 @@ void set_registro(char* registro,char* valor, RegistrosCPU* registros){
 }
 
 void read_mem(char* datos, char* direccion, RegistrosCPU* registros,uint32_t tidHilo){
-    uint32_t reg_datos = obtenerRegistro(datos,registros);
-    uint32_t reg_direccion = obtenerRegistro(direccion,registros);
+    uint32_t* reg_datos = obtenerRegistro(datos,registros);
+    uint32_t* reg_direccion = obtenerRegistro(direccion,registros);
     
-    if(reg_datos!= 0 && reg_direccion != 0){
-        uint32_t direccion_fisica = MMU(reg_direccion);
-        reg_datos = leer_desde_memoria(fd_memoria, direccion_fisica,tidHilo);
+    if(!reg_datos || !reg_direccion){
+       log_error(cpu_logger,"Error: Registros no validados para lectura");
+        return;
     }
+    uint32_t direccion_fisica= MMU(*reg_direccion);
+    *reg_datos=leer_desde_memoria(fd_memoria,direccion_fisica,tidHilo);
 }
 
 
@@ -391,14 +435,14 @@ uint32_t leer_desde_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t 
 }
 
 void write_mem(char* registro_direccion, char* registro_datos, RegistrosCPU* registros,uint32_t tidHilo){
-    uint32_t reg_direccion = obtenerRegistro(registro_direccion,registros);
-    uint32_t reg_datos = obtenerRegistro(registro_datos,registros);
-    if(reg_direccion != 0 && reg_datos!= 0){
-        uint32_t direccion_fisica=MMU(reg_direccion);
-
-        escribir_en_memoria(fd_memoria,direccion_fisica, reg_datos,tidHilo);
-
+    uint32_t* reg_direccion = obtenerRegistro(registro_direccion,registros);
+    uint32_t* reg_datos = obtenerRegistro(registro_datos,registros);
+    if(!reg_direccion || !reg_datos){
+        log_error(cpu_logger,"Error: Registros no validados para escritura");
+        return;
     }
+    uint32_t direccion_fisca=MMU(*reg_direccion);
+    escribir_en_memoria(fd_memoria,direccion_fisca,*reg_datos,tidHilo);
 }
 void escribir_en_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t dato,uint32_t tidHilo){
     uint32_t buffer[2];
@@ -441,43 +485,31 @@ void log_registro(char* registro,RegistrosCPU* registros){
 }
 
 // OBTENGO EL REGISTRO COMPARANDO 
-uint32_t obtenerRegistro(char* registro, RegistrosCPU* registros){
-    if(strcmp(registro,"AX")==0){
+uint32_t* obtenerRegistro (char *registro, RegistrosCPU *registros){
+    static const struct {
+        char* nombre;
+        uint32_t* puntero;
+    } mapa_registro[]={
+        {"AX",&registros->AX},{"BX",&registros->BX},{"CX",&registros->CX},{"DX",&registros->DX},
+        {"EX",&registros->EX},{"FX",&registros->FX},{"GX",&registros->GX},{"HX",&registros->HX}
 
-       return registros->AX;
+    };
+    for (int i = 0; i < sizeof(mapa_registro)/sizeof(mapa_registro[0]); i++)
+    {
+        if (strcmp(registro,mapa_registro[i].nombre)==0)
+        {
+            return mapa_registro[i].puntero;
+        }
+        
     }
-    else if (strcmp(registro,"BX")==0){
-       return registros->BX;
-    }
-    else if(strcmp(registro,"CX")==0){
-        return registros->CX;
-    }
-     else if(strcmp(registro,"DX")==0){
-        return registros->DX;
-    }
-    else if(strcmp(registro,"EX")==0){
-       return registros->EX;
-    }
-    else if(strcmp(registro,"FX")==0){
-        return registros->FX; 
-    }
-    else if(strcmp(registro,"GX")==0){
-       return registros->GX;
-    }
-    else if(strcmp(registro,"HX")==0){
-        return registros->HX; 
-    }
-    else{
-        log_error(cpu_logger,"Registro desconocido %s",registro);
-        return 0;
-    }
-    return 0;
+    log_error(cpu_logger,"Registro descocido %s",registro);
+    return NULL;
 }
 
 uint32_t MMU(uint32_t direccion_logica){
     uint32_t direccion_fisica=parteActual.base+ direccion_logica;
 
-    if(direccion_fisica>parteActual.base+ parteActual.limite){
+    if( direccion_fisica < parteActual.base|| direccion_fisica > (parteActual.base + parteActual.limite)){
         log_error(cpu_logger,"Segmentation Fault: Direccion %d fuera de los limites",direccion_logica);
         //notificar a kernel;
         exit(EXIT_FAILURE);

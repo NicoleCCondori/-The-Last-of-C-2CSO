@@ -1,34 +1,53 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include<stdlib.h>
-#include<stdio.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-#include<commons/log.h>
-#include<commons/config.h>
+#include <commons/log.h>
+#include <commons/config.h>
 
-#include<sys/socket.h>
-#include<unistd.h>
-#include<netdb.h>
-#include<commons/collections/list.h>
-#include<string.h>
-#include<assert.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <commons/collections/list.h>
+#include <string.h>
+#include <assert.h>
 #include <pthread.h>
+#include <signal.h>
+#include <commons/collections/queue.h>
 #include <semaphore.h>
-//<<<<<<< HEAD
-
-//=======
-//>>>>>>> check1V2
-#include<signal.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 typedef enum
 {
 	MENSAJE,
-	PAQUETE
+	PAQUETE,
+	OBTENER_CONTEXTO,
+	ACTUALIZAR_CONTEXTO,
+	OBTENER_INSTRUCCION,
+	ENVIAR_CONTEXTO,
+	ENVIAR_INSTRUCCION,
+	ASIGNAR_MEMORIA,
+
+	HILO_READY,
+	RECIBIR_TID,
+
+	PROCESS_CREATE,
+	PROCESS_EXIT,
+	THREAD_CREATE,
+	THREAD_JOIN,
+	THREAD_CANCEL,
+	THREAD_EXIT,
+	MUTEX_CREATE,
+	MUTEX_LOCK,
+	MUTEX_UNLOCK,
+	DUMP_MEMORY,
+	IO,
+	SYSCALL
 }op_code;
 
-<<<<<<< HEAD
-=======
 typedef enum{
 	NEW,
 	BLOCKED,
@@ -36,10 +55,10 @@ typedef enum{
 	EXIT,
 	EXEC
 } estado_proceso_hilo;
->>>>>>> origin/checkpoint3
 typedef struct
 {
 	int size;
+	uint32_t offset;
 	void* stream;
 } t_buffer;
 
@@ -49,8 +68,6 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-<<<<<<< HEAD
-=======
 typedef struct
 {
 	uint32_t AX;
@@ -89,7 +106,6 @@ typedef struct
 PCB* buscar_proceso(t_list* lista, uint32_t pid);
 TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
 extern t_list* lista_tcb;
->>>>>>> origin/checkpoint3
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
 void handshakeClient(int fd_servidor, int32_t handshake);
@@ -103,6 +119,10 @@ void handshakeServer(int fd_client);
 //Globales
 t_log *iniciar_logger(char *path_log, char *nombre_log);
 t_config* iniciar_configs(char* path_config);
+void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
+void* recibir_buffer(int* size, int socket_cliente);
+void recibir_mensaje(int socket_cliente, t_log* logger);
+t_list* recibir_paquete_lista(int socket_cliente);
 
 
 

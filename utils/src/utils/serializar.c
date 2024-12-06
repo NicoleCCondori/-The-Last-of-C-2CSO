@@ -342,3 +342,11 @@ void* deserializar_mutex(t_paquete* paquete){
     char* recurso = leer_buffer_string(paquete->buffer);
     return recurso;
 }
+
+t_crear_archivo_memoria deserializar_crear_archivo_memoria(t_paquete* paquete){
+    t_crear_archivo_memoria* archivo_memoria = malloc(sizeof(t_crear_archivo_memoria));
+    archivo_memoria.contenido = leer_buffer_string(paquete->buffer);
+    archivo_memoria.nombre_archivo = leer_buffer_string(paquete->buffer);
+    archivo_memoria->tamanio = leer_buffer_Uint32(paquete->buffer);
+    return archivo_memoria;
+}
