@@ -1,8 +1,17 @@
 #ifndef C_CONEXIONES_H_
 #define C_CONEXIONES_H_
 
-#include <utils/utils.h>
+//#include <utils/utils.h>
+#include <utils/serializar.h>
 
+//semaforos
+extern sem_t sem_syscall;
+
+extern char* instruccionActual;
+//char* operacionAux;
+//uint32_t programCounterCpu;
+
+//estructuras
 typedef struct{
 	t_config* config;
 	char* ip_memoria;
@@ -12,8 +21,6 @@ typedef struct{
 	char* log_level;
 }t_config_cpu;
 
-<<<<<<< HEAD
-=======
 typedef struct {
     char* operacion;  // Nombre de la instruccion (SET, SUM, SUB, etc.)
     char* operando1;  // Primer operando
@@ -40,23 +47,23 @@ typedef struct
 
 extern particionMemoria parteActual;
 
->>>>>>> origin/checkpoint3
 extern t_log* cpu_logger;
 extern t_log* cpu_log_debug;
 extern t_log* cpu_logs_obligatorios;
 
 extern t_config_cpu* valores_config_cpu;
 
+//File descriptors
 extern int fd_cpu_dispatch;
 extern int fd_cpu_interrupt;
 extern int fd_kernel_dispatch;
 extern int fd_kernel_interrupt;
 extern int fd_memoria;
 
+//Hilos 
 extern pthread_t hilo_kernel_dispatch;
 extern pthread_t hilo_kernel_interrupt;
 extern pthread_t hilo_memoria;
-extern uint32_t tidHilo;
 
 
 void inicializar_cpu();
@@ -70,8 +77,6 @@ void cpu_escucha_memoria();
 void escuchar_kernel_dispatch();
 void escuchar_kernel_interrupt();
 
-<<<<<<< HEAD
-=======
 //CICLO DE INSTRUCCIONES
 void ciclo_de_instruccion(t_contextoEjecucion* contexto);
 void fetch(uint32_t tidHilo, uint32_t pc);
@@ -144,5 +149,4 @@ void set_registro(char* registro,char* valor,RegistrosCPU* registros);
 
 
 
->>>>>>> origin/checkpoint3
 #endif

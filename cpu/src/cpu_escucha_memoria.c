@@ -5,14 +5,21 @@ void cpu_escucha_memoria(){
     bool control_key = 1;
     while (control_key)
 	{
-		int cod_op = recibir_operacion(fd_memoria);
+		
+		t_paquete* contextoEje = recibir_paquete(fd_memoria);
+		int cod_op = contextoEje->codigo_operacion;
+    	
 		switch (cod_op)
 		{
 		case MENSAJE:
-		
+		break;
 		case PAQUETE:
-		
-			break;
+		break;
+		case ENVIAR_CONTEXTO:
+			reciboContexto(contextoEje->buffer);
+		break;
+		case ENVIAR_INSTRUCCION:
+			recibir_instruccion_de_memoria(fd_memoria);
 		case -1:
 			log_error(cpu_logger, "Desconexion de MEMORIA");
 			exit(EXIT_FAILURE);
@@ -21,4 +28,11 @@ void cpu_escucha_memoria(){
 			break;
 		}
 	}
+}
+
+void reciboContexto(t_buffer* buffer)
+{
+	t_contextoEjecucion* contexto = leer_contexto_de_memoria(buffer);
+	inicializar_particion_de_memoria(contexto-> base, contexto->limite);
+    ciclo_de_instruccion(contexto);
 }

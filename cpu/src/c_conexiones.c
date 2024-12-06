@@ -1,9 +1,6 @@
 #include <c_conexiones.h>
-<<<<<<< HEAD
-=======
 #include <escuchar_kernel_dispatch.h>
 
->>>>>>> origin/checkpoint3
 t_log* cpu_logger;
 t_log* cpu_log_debug;
 t_log* cpu_logs_obligatorios;
@@ -20,8 +17,6 @@ pthread_t hilo_kernel_dispatch;
 pthread_t hilo_kernel_interrupt;
 pthread_t hilo_memoria;
 
-<<<<<<< HEAD
-=======
 //Vienen de Kernel "RECIBIR_TID"
 //uint32_t pidHilo; 
 //uint32_t tidHilo; //usé extern y estan definidas en escuchar_kernel_dispatch
@@ -30,7 +25,6 @@ char* instruccionActual;
 particionMemoria parteActual;
 sem_t sem_syscall;
 
->>>>>>> origin/checkpoint3
 void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
     
@@ -54,8 +48,6 @@ void configurar_cpu(){
     printf("dsp %s \n",valores_config_cpu->ip_memoria); //se ASIGNA BIEN
 	//free(config);
 }
-
-
 
 void conectar_kernel_dispatch(){
      //Servidor CPU - dispatch
@@ -93,8 +85,6 @@ void conectar_memoria(){
     pthread_detach(hilo_memoria);
 }
 
-<<<<<<< HEAD
-=======
 void ciclo_de_instruccion(t_contextoEjecucion* contexto){
     //Obtenemos la instruccion de memoria y la llamamos instruccion actual
     
@@ -328,78 +318,77 @@ void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion
     // Liberar la memoria del paquete
     eliminar_paquete(paquete_contexto);  
 }
->>>>>>> origin/checkpoint3
 /*
-void cpu_escucha_memoria(){
-    bool control_key = 1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_memoria);
-		switch (cod_op)
-		{
-		case MENSAJE:
-		
-		case PAQUETE:
-		
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de MEMORIA");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de MEMORIA");
-			break;
-		}
-	}
+void actualizar_contexto(int fd_memoria, RegistrosCPU* registros_cpu, uint32_t* pc, uint32_t* tid) {
+    log_info(cpu_logger, "Actualizando contexto en memoria: TID = %d, PC = %d", *tid, *pc);
+
+    t_paquete* nuevo_contexto;
+    /////////////////////////// Serializar el contexto
+
+    serializar_enviar_contexto(t_paquete* paquete_devolver_contexto, t_contextoEjecucion* contextoEjecucion);
+    enviar_paquete(t_paquete *paquete, int socket_cliente);
+
+
+
+    // Enviar el TID al módulo de memoria
+    if (send(fd_memoria, tid, sizeof(uint32_t), 0) < 0) {
+        log_error(cpu_logger, "Error al enviar el TID al modulo de memoria.");
+    } else {
+        log_info(cpu_logger, "TID enviado: %d", *tid);
+    }
+
+    // Enviar el Program Counter (PC) al modulo de memoria
+    if (send(fd_memoria, pc, sizeof(uint32_t), 0) < 0) {
+        log_error(cpu_logger, "Error al enviar el PC al modulo de memoria.");
+    } else {
+        log_info(cpu_logger, "PC enviado: %d", *pc);
+    }
+
+    // Enviar los registros del CPU al modulo de memoria
+    if (send(fd_memoria, registros_cpu, sizeof(RegistrosCPU), 0) < 0) {
+        log_error(cpu_logger, "Error al enviar los registros del CPU al modulo de memoria.");
+    } else {
+        log_info(cpu_logger, "Registros del CPU enviados al modulo de memoria.");
+    }
+
 }
-void escuchar_kernel_dispatch(){
-    //atender los msjs de kernel-dispatch
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_kernel_dispatch);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de KERNEL - Dispatch");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de KERNEL -Interrupt");
-			break;
-		}
-	}    
-}
-
-
-void escuchar_kernel_interrupt(){
-    //atender los msjs de kernel-interrupt 
-    bool control_key=1;
-    while (control_key)
-	{
-		int cod_op = recibir_operacion(fd_kernel_interrupt);
-		switch (cod_op)
-		{
-		case MENSAJE:
-
-		case PAQUETE:
-
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de KERNEL-Interrupt");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de KERNEL-Interrupt");
-			break;
-		}
-	}
-}
-<<<<<<< HEAD
 */
-=======
+void set_registro(char* registro,char* valor, RegistrosCPU* registros){
+    uint32_t aux = atoi(valor);
+
+    uint32_t reg = obtenerRegistro(registro, registros);
+    if(reg!=0){
+        reg = aux;
+    }
+
+}
+
+void read_mem(char* datos, char* direccion, RegistrosCPU* registros,uint32_t tidHilo){
+    uint32_t reg_datos = obtenerRegistro(datos,registros);
+    uint32_t reg_direccion = obtenerRegistro(direccion,registros);
+    
+    if(reg_datos!= 0 && reg_direccion != 0){
+        uint32_t direccion_fisica = MMU(reg_direccion);
+        reg_datos = leer_desde_memoria(fd_memoria, direccion_fisica,tidHilo);
+    }
+}
+
+
+uint32_t leer_desde_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t tidHilo){
+    uint32_t dato;
+    uint32_t resultado_envio = send(fd_memoria, &direccion_fisica, sizeof(uint32_t), 0);
+    if(resultado_envio == -1){
+        log_error(cpu_logger,"Errror al enviar direccion de lectura a memoria");
+        exit(EXIT_FAILURE);
+    }
+    int bytes_recibidos =recv(fd_memoria, &dato,sizeof(uint32_t),0);
+    if (bytes_recibidos <= 0){
+        log_error(cpu_logger,"Error al recibir dato desde memoria");
+        exit(EXIT_FAILURE);
+    }
+    log_info(cpu_logger,"## TID: <%d> - Accion: <LEER > - Direccion Fisica: <%d>",tidHilo,direccion_fisica);
+    return dato;
+}
 
 void write_mem(char* registro_direccion, char* registro_datos, RegistrosCPU* registros,uint32_t tidHilo){
     uint32_t reg_direccion = obtenerRegistro(registro_direccion,registros);
@@ -871,8 +860,3 @@ void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t T
     enviar_paquete(paquete_process_exit, fd_kernel_dispatch);
     destruir_buffer_paquete(paquete_process_exit);
 }
-
-
-
-
->>>>>>> origin/checkpoint3
