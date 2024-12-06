@@ -27,6 +27,16 @@ typedef enum
 	PAQUETE
 }op_code;
 
+<<<<<<< HEAD
+=======
+typedef enum{
+	NEW,
+	BLOCKED,
+	READY,
+	EXIT,
+	EXEC
+} estado_proceso_hilo;
+>>>>>>> origin/checkpoint3
 typedef struct
 {
 	int size;
@@ -39,6 +49,47 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+<<<<<<< HEAD
+=======
+typedef struct
+{
+	uint32_t AX;
+	uint32_t BX;
+	uint32_t CX;
+	uint32_t DX;
+	uint32_t EX;
+	uint32_t FX;
+	uint32_t GX;
+	uint32_t HX;
+} RegistrosCPU;
+
+typedef struct 
+{
+	uint32_t pid; //Identificador del proceso
+	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
+	//uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
+	int tam_proceso;
+	int prioridad_main;
+	char* path_main;
+} PCB;
+
+typedef struct 
+{
+	uint32_t pid; //Identificador del proceso al que pertenece
+	uint32_t tid; //Identificador del hilo
+	int prioridad;//0 maxima prioridad
+	RegistrosCPU* registro;
+	char* path;
+	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
+	estado_proceso_hilo estadoHilo;
+} TCB;
+
+PCB* buscar_proceso(t_list* lista, uint32_t pid);
+TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
+extern t_list* lista_tcb;
+>>>>>>> origin/checkpoint3
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
 void handshakeClient(int fd_servidor, int32_t handshake);

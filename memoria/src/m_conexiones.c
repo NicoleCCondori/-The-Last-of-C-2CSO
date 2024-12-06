@@ -35,7 +35,7 @@ void configurar_memoria(){
     valores_config_memoria->retardo_respuesta = config_get_string_value(valores_config_memoria->config,"RETARDO_RESPUESTA");
     valores_config_memoria->esquema = config_get_string_value(valores_config_memoria->config,"ESQUEMA");
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
-    /**valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");*/
+    valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
 
      printf("dsp %s \n",valores_config_memoria->puerto_escucha);
@@ -66,7 +66,6 @@ void conectar_cpu(){
 }
 
 void conectar_kernel(){
-    //Esperar conexion kernel
     log_info(memoria_logger, "Esperando kernel...");
 	fd_kernel = esperar_cliente(fd_memoria, memoria_logger,"kernel");
 	handshakeServer(fd_kernel);
@@ -96,6 +95,7 @@ void memoria_escucha_cpu(){
 			log_warning(memoria_logger, "Operacion desconocida con CPU");
 			break;
 		}
+<<<<<<< HEAD
 	}	
 } 
 
@@ -142,5 +142,15 @@ void memoria_escucha_FS(){
 			log_warning(memoria_logger, "Operacion desconocida con FILESYSTEM");
 			break;
 		}
+=======
+
+		log_info(memoria_logger, "Conexión exitosa con kernel");
+		handshakeServer(fd_kernel);
+
+		pthread_t hilo_kernel;
+        
+		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);
+		pthread_detach(hilo_kernel);
+>>>>>>> origin/checkpoint3
 	}
 }

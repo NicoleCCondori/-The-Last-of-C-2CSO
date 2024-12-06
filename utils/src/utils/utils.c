@@ -1,4 +1,29 @@
 #include <utils/utils.h>
+<<<<<<< HEAD
+=======
+t_list* lista_tcb;
+PCB* buscar_proceso(t_list* lista, uint32_t pid){
+	for(int i=0; i<list_size(lista);i++)
+	{
+		PCB* proceso_actual = list_get(lista, i);
+		if (proceso_actual->pid == pid) {
+            return proceso_actual;
+        }
+
+	}
+	return NULL;
+}
+TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid){
+	for(int i=0; i<list_size(lista);i++)
+	{
+		TCB* tcb_actual = list_get(lista, i);
+		if (tcb_actual->pid == pid && tcb_actual->tid == tid){
+			return tcb_actual;
+        }
+	}
+	return NULL;
+}
+>>>>>>> origin/checkpoint3
 
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
 int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
@@ -57,9 +82,9 @@ void handshakeClient(int fd_servidor, int32_t handshake)
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 
 	if (result == 0)
-		printf("Handshake Success\n");
+		printf("¡Handshake realizado con exito!\n");
 	else
-		printf("Handshake Failure\n");
+		printf("Error Handshake\n");
 }
 
 //configura y pone en marcha un servidor TCP
@@ -219,10 +244,48 @@ typedef struct
 
 typedef struct 
 {
+<<<<<<< HEAD
 	uint32_t pid; //Identificador del proceso al que pertenece
 	uint32_t tid; //Identificador del hilo
 	int prioridad;//0 maxima prioridad
 	RegistrosCPU* registro;
+=======
+	int size;
+	int desplazamiento = 0;
+	void * buffer;
+	t_list* valores = list_create();
+	int tamanio;
+
+	buffer = recibir_buffer(&size, socket_cliente);
+	while(desplazamiento < size)
+	{
+		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
+		desplazamiento+=sizeof(int);
+		char* valor = malloc(tamanio);
+		memcpy(valor, buffer+desplazamiento, tamanio);
+		desplazamiento+=tamanio;
+		list_add(valores, valor);
+	}
+	free(buffer);
+	return valores;
+}
+
+
+/**
+void finalizar_conexiones(int num_sockets, ...) {
+  va_list args;
+  va_start(args, num_sockets);
+
+  for (int i = 0; i < num_sockets; i++) {
+    int socket_fd = va_arg(args, int);
+    close(socket_fd);
+  }
+
+  va_end(args);
+}*/
+
+void finalizar_modulo(t_log* logger,t_log* logger_obligatorio, t_config* config){
+>>>>>>> origin/checkpoint3
 	
 } TCB;
 
