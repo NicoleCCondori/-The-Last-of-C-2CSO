@@ -31,6 +31,8 @@ extern int fd_memoria;
 extern int fd_FS;
 
 extern pthread_t hilo_memoria;
+extern char bitmap_path[100];
+extern char bloques_path[100];
 
 //Funciones de inicio
 void inicializar_FS();

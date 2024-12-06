@@ -22,19 +22,33 @@ int main(int argc, char* argv[]) {
 void inicializar_bitmap(){
 
     int bitmap_size=(valores_config_FS->block_count +7 )/8;
- 
- 
-    //es asi? o coomo con bloques? no me cuadra lo del filepath
+    
+
+    struct stat st = {0};
+
     char bitmap_path[100];
-    sprintf(bitmap_path,"%s/bitmap.dat",valores_config_FS->mount_dir);
+    
+    // Specify the permissions (rwxr-xr-x)
+    //mode_t mode = 0755;
+
+    if(stat(valores_config_FS->mount_dir, &st) == -1) { //el directorio no existe
+        if(mkdir(valores_config_FS->mount_dir, 0755) == -1) {
+            printf("Directorio creado exitosamente\n");
+            //es asi? o coomo con bloques? no me cuadra lo del filepath
+            sprintf(bitmap_path,"%s/bitmap.dat",valores_config_FS->mount_dir);
+        } else {//el directorio existe
+            printf("El directorio ya existe\n");
+        }
+    }
 
 
    FILE* file_bitmap=fopen(bitmap_path,"wb");//Probar lo de b o d  ""rb+""
+   
    if(!file_bitmap){
     log_error(FS_logger,"Erorr al crear el archivo bitmap");
     exit (EXIT_FAILURE);
    }
-   //escribo 0 para inicializar el archivo, lo vi por google no estoy seguro
+   //escribo 0 para inicializar el archivo
     unsigned char byte_vacio=0;
     for (int i = 0; i < bitmap_size; i++)
     {
@@ -45,6 +59,7 @@ void inicializar_bitmap(){
     log_info(FS_logger,"Bitmap inicializado correctamente");
     log_info(FS_logs_obligatorios,"Creacion Archivo: ## Archivo Creado: <%s> - tamanio: <%d> ", bitmap_path, bitmap_size );
 }
+
 void inicializar_bloques(){
 
     char bloques_path[100];

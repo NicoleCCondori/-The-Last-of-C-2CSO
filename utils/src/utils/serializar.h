@@ -112,6 +112,12 @@ typedef struct {
     int tam_proceso;
 } t_asignar_memoria;
 
+typedef struct {
+    char* nombre_archivo;
+    uint32_t tamanio;
+    char* contenido;
+}t_crear_archivo_memoria;
+
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
 void* serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
 void* serializar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo);

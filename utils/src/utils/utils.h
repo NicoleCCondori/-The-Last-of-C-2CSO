@@ -18,6 +18,8 @@
 #include <commons/collections/queue.h>
 #include <semaphore.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+
 typedef enum
 {
 	MENSAJE,
