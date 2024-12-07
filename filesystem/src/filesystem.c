@@ -97,7 +97,7 @@ int reservar_bloques (uint32_t bloques_necesarios, uint32_t* bloques_reservados)
         log_error(FS_logger,"Error al abrir el archivo bitmap impidiendo verificar el espacio");
         return -1;
     }
-    uint8_t byte;
+    uint8_t byte=0;
     uint32_t bloques_libres=0;
     uint32_t block_count=valores_config_FS->block_count;
     uint32_t bitmap_size=(block_count+7)/8;
@@ -105,7 +105,7 @@ int reservar_bloques (uint32_t bloques_necesarios, uint32_t* bloques_reservados)
     for (uint32_t i= 0; i <bitmap_size; i++)
     {
         fread(&byte,sizeof(uint8_t),1,file_bitmap);
-        for (uint8_t j = 0; i < 8; j++)
+        for (uint8_t j = 0; j < 8; j++)
         {
             uint32_t bloque_actual=i*8+j;
 
@@ -119,10 +119,11 @@ int reservar_bloques (uint32_t bloques_necesarios, uint32_t* bloques_reservados)
                 bloques_reservados[bloques_libres++]=bloque_actual;
 
                 byte|=(1<<j);// reemplazo con OR bit a bit para marcarlo como ocupado
-                fseek(file_bitmap,-1,SEEK_CUR)//retroceder una posicion para actualizar el byte
+                fseek(file_bitmap,-1,SEEK_CUR);//retroceder una posicion para actualizar el byte
                 fwrite(&byte,sizeof(uint8_t),1,file_bitmap);
                 fflush(file_bitmap); //no estoy seguro de eso, lo vi en google y es para asegurarme que los cambios se guardan rapido en disco
 
+                log_info(FS_logger,"## Bloque asignado: %d - Bloques libres: %d",bloque_actual,block_count-bloques_libres);
                 if (bloques_libres==bloques_necesarios)
                 {
                     fclose(file_bitmap);
@@ -134,18 +135,19 @@ int reservar_bloques (uint32_t bloques_necesarios, uint32_t* bloques_reservados)
     }
     
     fclose(file_bitmap);
+    log_error(FS_logger,"No hay bloques suficientes para completar la operacion");
     return 0;
 }
 
 void dump_memory(char* nombre,uint32_t tam,char* contenido){
-    uint32_t bloques_necesarios=tamvalores_config_FS->block_size;// me da la cantidad de bloques
+    uint32_t bloques_necesarios=tam/valores_config_FS->block_size;// me da la cantidad de bloques
     uint32_t* bloques_reservados= malloc(bloques_necesarios*sizeof(uint32_t));
 
     if(!bloques_reservados){
         log_error(FS_logger,"Error al reservar memoria");
         exit(EXIT_FAILURE);
     }
-    if (reservar_bloques(bloques_necesarios,bloques_reservados)=-1)
+    if (reservar_bloques(bloques_necesarios,bloques_reservados)==-1)
     {
         log_error(FS_logger,"No hay espacio suficiente para el archivo %s",nombre);
         free(bloques_reservados);
@@ -175,10 +177,7 @@ void dump_memory(char* nombre,uint32_t tam,char* contenido){
         fwrite(contenido + bytes_escritos,sizeof(char),cant_bytes_a_escribr,file_bloques);
         bytes_escritos+=cant_bytes_a_escribr;
 
-        log_info(FS_logger,"## Acceso Bloque - Archivo %s - Tipo Bloque:<DATOS> - Bloque File System <%d>",nombre,,,bloques_reservados[i]);
-
-        bytes_escritos+= cant_bytes_a_escribr;
-
+        log_info(FS_logger,"## Acceso Bloque - Archivo %s - Tipo Bloque:<DATOS> - Bloque File System <%d>",nombre,bloques_reservados[i]);
         usleep(valores_config_FS->retardo_acceso_bloque*1000);
 
     }
