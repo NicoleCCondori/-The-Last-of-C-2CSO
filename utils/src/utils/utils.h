@@ -100,6 +100,7 @@ typedef struct
 	uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 } TCB;
 
+
 PCB* buscar_proceso(t_list* lista, uint32_t pid);
 
 extern t_list* lista_tcb;

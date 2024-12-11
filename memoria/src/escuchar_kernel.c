@@ -4,18 +4,21 @@
 void escuchar_kernel(){
     printf("Ejecuto escuchar_kernel.c \n");
 
-    
     while (1){
 		t_paquete* paquete_kernel = recibir_paquete(fd_kernel);
         op_code codigo_operacion = paquete_kernel->codigo_operacion;
 		switch (codigo_operacion)
 		{
 		case ASIGNAR_MEMORIA:
-            asignar_memoria();
+            crear_proceso(paquete_kernel);
             break;
 
 		case HILO_READY:
-		     crear_hilo();
+		     crear_hilo(paquete_kernel);
+			break;
+        
+        case DUMP_MEMORY:
+		     envio_datos_a_FS(paquete_kernel);
 			break;
 
 		default:
@@ -26,7 +29,27 @@ void escuchar_kernel(){
 	}
 }
 
-void asignar_memoria(){
+/*
+Creación de proceso
+Creo proceso -> asigno espacio en la memoria de usuario, teniendo en cuenta qué esquema estamos utilizando.
+
+1. Particiones Fijas: la lista de particiones vendrá dada por archivo de configuración 
+y la misma no se podrá alterar a lo largo de la ejecución.
+
+2. Particiones Dinámicas: la lista de particiones, va a iniciar como una única partición libre 
+del tamaño total de la memoria y la misma se va a ir subdividiendo a medida que lleguen los pedidos 
+de creación de los procesos, es por esto que la lista será dinámica.
+
+En ambos esquemas, el hueco a asignar y/o fraccionar se deberá elegir utilizando alguna de las siguientes estrategias:
+●	First Fit
+●	Best Fit
+●	Worst Fit
+En caso de encontrar un hueco libre, se le asignará la partición, se creará la estructura necesaria para administrar la Memoria de Sistema, y se responderá como OK al Kernel.
+En caso de no encontrar un hueco libre, se le responderá al Kernel que el proceso no pudo ser inicializado. Para este trabajo práctico, no debe realizarse el proceso de compactación bajo ningún caso.
+
+*/
+
+void crear_proceso(t_paquete* paquete_kernel){
     if (strcmp(valores_config_memoria->esquema, "FIJAS")==0){
         asignar_particiones_fijas();
     }

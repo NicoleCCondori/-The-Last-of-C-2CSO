@@ -18,16 +18,16 @@ typedef struct{
 	char* retardo_respuesta;
     char* esquema;
     char* algoritmo_busqueda;
-    t_list* particiones;
+    char** particiones;
     char* log_level;
 }t_config_memoria;
 
 typedef struct {
-    uint32_t id;
-    uint32_t tamanio;
-    bool ocupada;
+    size_t inicio;
+    size_t tamanio;
+    bool libre;
     uint32_t pid;
-} particion_t;
+} Particion;
 
 typedef struct {
     uint32_t id;
@@ -64,5 +64,5 @@ void escuchar_kernel();
 void inicializar_lista_tcb();
 
 extern void *memoria;
-
+t_list* lista_particiones;
 #endif
