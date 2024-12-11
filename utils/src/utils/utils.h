@@ -44,7 +44,8 @@ typedef enum
 	DUMP_MEMORY,
 	IO,
 	SYSCALL,
-	FINALIZAR_HILO
+	FINALIZAR_HILO,
+	FINALIZAR_PROCESO
 }op_code;
 
 typedef enum{

@@ -20,12 +20,12 @@ void enviar_a_memoria(int fd_memoria,TCB* hilo_main);
 
 void iniciar_proceso();
 
-void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid);
-
+//void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid);
+char* informar_a_memoria_fin_proceso(int fd_memoria,uint32_t pid);
 void* finalizar_proceso(PCB* proceso);
 
 void finalizar_hilo(TCB* hilo);
-void informar_a_memoria(TCB* hilo);
+void informar_a_memoria_fin_hilo(int fd_memoria, TCB* hilo);
 
 void desbloquear_hilos_por_tid(TCB* hilo);
 

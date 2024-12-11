@@ -249,9 +249,6 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     //liberar hilo_main
  }
 
-void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid){
-
-}
 void destruir_pcb(void* elemento) {
     PCB* pcb = (PCB*)elemento; // Convertir void* a PCB*
     free(pcb); // Liberar la memoria del PCB
@@ -259,44 +256,67 @@ void destruir_pcb(void* elemento) {
 //FINALIZACION DE PROCESO
 void* finalizar_proceso(PCB* pcb_afuera)
 {
+    printf("Inicio para Finalizar un Proceso");
     //informar a memoria la finalizacion del proceso
     //mensaje_finalizar_proceso(fd_memoria,proceso->pid);
     //confirmacion de parte de memoria
-
-    log_info(kernel_logs_obligatorios, "Fin de Proceso: ## Finaliza el proceso <PID>: %u", pcb_afuera->pid);
-
-
-    //liberar proceso
-    //debo cambiar el estado del pid a EXIT
-    pcb_afuera->estado = EXIT;
-
-    //Si la lista pcb_afuera->tid solo tiene enteros solo hago un destroy, ya que no es necesario
-	/*for(int i=0; i<list_size(pcb_afuera->tid);i++){ //libero los tcb
-		uint32_t* tid = list_get(pcb_afuera->tid, i);
-		free(tid);
-	}*/
-	list_destroy(pcb_afuera->tid); //destruye la lista
-    list_destroy_and_destroy_elements(pcb_afuera->tid,free);
-	// Avisar a memoria de la finalizacion
-	//creo que seria algo como los cases de cpu pero con memoria, primero el fd_memoria, el pid,cod op y el send
-				
-	//sacarlo de la lista_procesos
-    for (int i = 0; i < list_size(lista_procesos); i++) {
-        PCB* pcb_en_lista = (PCB*)list_get(lista_procesos, i);
-        if (pcb_en_lista->pid == pcb_afuera->pid) {
-            // Encontramos el PCB a eliminar
-            list_remove_and_destroy_element(lista_procesos, i, destruir_pcb);
-            break; // Salir del bucle después de eliminar
+    char* mensaje = informar_a_memoria_fin_proceso(fd_memoria, pcb_afuera->pid);
+    if(strcmp(mensaje, "OK")== 0){
+        log_info(kernel_logger,"Recibí el OK de parte de memoria (Finalización del proceso)");
+        log_info(kernel_logs_obligatorios, "Fin de Proceso: ## Finaliza el proceso <PID>: %u", pcb_afuera->pid);
+        
+        //Si la lista pcb_afuera->tid solo tiene enteros solo hago un destroy, ya que no es necesario
+        /*for(int i=0; i<list_size(pcb_afuera->tid);i++){ //libero los tcb
+            uint32_t* tid = list_get(pcb_afuera->tid, i);
+            free(tid);
+        }*/
+        //1ro) Veo en la lista de tcbs -->los que tengan el mismo pid los paso al estado EXIT
+        for(int i=0; i<list_size(lista_tcbs);i++){
+            TCB* tcb_en_lista = (TCB*)list_get(lista_tcbs,i);
+            if(tcb_en_lista->pid == pcb_afuera->pid){
+                finalizar_hilo(tcb_en_lista);
+                //en esta misma funcion ya destruye el tid que esta en la lista de tids del pcb
+            }
         }
+        //2do) destruyo la lista de tids(enteros) que tiene el pcb -> por las dudas jsjs
+        list_destroy(pcb_afuera->tid); 
+        //list_destroy_and_destroy_elements(pcb_afuera->tid,free);
+        
+        //consultar si dejarlo en la lista de procesos general
+        //en mi opinion dejarlo para saber el estado del proceso que seria en este caso EXIT
+        //sacarlo de la lista_procesos:
+        /*for (int i = 0; i < list_size(lista_procesos); i++) {
+            PCB* pcb_en_lista = (PCB*)list_get(lista_procesos, i);
+            if (pcb_en_lista->pid == pcb_afuera->pid) {
+                // Encontramos el PCB a eliminar
+                list_remove_and_destroy_element(lista_procesos, i, destruir_pcb);
+                break; // Salir del bucle después de eliminar
+            }
+        }*/
+        //debo actualizar el estado del proceso (pcb)
+        pcb_afuera->estado = EXIT;
+        pcb_afuera->tid_contador = -1;
+        pcb_afuera->prioridad_main = -1;
+
+        //iniciar otro proceso que estaba en new
+        iniciar_proceso();
+    
+    }else {
+        log_error(kernel_logger, "Error al recibir el mensaje de memoria (Finalización del proceso)");
     }
-
-    //iniciar otro proceso que estaba en new
-
-    iniciar_proceso();
+    free(mensaje);
 
     return NULL;
 }
+char* informar_a_memoria_fin_proceso(int fd_memoria,uint32_t pid){
+    t_paquete* paquete_memoria_fp = crear_paquete(FINALIZAR_PROCESO);
+    agregar_buffer_Uint32(paquete_memoria_fp->buffer, pid);
+    enviar_paquete(paquete_memoria_fp,fd_memoria);
+    eliminar_paquete(paquete_memoria_fp);
 
+    char* mensaje = recibir_mensajeV2(fd_memoria);
+    return mensaje;
+}
 //FINALIZACION DE HILO
 void finalizar_hilo(TCB* hilo)
 {
@@ -325,7 +345,7 @@ void finalizar_hilo(TCB* hilo)
     //3ro a) ver que onda con los recursos de mutex-> deberia liberarlo tmb
 
     //4to)informar a memoria
-    informar_a_memoria(hilo);
+    informar_a_memoria_fin_hilo(fd_memoria,hilo);
     
     //5to) Pasar los hilos que estaban bloqueados a ready
     //mover al estado ready a todos los hilos bloqueados por este hilo
@@ -335,14 +355,14 @@ void finalizar_hilo(TCB* hilo)
     free(hilo);
 
 }
-void informar_a_memoria(TCB* hilo){
+void informar_a_memoria_fin_hilo(int fd_memoria, TCB* hilo){
     t_paquete* paquete_memoria = crear_paquete(FINALIZAR_HILO);
     serializar_finalizar_hilo(paquete_memoria,hilo->pid,hilo->tid);
     enviar_paquete(paquete_memoria, fd_memoria);
     eliminar_paquete(paquete_memoria);
 
     char* mensaje = recibir_mensajeV2(fd_memoria);
-    if(strcmp (mensaje, "OK")){
+    if(strcmp(mensaje, "OK") == 0){
         log_info(kernel_logger,"Recibí el OK de parte de memoria (Finalización del hilo)");
     }else {
         log_error(kernel_logger, "Error al recibir el mensake de memoria (Finalización del hilo)");

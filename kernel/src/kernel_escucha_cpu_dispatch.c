@@ -182,12 +182,20 @@ void kernel_escucha_cpu_dispatch(){
 				break;
 			case DUMP_MEMORY:
 				enviar_memoria_dump_memory(fd_memoria, invocadores);
+				TCB* tcb_bloc_dump = buscar_tcbs(lista_tcbs,invocadores->tid_inv,invocadores->pid_inv);
 				//Bloquea el hilo que lo invocó
+				tcb_bloc_dump->estadoHilo=BLOCKED;
+				log_info(kernel_logs_obligatorios, "Motivo de Bloqueo: ## (<PID>:%u <TID>:%u) - Bloqueado por: DUMP MEMORY", invocadores->pid_inv,invocadores->tid_inv);
+				list_add(lista_blocked,tcb_bloc_dump);
 
-				//Aplicar un semaforo
-				//espera la rta de la memoria por medio del semaforo
-					//se desbloquea y pasa a ready
-				//Si da error --> el proceso pasa a EXIT
+				char* resultado = recibir_mensajeV2(fd_memoria);
+				if(strcmp(resultado, "OK")== 0){
+					tcb_bloc_dump->estadoHilo=READY;
+					printf("SE DESBLOQUEO el hilo de dump memory\n");
+					list_add(lista_ready,tcb_bloc_dump);
+				}else{
+					finalizar_hilo(tcb_bloc_dump);
+				}
 				break;
 			
 			case IO:
