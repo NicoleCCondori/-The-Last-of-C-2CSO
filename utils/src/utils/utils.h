@@ -43,7 +43,11 @@ typedef enum
 	MUTEX_UNLOCK,
 	DUMP_MEMORY,
 	IO,
-	SYSCALL
+	SYSCALL,
+	FINALIZAR_HILO,
+	FINALIZAR_PROCESO,
+	WRITE_MEM,
+	READ_MEM
 }op_code;
 
 typedef enum{

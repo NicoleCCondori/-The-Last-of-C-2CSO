@@ -1,5 +1,5 @@
 #include <m_conexiones.h>
-
+/*
 t_log* memoria_logger;
 t_log* memoria_log_obligatorios;
 
@@ -13,8 +13,8 @@ int fd_kernel;
 pthread_t hilo_FS;
 pthread_t hilo_cpu;
 pthread_t hilo_kernel;
-//t_list* lista_tcb;
 void* memoria;
+t_list* lista_tcb;*/
 
 void inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");
@@ -22,7 +22,7 @@ void inicializar_memoria(){
 
 	configurar_memoria();
 
-	int tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
+	tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
 	memoria = malloc(tamanio_memoria);
 
     conifgurar_particiones();
@@ -42,11 +42,9 @@ void configurar_memoria(){
     valores_config_memoria->retardo_respuesta = config_get_string_value(valores_config_memoria->config,"RETARDO_RESPUESTA");
     valores_config_memoria->esquema = config_get_string_value(valores_config_memoria->config,"ESQUEMA");
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
-    valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");
+    valores_config_memoria->particiones = config_get_array_value(valores_config_memoria->config,"PARTICIONES");
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
 }
-
-
 
 /*Particiones Fijas: En este esquema la lista de particiones vendrá dada por archivo de configuración 
 y la misma no se podrá alterar a lo largo de la ejecución.*/
@@ -65,61 +63,19 @@ void configurar_particiones() {
             inicio += nueva_particion->tamanio;
         }
 
-    
+    /*
+    Particiones Dinámicas: En este esquema la lista de particiones, va a iniciar como una única partición libre del tamaño total de la memoria y 
+    la misma se va a ir subdividiendo a medida que lleguen los pedidos de creación de los procesos, es por esto que la lista será dinámica.
+    */
+
     } else if (strcmp(valores_config_memoria->esquema, "DINAMICAS") == 0) {
         Particion* particion_unica = malloc(sizeof(Particion));
         particion_unica->inicio = 0;
-        particion_unica->tamanio = atoi(valores_config_memoria->tam_memoria);
+        particion_unica->tamanio = atoi(valores_config_memoria->tam_memoria) - 1;
         particion_unica->libre = true;
         list_add(lista_particiones, particion_unica);
     }
 }
-
-void inicializar_memoria_sistema() {
-    memoria_sistema.contextos = list_create();
-
-    for (int i = 0; i < list_size(lista_particiones); ++i) {
-        Particion* particion = list_get(lista_particiones, i);
-        ContextoEjecucion* contexto = malloc(sizeof(ContextoEjecucion));
-        contexto->base = particion->inicio;
-        contexto->limite = particion->tamanio;
-        list_add(memoria_sistema.contextos, contexto);
-    }
-}
-
-void liberar_memoria() {
-    list_destroy_and_destroy_elements(lista_particiones, free);
-    list_destroy_and_destroy_elements(memoria_sistema.contextos, free);
-    config_destroy(valores_config_memoria->config);
-    free(valores_config_memoria);
-    log_destroy(memoria_logger);
-    log_destroy(memoria_log_obligatorios);
-}
-
-void imprimir_particiones() {
-    printf("Particiones:\n");
-    for (int i = 0; i < list_size(lista_particiones); ++i) {
-        Particion* particion = list_get(lista_particiones, i);
-        printf("Particion %d: Inicio = %zu, Tamaño = %zu, Libre = %s\n",
-               i, particion->inicio, particion->tamanio,
-               particion->libre ? "Si" : "No");
-    }
-}
-
-void imprimir_contextos() {
-    printf("Contextos de Ejecución:\n");
-    for (int i = 0; i < list_size(memoria_sistema.contextos); ++i) {
-        ContextoEjecucion* contexto = list_get(memoria_sistema.contextos, i);
-        printf("Contexto %d: Base = %zu, Límite = %zu\n",
-               i, contexto->base, contexto->limite);
-    }
-}
-
-
-
-
-
-
 
 void inicializar_lista_tcb() {
     lista_tcb = list_create();

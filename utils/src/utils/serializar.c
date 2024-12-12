@@ -303,3 +303,29 @@ void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro)
     memcpy(buffer->stream + buffer->offset, registro, sizeof(RegistrosCPU));
     buffer->offset += sizeof(RegistrosCPU);
 }
+
+t_datos_write_mem* deserializar_write_mem(t_paquete* paquete){
+    t_datos_write_mem* write_mem = malloc(sizeof(t_datos_write_mem));
+
+    write_mem->dir_fis = leer_buffer_Uint32(paquete->buffer);
+    write_mem->valor = leer_buffer_Uint32(paquete->buffer);
+
+    return write_mem;
+}
+
+void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor){
+    agregar_buffer_Uint32(paquete_write_mem->buffer, dir_fis);
+    agregar_buffer_Uint32(paquete_write_mem->buffer, valor);
+    return NULL;
+}
+
+t_datos_read_mem* deserializar_read_mem(t_paquete* paquete){
+    t_datos_read_mem* read_mem = malloc(sizeof(t_datos_read_mem));
+    read_mem->dir_fis = leer_buffer_Uint32(paquete->buffer);
+    return read_mem;
+}
+
+void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica){
+    agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer, direccion_fisica);
+    return NULL;
+}

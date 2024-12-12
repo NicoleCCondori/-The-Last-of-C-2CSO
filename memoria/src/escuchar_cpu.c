@@ -11,19 +11,19 @@ void escuchar_cpu(){
 		switch (codigo_operacion)
 		{
 		case OBTENER_CONTEXTO:
-			devolver_contexto_ejecucion();
+			devolver_contexto_ejecucion(paquete_cpu);
 
 		case ACTUALIZAR_CONTEXTO:
-			actualizar_contexto_de_ejecucion();
+			actualizar_contexto_de_ejecucion(paquete_cpu);
 
 		case OBTENER_INSTRUCCION:
-			obtener_instruccion();
+			obtener_instruccion(paquete_cpu);
 
         case WRITE_MEM:
-			write_mem();
+			write_mem(paquete_cpu);
         
         case READ_MEM:
-			read_mem();
+			read_mem(paquete_cpu);
 
 		default:
 			log_warning(memoria_logger, "Operacion desconocida de CPU");
@@ -33,9 +33,8 @@ void escuchar_cpu(){
 	}
 }
 
-void devolver_contexto_ejecucion() {
-    t_paquete* paquete_contexto = recibir_paquete(fd_kernel);
-    t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_contexto);
+void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
+    t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_cpu);
     
     TCB* hilo = buscar_tcb_por_tid(datos_contexto->TID);
     if (hilo == NULL) {
@@ -90,9 +89,8 @@ TCB* buscar_tcb_por_tid(uint32_t tid_buscado) {
     return NULL;
 }
 
-void actualizar_contexto_de_ejecucion() {
-    t_paquete* paquete_actualizar_contexto = recibir_paquete(fd_kernel);
-    t_actualizar_contexto* datos_contexto = deserializar_actualizar_contexto(paquete_actualizar_contexto);
+void actualizar_contexto_de_ejecucion(t_paquete* paquete_cpu) {
+    t_actualizar_contexto* datos_contexto = deserializar_actualizar_contexto(paquete_cpu);
 
     TCB* hilo = buscar_tcb_por_tid(datos_contexto->TID);
     
@@ -111,9 +109,8 @@ void actualizar_contexto_de_ejecucion() {
 
 }
 
-void obtener_instruccion() {
-    t_paquete* paquete_instruccion = recibir_paquete(fd_kernel);
-    t_obtener_instruccion* datos_instruccion = deserializar_obtener_instruccion(paquete_instruccion);
+void obtener_instruccion(t_paquete* paquete_cpu) {
+    t_obtener_instruccion* datos_instruccion = deserializar_obtener_instruccion(paquete_cpu);
     
     TCB* hilo = buscar_tcb_por_tid(datos_instruccion->TID);
     if (hilo == NULL) {
@@ -210,40 +207,28 @@ void obtener_instruccion() {
     eliminar_paquete(paquete_enviar_instruccion);
 }
 
-void write_mem(int* dir_fis, char* valor){
-    t_paquete* paquete_read_mem = recibir_paquete(fd_kernel);
-    int offset = 0;
-    for(int i = 0; i<4; i++){
-        memcpy(memoria + dir_fis[i], &valor[offset], tamanios[i]);
-        log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d", pid, dir_fis[i], tamanios[i]);
-        offset += tamanios[i];
+void write_mem(t_paquete* paquete_cpu){
+    t_datos_write_mem* datos_write_mem = deserializar_write_mem(paquete_cpu);
+   
+    if (datos_write_mem->dir_fis + sizeof(uint32_t) > tamanio_memoria) {
+
+    memcpy((char *)memoria + datos_write_mem->dir_fis, datos_write_mem->valor, sizeof(uint32_t));
+
+    uint32_t respuesta_ok = 1;
+    if (send(fd_memoria, &respuesta_ok, sizeof(respuesta_ok), 0) == -1) {
+        perror("Error al enviar respuesta de escritura a CPU");
     }
-    int bit_validacion = 1;
-    send(socket, &bit_validacion, sizeof(int), 0);
+
+    log_info(memoria_log_obligatorios, "## Escritura - Dirección Física: \n", datos_write_mem->dir_fis, "Dato: \n", datos_write_mem->valor);
+
+} }
+
+void read_mem(t_paquete* paquete_cpu){
+    t_datos_read_mem* datos_read_mem = deserializar_read_mem(paquete_cpu);
+    if (datos_read_mem->dir_fis + sizeof(uint32_t) > tamanio_memoria) {
+        uint32_t dato;
+        memcpy(&dato, (char *)memoria + datos_read_mem->dir_fis, sizeof(uint32_t));
+        send(fd_cpu, &dato, sizeof(dato), 0);
+    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %u - Tamaño: %u\n", datos_read_mem->dir_fis, dato);
 }
-
-void read_mem(){
-    int tamanio_string = 0;
-
-    int offset = 0;
-
-    for(int i = 0; i < cantidad; i++){
-        tamanio_string += tamanios[i];
-    }
-
-    char *string_leido = (char *)malloc((tamanio_string+1) * sizeof(char));
-
-    sem_wait(&mutex_memoria_general);
-
-    for(int i = 0; i<cantidad; i++){
-        memcpy(&string_leido[offset], memoria_general + dir_fis[i], tamanios[i]);
-        log_info(logger_memoria, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d", pid, dir_fis[i], tamanios[i]);
-        offset += tamanios[i];
-    }
-
-    sem_post(&mutex_memoria_general);
-
-    string_leido[tamanio_string] = '\0';
-
-    return string_leido;
 }

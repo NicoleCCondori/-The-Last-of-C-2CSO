@@ -29,13 +29,6 @@ typedef struct {
     uint32_t pid;
 } Particion;
 
-typedef struct {
-    uint32_t id;
-    uint32_t tamanio;
-    bool ocupada;
-    uint32_t pid;
-} particionD_t;
-
 extern t_log* memoria_logger;
 extern t_log* memoria_log_obligatorios;
 
@@ -50,8 +43,13 @@ extern pthread_t hilo_FS;
 extern pthread_t hilo_cpu;
 extern pthread_t hilo_kernel;
 
+extern void* memoria;
+extern t_list* lista_particiones;
+extern int tamanio_memoria;
+
 void inicializar_memoria();
 void configurar_memoria();
+void configurar_particiones();
 
 void conectar_con_FS();
 void conectar_cpu();
@@ -62,7 +60,4 @@ void escuchar_cpu();
 void escuchar_kernel();
 
 void inicializar_lista_tcb();
-
-extern void *memoria;
-t_list* lista_particiones;
 #endif

@@ -80,6 +80,15 @@ typedef struct {
     uint32_t pid;
     int tam_proceso;
 } t_asignar_memoria;
+typedef struct{
+    uint32_t dir_fis; 
+    uint32_t valor;
+}t_datos_write_mem;
+
+typedef struct{
+    uint32_t dir_fis;
+}t_datos_read_mem;
+
 
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
 void* serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
@@ -87,5 +96,10 @@ void* serializar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo);
 void* serializar_asignar_memoria(t_paquete* paquete_asignar_memoria, uint32_t pid, int tam_proceso);
 t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete);
 RegistrosCPU* leer_buffer_registro(t_buffer* buffer);
+t_datos_write_mem* deserializar_write_mem(t_paquete* paquete);
+void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor);
+
+void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica);
+t_datos_read_mem* deserializar_read_mem(t_paquete* paquete);
 
 #endif
