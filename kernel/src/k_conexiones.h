@@ -40,7 +40,9 @@ extern pthread_t hilo_memoria;
 extern t_queue* cola_new;
 extern t_queue* cola_exec;
 extern t_list* lista_ready;
-extern t_queue* cola_blocked;
+//extern t_queue* cola_blocked;
+extern t_list* lista_blocked;
+extern t_list* lista_exit; 
 
 
 //Listas

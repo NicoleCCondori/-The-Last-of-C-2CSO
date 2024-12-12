@@ -7,7 +7,6 @@
 #include <escuchar_kernel.h>
 #include <memoria_escucha_FS.h>
 
-
 typedef struct{
 	t_config* config;
 	char* puerto_escucha;
@@ -18,16 +17,16 @@ typedef struct{
 	char* retardo_respuesta;
     char* esquema;
     char* algoritmo_busqueda;
-    t_list* particiones;
+    char** particiones;
     char* log_level;
 }t_config_memoria;
 
 typedef struct {
-    uint32_t id;
-    uint32_t tamanio;
-    bool ocupada;
+    size_t inicio;
+    size_t tamanio;
+    bool libre;
     uint32_t pid;
-} particion_t;
+} Particion;
 
 typedef struct {
     uint32_t id;
@@ -52,6 +51,7 @@ extern pthread_t hilo_kernel;
 
 void inicializar_memoria();
 void configurar_memoria();
+void configurar_particiones();
 
 void conectar_con_FS();
 void conectar_cpu();
@@ -64,5 +64,5 @@ void escuchar_kernel();
 void inicializar_lista_tcb();
 
 extern void *memoria;
-
+t_list* lista_particiones;
 #endif

@@ -118,6 +118,15 @@ typedef struct {
     char* contenido;
 }t_crear_archivo_memoria;
 
+typedef struct{
+    uint32_t dir_fis; 
+    uint32_t valor;
+}t_datos_write_mem;
+
+typedef struct{
+    uint32_t dir_fis;
+}t_datos_read_mem;
+
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
 void* serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
 void* serializar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo);
@@ -127,9 +136,21 @@ RegistrosCPU* leer_buffer_registro(t_buffer* buffer);
 
 //========================================================
 t_datos_esenciales* deserializar_datos_esenciales(t_paquete* paquete);
+t_crear_archivo_memoria* deserializar_crear_archivo_memoria(t_paquete* paquete);
 t_process_create* deserializar_process_create(t_paquete* paquete);
 int deserializar_IO(t_paquete* paquete);
 t_thread_create* deserializar_thread_create(t_paquete* paquete);
 uint32_t deserializar_thread_join_y_cancel(t_paquete* paquete);
 void* deserializar_mutex(t_paquete* paquete);
+
+//==========================================================
+void serializar_finalizar_hilo(t_paquete* paquete_memoria, uint32_t pid, uint32_t tid);
+t_datos_esenciales* deserializar_finalizar_hilo(t_paquete* paquete_memoria);
+//=====================
+void enviar_mensaje(char *mensaje, int socket);
+t_datos_write_mem* deserializar_write_mem(t_paquete* paquete);
+void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor);
+
+void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica);
+t_datos_read_mem* deserializar_read_mem(t_paquete* paquete);
 #endif

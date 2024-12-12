@@ -1,8 +1,8 @@
 #ifndef F_CONEXIONES_H_
 #define F_CONEXIONES_H_
 
-#include <utils/utils.h>
-#include <escuchar_memoria.h>
+//#include <utils/utils.h>
+#include <utils/serializar.h>
 
 typedef struct{
 	t_config* config;
@@ -31,8 +31,9 @@ extern int fd_memoria;
 extern int fd_FS;
 
 extern pthread_t hilo_memoria;
-extern char bitmap_path[100];
-extern char bloques_path[100];
+extern char *bitmap_path;
+extern char *bloques_path;
+extern char *metadata_path;
 
 //Funciones de inicio
 void inicializar_FS();

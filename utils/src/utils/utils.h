@@ -45,7 +45,11 @@ typedef enum
 	MUTEX_UNLOCK,
 	DUMP_MEMORY,
 	IO,
-	SYSCALL
+	SYSCALL,
+	FINALIZAR_HILO,
+	FINALIZAR_PROCESO,
+	WRITE_MEM,
+	READ_MEM
 }op_code;
 
 typedef enum{
@@ -84,7 +88,8 @@ typedef struct
 {
 	uint32_t pid; //Identificador del proceso
 	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
-	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos, ¿'que se debe guardar exactamente?
+	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
+	uint32_t tid_contador;
 	//uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
 	estado_proceso_hilo estado; //para saber en que estado se encuntra el proceso/hilo
 	int tam_proceso;
@@ -96,6 +101,7 @@ typedef struct
 {
 	uint32_t pid; //Identificador del proceso al que pertenece
 	uint32_t tid; //Identificador del hilo
+	uint32_t tid_que_lo_bloqueo;
 	int prioridad;//0 maxima prioridad
 	RegistrosCPU* registro;
 	char* path;
@@ -122,8 +128,7 @@ t_config* iniciar_configs(char* path_config);
 void finalizar_modulo(t_log* logger, t_log* logger_obligatorio, t_config* config);
 void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
+char* recibir_mensajeV2(int socket);
 t_list* recibir_paquete_lista(int socket_cliente);
-
-
 
 #endif

@@ -13,32 +13,21 @@ int fd_kernel;
 pthread_t hilo_FS;
 pthread_t hilo_cpu;
 pthread_t hilo_kernel;
-//t_list* lista_tcb;
 void* memoria;
 
 void inicializar_memoria(){
-    memoria_logger = iniciar_logger(".//memoria.log","log_MEMORIA");
-
-    memoria_log_obligatorios = iniciar_logger(".//memoria_logs_olbigatorios.log","logs_MEMORIA");
+    memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");
+    memoria_log_obligatorios = iniciar_logger(".//memoria_logs_olbigatorios.log","logs_obligatorios_memoria");
 
 	configurar_memoria();
 
 	int tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
-	memoria = malloc(sizeof(tamanio_memoria));
+	memoria = malloc(tamanio_memoria);
+
+    conifgurar_particiones();
 
 	inicializar_lista_tcb();
-
 }
-
-void inicializar_lista_tcb() {
-    lista_tcb = list_create();
-    if (lista_tcb == NULL) {
-        log_error(memoria_logger, "Error al crear la lista de TCBs");
-        exit(EXIT_FAILURE);
-    }
-    log_info(memoria_logger, "Lista global de TCBs inicializada correctamente");
-}
-
 
 void configurar_memoria(){
     valores_config_memoria = malloc(sizeof(t_config_memoria));
@@ -54,9 +43,57 @@ void configurar_memoria(){
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
     valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
+}
 
-     printf("dsp %s \n",valores_config_memoria->puerto_escucha);
+/*Particiones Fijas: En este esquema la lista de particiones vendrá dada por archivo de configuración 
+y la misma no se podrá alterar a lo largo de la ejecución.*/
 
+void configurar_particiones() {
+    lista_particiones = list_create();
+
+    if (strcmp(valores_config_memoria->esquema, "FIJAS") == 0) {
+        size_t inicio = 0;
+        for (char** particion = valores_config_memoria->particiones; *particion != NULL; ++particion) {
+            Particion* nueva_particion = malloc(sizeof(Particion));
+            nueva_particion->inicio = inicio;
+            nueva_particion->tamanio = atoi(*particion) - 1;
+            nueva_particion->libre = true;
+            list_add(lista_particiones, nueva_particion);
+            inicio += nueva_particion->tamanio;
+        }
+
+    /*
+    Particiones Dinámicas: En este esquema la lista de particiones, va a iniciar como una única partición libre del tamaño total de la memoria y 
+    la misma se va a ir subdividiendo a medida que lleguen los pedidos de creación de los procesos, es por esto que la lista será dinámica.
+    */
+
+    } else if (strcmp(valores_config_memoria->esquema, "DINAMICAS") == 0) {
+        Particion* particion_unica = malloc(sizeof(Particion));
+        particion_unica->inicio = 0;
+        particion_unica->tamanio = atoi(valores_config_memoria->tam_memoria) - 1;
+        particion_unica->libre = true;
+        list_add(lista_particiones, particion_unica);
+    }
+}
+
+void inicializar_lista_tcb() {
+    lista_tcb = list_create();
+    if (lista_tcb == NULL) {
+        log_error(memoria_logger, "Error al crear la lista de TCBs");
+        exit(EXIT_FAILURE);
+    }
+    log_info(memoria_logger, "Lista global de TCBs inicializada correctamente");
+}
+
+void conectar_cpu(){
+    //Esperar conexion CPU
+    log_info(memoria_logger,"Esperando CPU...");
+    fd_cpu = esperar_cliente(fd_memoria,memoria_logger,"CPU");
+    handshakeServer(fd_cpu);
+
+    //se crea un hilo para escuchar mensajes de CPU
+    pthread_create(&hilo_cpu, NULL, (void*)escuchar_cpu, NULL);
+    pthread_detach(hilo_cpu);
 }
 
 void conectar_con_FS(){
@@ -67,19 +104,6 @@ void conectar_con_FS(){
 	//se crea un hilo para escuchar mensajes de FS
     pthread_create(&hilo_FS, NULL, (void*)memoria_escucha_FS,NULL);
     pthread_detach(hilo_FS);
-}
-
-
-void conectar_cpu(){
-   
-    //Esperar conexion CPU
-    log_info(memoria_logger,"Esperando CPU...");
-    fd_cpu = esperar_cliente(fd_memoria,memoria_logger,"CPU");
-    handshakeServer(fd_cpu);
-
-    //se crea un hilo para escuchar mensajes de CPU
-    pthread_create(&hilo_cpu, NULL, (void*)escuchar_cpu, NULL);
-    pthread_detach(hilo_cpu);
 }
 
 //Conexión con multihilos
@@ -94,8 +118,6 @@ void conectar_kernel(){
 
 		log_info(memoria_logger, "Conexión exitosa con kernel");
 		handshakeServer(fd_kernel);
-
-		pthread_t hilo_kernel;
         
 		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);
 		pthread_detach(hilo_kernel);

@@ -343,10 +343,68 @@ void* deserializar_mutex(t_paquete* paquete){
     return recurso;
 }
 
-t_crear_archivo_memoria deserializar_crear_archivo_memoria(t_paquete* paquete){
+t_crear_archivo_memoria* deserializar_crear_archivo_memoria(t_paquete* paquete){
     t_crear_archivo_memoria* archivo_memoria = malloc(sizeof(t_crear_archivo_memoria));
-    archivo_memoria.contenido = leer_buffer_string(paquete->buffer);
-    archivo_memoria.nombre_archivo = leer_buffer_string(paquete->buffer);
+    archivo_memoria->contenido = leer_buffer_string(paquete->buffer);
+    archivo_memoria->nombre_archivo = leer_buffer_string(paquete->buffer);
     archivo_memoria->tamanio = leer_buffer_Uint32(paquete->buffer);
     return archivo_memoria;
+}
+
+//PAra informar(kernel) a memoria, la finalización de un hilo
+void serializar_finalizar_hilo(t_paquete* paquete_memoria, uint32_t pid, uint32_t tid){
+    agregar_buffer_Uint32(paquete_memoria->buffer,pid);
+    agregar_buffer_Uint32(paquete_memoria->buffer,pid);
+}
+t_datos_esenciales* deserializar_finalizar_hilo(t_paquete* paquete_memoria){
+    t_datos_esenciales* datos_mem =malloc(sizeof(t_datos_esenciales));
+    datos_mem->pid_inv = leer_buffer_Uint32(paquete_memoria->buffer);
+    datos_mem->tid_inv = leer_buffer_Uint32(paquete_memoria->buffer);
+    return datos_mem;
+}
+
+//================================================================
+void enviar_mensaje(char *mensaje, int socket){
+	t_paquete *paquete = malloc(sizeof(t_paquete));
+
+	paquete->codigo_operacion = MENSAJE;
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->size = strlen(mensaje) + 1;
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
+
+	int bytes = paquete->buffer->size + 2 * sizeof(int);
+
+	void *a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket, a_enviar, bytes, 0);
+
+	free(a_enviar);
+	eliminar_paquete(paquete);
+}
+
+t_datos_write_mem* deserializar_write_mem(t_paquete* paquete){
+    t_datos_write_mem* write_mem = malloc(sizeof(t_datos_write_mem));
+
+    write_mem->dir_fis = leer_buffer_Uint32(paquete->buffer);
+    write_mem->valor = leer_buffer_Uint32(paquete->buffer);
+
+    return write_mem;
+}
+
+void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor){
+    agregar_buffer_Uint32(paquete_write_mem->buffer, dir_fis);
+    agregar_buffer_Uint32(paquete_write_mem->buffer, valor);
+    return NULL;
+}
+
+t_datos_read_mem* deserializar_read_mem(t_paquete* paquete){
+    t_datos_read_mem* read_mem = malloc(sizeof(t_datos_read_mem));
+    read_mem->dir_fis = leer_buffer_Uint32(paquete->buffer);
+    return read_mem;
+}
+
+void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica){
+    agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer, direccion_fisica);
+    return NULL;
 }

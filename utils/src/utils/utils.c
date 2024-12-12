@@ -1,5 +1,7 @@
 #include <utils/utils.h>
+
 t_list* lista_tcb;
+
 PCB* buscar_proceso(t_list* lista, uint32_t pid){
 	for(int i=0; i<list_size(lista);i++)
 	{
@@ -11,6 +13,7 @@ PCB* buscar_proceso(t_list* lista, uint32_t pid){
 	}
 	return NULL;
 }
+
 TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid){
 	for(int i=0; i<list_size(lista);i++)
 	{
@@ -269,4 +272,10 @@ void finalizar_modulo(t_log* logger,t_log* logger_obligatorio, t_config* config)
 	if (config){
 		config_destroy(config);
 	}
+}
+
+char* recibir_mensajeV2(int socket){
+	int size;
+	char* buffer = recibir_buffer(&size, socket);
+	return buffer;
 }

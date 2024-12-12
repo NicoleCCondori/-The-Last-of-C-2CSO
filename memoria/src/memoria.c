@@ -13,16 +13,23 @@ int main(int argc, char* argv[]) {
 
     conectar_kernel();
 
+    conectar_con_FS();
+
     //liberar los logs y config
 
     finalizar_modulo(memoria_logger,memoria_log_obligatorios,valores_config_memoria->config);
+    
     free(valores_config_memoria);
+    free(memoria);
+    free(lista_particiones);
+
     //finalizar las conexiones
     close(fd_memoria);
     close(fd_FS);
     close(fd_kernel);
     close(fd_cpu);
 
+    free(memoria);
 
     return 0;
 }

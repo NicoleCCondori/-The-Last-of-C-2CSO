@@ -1,5 +1,5 @@
 #include <kernel_escucha_cpu_interrupt.h>
-#include <k_conexiones.h>
+
 
 void kernel_escucha_cpu_interrupt(){
 

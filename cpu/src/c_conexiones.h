@@ -1,7 +1,6 @@
 #ifndef C_CONEXIONES_H_
 #define C_CONEXIONES_H_
 
-//#include <utils/utils.h>
 #include <utils/serializar.h>
 
 //semaforos
@@ -126,7 +125,7 @@ void serializar_mutex(t_paquete* paquete_mutex,char* recurso);
 
 
 //REGISTROS
-uint32_t obtenerRegistro(char* registro,RegistrosCPU* registros);
+uint32_t* obtenerRegistro(char* registro,RegistrosCPU* registros);
 
 void log_registro(char* registro, RegistrosCPU* registros);
 

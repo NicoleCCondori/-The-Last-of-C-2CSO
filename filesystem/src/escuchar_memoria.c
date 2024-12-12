@@ -32,31 +32,37 @@ void escuchar_memoria(){
 }
 
 void crear_archivo(){
+
     t_paquete* archivo_memoria = recibir_paquete(fd_memoria);
+
     t_crear_archivo_memoria* crear_archivo_memoria = deserializar_crear_archivo_memoria(archivo_memoria);
     
-    char* nombre_archivo = crear_archivo_memoria.nombre_archivo;
-    char* contenido = crear_archivo_memoria.contenido;
-    uint32_t tamanio = crear_archivo_memoria.tamanio;
+    char* nombre_archivo = crear_archivo_memoria->nombre_archivo;
+    char* contenido = crear_archivo_memoria->contenido;
+    uint32_t tamanio = crear_archivo_memoria->tamanio;
 
     uint32_t bloques_necesarios = (tamanio + valores_config_FS->block_size - 1) / valores_config_FS->block_size;
 
     if(!espacio_disponible(bloques_necesarios)){
         log_info(FS_logger, "No hay espacio suficiente para crear el archivo");
         //se deberá informar a memoria del error y finalizar la creación del archivo en este punto.
+        //enviar_mensaje(fd_memoria,"Error: NO hay espacio suficiente para crear el archivo");
     }
     else{
 
         log_info(FS_logs_obligatorios, "## Archivo Creado: %s - Tamaño: %d",nombre_archivo, tamanio);
 
         uint32_t bloque_inicial = reservar_bloques(bloques_necesarios, nombre_archivo);
-
+        /*if(bloque_inicial==-1){
+            log_error(FS_logger,"ERROR al reservar bloques");
+            enviar_mensaje(fd_memoria,"ERROR al reservar bloques");
+        }
+        */
         escribir_contenido_bloques(bloque_inicial, contenido, bloques_necesarios, tamanio, nombre_archivo);
-        
-
 
     }
 }
+
 uint32_t cantidad_bloques_libres(FILE *file_bitmap){
 
     uint32_t bloques_libres = 0;
@@ -103,14 +109,6 @@ uint32_t reservar_bloques(uint32_t bloques_necesarios, char *nombre_archivo) {
     uint32_t primer_bloque = -1;
     unsigned char byte;
     long offset = 0;
-
-    while (fread(&byte, 1, 1, file_bitmap) == 1) {
-        for (int i = 0; i < 8; i++) {
-            if (!(byte & (1 << i))) {
-                bloques_libres++;
-            }
-        }
-    }
 
     while (fread(&byte, 1, 1, file_bitmap) == 1) {
         for (int i = 0; i < 8; i++) {
@@ -167,7 +165,7 @@ void escribir_contenido_bloques(uint32_t primer_bloque, char* contenido, uint32_
 
         log_info(FS_logs_obligatorios, "Acceso Bloque - Archivo: %s - Tipo Bloque: DATOS/INDICE - Bloque File System %d", 
                  nombre_archivo, offset / valores_config_FS->block_size);
-        usleep(valores_config_FS->block_access_delay_ms * 1000); // Retardo
+        usleep(valores_config_FS->retardo_acceso_bloque * 1000); // Retardo
     }
 
     fclose(file_bloques);
