@@ -51,14 +51,14 @@ void inicializar_bitmap(){
             //es asi? o coomo con bloques? no me cuadra lo del filepath
             
             sprintf(bitmap_path,"%s/bitmap.dat",valores_config_FS->mount_dir);
-            printf("Directorio creado exitosamente, el directorio es: %s\n",bitmap_path);
+            log_info(FS_logger,"Directorio creado exitosamente, el directorio es: %s\n",bitmap_path);
             
         } 
     } else {//el directorio existe
 
             //bitmap_path = valores_config_FS->mount_dir;
             sprintf(bitmap_path,"%s/bitmap.dat",valores_config_FS->mount_dir);
-            printf("El directorio ya existe, el directorio es: %s\n",bitmap_path);
+            log_info(FS_logger,"El directorio ya existe, el directorio es: %s\n",bitmap_path);
     }
 
 
@@ -118,14 +118,14 @@ void inicializar_metadata(uint32_t size, uint32_t index_block,char* nombre_archi
             //es asi? o coomo con bloques? no me cuadra lo del filepath
             
             sprintf(metadata_path,"%s/files/%s",valores_config_FS->mount_dir,nombre_archivo);
-            printf("Directorio creado exitosamente, el directorio es: %s\n",metadata_path);
+            log_info(FS_logger,"Directorio creado exitosamente, el directorio es: %s\n",metadata_path);
             
         } 
     } else {//el directorio existe
 
             //bitmap_path = valores_config_FS->mount_dir;
             sprintf(metadata_path,"%s/files/%s",valores_config_FS->mount_dir,nombre_archivo);
-            printf("El directorio ya existe, el directorio es: %s\n",metadata_path);
+            log_info(FS_logger,"El directorio ya existe, el directorio es: %s\n",metadata_path);
     }
     
     

@@ -1,5 +1,9 @@
 #include <c_conexiones.h>
-#include <escuchar_kernel_dispatch.h>
+//#include <escuchar_kernel_dispatch.h>
+
+//en kernel_dispatch.c se inicializa con los argumento pasado por el modulo de kernel 
+uint32_t PidHilo;
+uint32_t TidHilo;
 
 t_log* cpu_logger;
 t_log* cpu_log_debug;
@@ -17,9 +21,6 @@ pthread_t hilo_kernel_dispatch;
 pthread_t hilo_kernel_interrupt;
 pthread_t hilo_memoria;
 
-//Vienen de Kernel "RECIBIR_TID"
-//uint32_t pidHilo; 
-//uint32_t tidHilo; //usé extern y estan definidas en escuchar_kernel_dispatch
 
 char* instruccionActual;
 particionMemoria parteActual;
@@ -124,8 +125,8 @@ t_instruccion* decode(char* instruccion){
     instruccionDecodificada->tiempo=0;
     instruccionDecodificada->recurso=0;
     instruccionDecodificada->tid=0;
-    instruccionDecodificada->PID = pidHilo;
-    instruccionDecodificada->TID = tidHilo;
+    instruccionDecodificada->PID = PidHilo;
+    instruccionDecodificada->TID = TidHilo;
     if(strcmp(instruccionDecodificada->operacion,"PROCESS_CREATE")==0 ||
     strcmp(    instruccionDecodificada->operacion,"TRHEAD_CREATE")==0)
     {
@@ -393,16 +394,17 @@ void read_mem(char* datos, char* direccion, RegistrosCPU* registros,uint32_t tid
     }
 
     uint32_t direccion_fisica = MMU(*reg_direccion);
-    *reg_datos = leer_desde_memoria(fd_memoria, direccion_fisica,tidHilo);
+    *reg_datos = leer_desde_memoria(fd_memoria, direccion_fisica,tidHilo); 
     
 }
 
 
-uint32_t leer_desde_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t tidHilo){
+uint32_t leer_desde_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t tidHilo){ 
     uint32_t dato;
-
+    
     t_paquete* paquete_enviar_datos_lectura = crear_paquete(READ_MEM);
-    serializar_read_mem(paquete_enviar_datos_lectura, direccion_fisica); 
+
+    serializar_read_mem(paquete_enviar_datos_lectura, direccion_fisica,PidHilo,tidHilo); 
     enviar_paquete(paquete_enviar_datos_lectura, fd_memoria);
     eliminar_paquete(paquete_enviar_datos_lectura);
 
@@ -411,6 +413,7 @@ uint32_t leer_desde_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t 
         log_error(cpu_logger,"Error al recibir dato desde memoria");
         exit(EXIT_FAILURE);
     }
+    
     log_info(cpu_logger,"## TID: <%d> - Accion: <LEER > - Direccion Fisica: <%d>",tidHilo,direccion_fisica);
     return dato;
 }
@@ -425,9 +428,10 @@ void write_mem(char* registro_direccion, char* registro_datos, RegistrosCPU* reg
         uint32_t direccion_fisica=MMU(*reg_direccion);
         escribir_en_memoria(fd_memoria,direccion_fisica,*reg_datos,tidHilo);
 }
+
 void escribir_en_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t dato, uint32_t tidHilo){
     t_paquete* paquete_enviar_datos_escritura = crear_paquete(WRITE_MEM);
-    serializar_write_mem(paquete_enviar_datos_escritura, direccion_fisica, dato);
+    serializar_write_mem(paquete_enviar_datos_escritura, direccion_fisica, dato, PidHilo,tidHilo);
     enviar_paquete(paquete_enviar_datos_escritura, fd_memoria);
     eliminar_paquete(paquete_enviar_datos_escritura);
     

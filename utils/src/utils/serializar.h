@@ -121,10 +121,14 @@ typedef struct {
 typedef struct{
     uint32_t dir_fis; 
     uint32_t valor;
+    uint32_t pidHilo;
+    uint32_t tidHilo;
 }t_datos_write_mem;
 
 typedef struct{
     uint32_t dir_fis;
+    uint32_t pidHilo;
+    uint32_t tidHilo;
 }t_datos_read_mem;
 
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
@@ -149,8 +153,7 @@ t_datos_esenciales* deserializar_finalizar_hilo(t_paquete* paquete_memoria);
 //=====================
 void enviar_mensaje(char *mensaje, int socket);
 t_datos_write_mem* deserializar_write_mem(t_paquete* paquete);
-void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor);
-
-void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica);
+void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor,uint32_t PidHilo, uint32_t TidHilo);
+void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica, uint32_t PidHilo, uint32_t TidHilo);
 t_datos_read_mem* deserializar_read_mem(t_paquete* paquete);
 #endif

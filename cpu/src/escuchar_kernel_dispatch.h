@@ -1,10 +1,7 @@
 #ifndef ESCUCHAR_KERNEL_DISPATCH_H_
 #define ESCUCHAR_KERNEL_DISPATCH_H_
 
-#include <stdint.h>  
-
-extern uint32_t pidHilo;
-extern uint32_t tidHilo;
+#include <c_conexiones.h>
 
 void escuchar_kernel_dispatch();
 

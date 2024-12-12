@@ -3,6 +3,10 @@
 
 #include <utils/serializar.h>
 
+//tip y pid del proceso que se esta ejecutando
+extern uint32_t PidHilo;
+extern uint32_t TidHilo;
+
 //semaforos
 extern sem_t sem_syscall;
 

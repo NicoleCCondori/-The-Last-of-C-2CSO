@@ -1,5 +1,6 @@
 #include <m_conexiones.h>
 
+
 t_log* memoria_logger;
 t_log* memoria_log_obligatorios;
 
@@ -15,16 +16,21 @@ pthread_t hilo_cpu;
 pthread_t hilo_kernel;
 void* memoria;
 
+int tamanio_memoria;
+//listas
+t_list* lista_particiones;
+//t_list* lista_tcb;
+
 void inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");
     memoria_log_obligatorios = iniciar_logger(".//memoria_logs_olbigatorios.log","logs_obligatorios_memoria");
 
 	configurar_memoria();
 
-	int tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
+	tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
 	memoria = malloc(tamanio_memoria);
 
-    conifgurar_particiones();
+    configurar_particiones();
 
 	inicializar_lista_tcb();
 }
@@ -41,7 +47,7 @@ void configurar_memoria(){
     valores_config_memoria->retardo_respuesta = config_get_string_value(valores_config_memoria->config,"RETARDO_RESPUESTA");
     valores_config_memoria->esquema = config_get_string_value(valores_config_memoria->config,"ESQUEMA");
     valores_config_memoria->algoritmo_busqueda = config_get_string_value(valores_config_memoria->config,"ALGORITMO_BUSQUEDA");
-    valores_config_memoria->particiones = config_get_array_value(config->config,"PARTICIONES");
+    valores_config_memoria->particiones = config_get_array_value(valores_config_memoria->config,"PARTICIONES");
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
 }
 
@@ -113,10 +119,10 @@ void conectar_kernel(){
 	{
 		fd_kernel = esperar_cliente(fd_memoria, memoria_logger,"kernel");
 		if(fd_kernel == -1){
-			log_error(memoria_logger, "Error creando conexión con kernel");
+			log_error(memoria_logger, "Error creando conexion con kernel");
 		}
 
-		log_info(memoria_logger, "Conexión exitosa con kernel");
+		log_info(memoria_logger, "Conexion exitosa con kernel");
 		handshakeServer(fd_kernel);
         
 		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);

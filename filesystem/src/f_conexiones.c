@@ -54,7 +54,7 @@ void conectar_memoria(){
 	{
 		fd_memoria = esperar_cliente(fd_FS, FS_logger,"MEMORIA");
 		if(fd_FS == -1){
-			log_error(FS_logger, "Error creando conexión con memoria");
+			log_error(FS_logger, "Error creando conexion con memoria");
 		}
 		//log_info(FS_logger, "Conexión exitosa con MEMORIA");
 

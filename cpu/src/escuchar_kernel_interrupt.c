@@ -1,5 +1,5 @@
 #include <escuchar_kernel_interrupt.h>
-#include <c_conexiones.h>
+
 
 
 void escuchar_kernel_interrupt(){

@@ -1,11 +1,8 @@
 #ifndef M_CONEXIONES_H_
 #define M_CONEXIONES_H_
 
-#include <utils/utils.h>
+#include <utils/serializar.h>
 
-#include <escuchar_cpu.h>
-#include <escuchar_kernel.h>
-#include <memoria_escucha_FS.h>
 
 typedef struct{
 	t_config* config;
@@ -28,13 +25,6 @@ typedef struct {
     uint32_t pid;
 } Particion;
 
-typedef struct {
-    uint32_t id;
-    uint32_t tamanio;
-    bool ocupada;
-    uint32_t pid;
-} particionD_t;
-
 extern t_log* memoria_logger;
 extern t_log* memoria_log_obligatorios;
 
@@ -49,6 +39,10 @@ extern pthread_t hilo_FS;
 extern pthread_t hilo_cpu;
 extern pthread_t hilo_kernel;
 
+extern void* memoria;
+extern t_list* lista_particiones;
+extern int tamanio_memoria;
+
 void inicializar_memoria();
 void configurar_memoria();
 void configurar_particiones();
@@ -62,7 +56,4 @@ void escuchar_cpu();
 void escuchar_kernel();
 
 void inicializar_lista_tcb();
-
-extern void *memoria;
-t_list* lista_particiones;
 #endif

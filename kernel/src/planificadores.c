@@ -235,7 +235,7 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     pcb->path_main = strdup(path);
 
     //Planificador de Largo Plazo -> Creación de procesos
-    log_info(kernel_logs_obligatorios, "Creación de Proceso: ## (<PID>: %u) Se crea el proceso - Estado: NEW",pcb->pid);
+    log_info(kernel_logs_obligatorios, "Creacion de Proceso: ## (<PID>: %u) Se crea el proceso - Estado: NEW",pcb->pid);
     log_info(kernel_logger, "La prioridad del hilo main es: %u ", pcb->prioridad_main);
 
     //agregar proceso a cola de NEW 

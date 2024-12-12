@@ -1,5 +1,5 @@
 #include <memoria_escucha_FS.h>
-#include <m_conexiones.h> 
+
 // no era cliente?
 void memoria_escucha_FS(){
     //atender los msjs de FS , otra funcion?

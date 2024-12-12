@@ -1,5 +1,5 @@
 #include <escuchar_cpu.h>
-#include <m_conexiones.h>
+
 
 void escuchar_cpu(){
     //atender los msjs de cpu-dispatch , otra funcion?
@@ -10,17 +10,21 @@ void escuchar_cpu(){
         op_code codigo_operacion = paquete_cpu->codigo_operacion;
 		switch (codigo_operacion)
 		{
-        case MENSAJE:
-            break;
 		case OBTENER_CONTEXTO:
-			devolver_contexto_ejecucion();
-            break;
+			devolver_contexto_ejecucion(paquete_cpu);
+
 		case ACTUALIZAR_CONTEXTO:
-			actualizar_contexto_de_ejecucion();
-            break;
+			actualizar_contexto_de_ejecucion(paquete_cpu);
+
 		case OBTENER_INSTRUCCION:
-			obtener_instruccion();
-            break;
+			obtener_instruccion(paquete_cpu);
+
+        case WRITE_MEM:
+			write_mem(paquete_cpu);
+        
+        case READ_MEM:
+			read_mem(paquete_cpu);
+
 		default:
 			log_warning(memoria_logger, "Operacion desconocida de CPU");
 			break;
@@ -29,9 +33,8 @@ void escuchar_cpu(){
 	}
 }
 
-void devolver_contexto_ejecucion() {
-    t_paquete* paquete_contexto = recibir_paquete(fd_kernel);
-    t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_contexto);
+void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
+    t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_cpu);
     
     TCB* hilo = buscar_tcb_por_tid(datos_contexto->TID);
     if (hilo == NULL) {
@@ -62,6 +65,7 @@ void devolver_contexto_ejecucion() {
 
     contexto->PC = hilo->pc;
 
+//Completar de donde saco base y limite
     contexto->base = 0;
     contexto->limite = 0;
 
@@ -72,8 +76,6 @@ void devolver_contexto_ejecucion() {
     serializar_enviar_contexto(paquete_enviar_contexto, contexto);
     enviar_paquete(paquete_enviar_contexto, fd_cpu);
     eliminar_paquete(paquete_enviar_contexto);
-
-    
 }
 
 TCB* buscar_tcb_por_tid(uint32_t tid_buscado) {
@@ -87,9 +89,8 @@ TCB* buscar_tcb_por_tid(uint32_t tid_buscado) {
     return NULL;
 }
 
-void actualizar_contexto_de_ejecucion() {
-    t_paquete* paquete_actualizar_contexto = recibir_paquete(fd_kernel);
-    t_actualizar_contexto* datos_contexto = deserializar_actualizar_contexto(paquete_actualizar_contexto);
+void actualizar_contexto_de_ejecucion(t_paquete* paquete_cpu) {
+    t_actualizar_contexto* datos_contexto = deserializar_actualizar_contexto(paquete_cpu);
 
     TCB* hilo = buscar_tcb_por_tid(datos_contexto->TID);
     
@@ -108,11 +109,8 @@ void actualizar_contexto_de_ejecucion() {
 
 }
 
-
-
-void obtener_instruccion() {
-    t_paquete* paquete_instruccion = recibir_paquete(fd_kernel);
-    t_obtener_instruccion* datos_instruccion = deserializar_obtener_instruccion(paquete_instruccion);
+void obtener_instruccion(t_paquete* paquete_cpu) {
+    t_obtener_instruccion* datos_instruccion = deserializar_obtener_instruccion(paquete_cpu);
     
     TCB* hilo = buscar_tcb_por_tid(datos_instruccion->TID);
     if (hilo == NULL) {
@@ -185,7 +183,7 @@ void obtener_instruccion() {
 
     // Verificar que el PC sea un valor valido
     if (hilo->pc < 0 || hilo->pc >= num_lineas) {
-        log_error(memoria_logger, "El valor de PC proporcionado es inválido.");
+        log_error(memoria_logger, "El valor de PC proporcionado es invalido.");
         // Liberar la memoria usada por las líneas leídas
         for (size_t i = 0; i < num_lineas; i++) {
             free(lineas[i]);
@@ -209,10 +207,38 @@ void obtener_instruccion() {
     eliminar_paquete(paquete_enviar_instruccion);
 }
 
-char* READ_MEM(){
-	return "OK";
-}
+void write_mem(t_paquete* paquete_cpu){
+    t_datos_write_mem* datos_write_mem = deserializar_write_mem(paquete_cpu);
+   
+    if (datos_write_mem->dir_fis + sizeof(uint32_t) < tamanio_memoria) {
 
-char* WRITE_MEM(){
-return "OK";
-}
+        memcpy((char *)memoria + datos_write_mem->dir_fis, &datos_write_mem->valor, sizeof(uint32_t));
+    
+        uint32_t respuesta_ok = 1;
+        if (send(fd_memoria, &respuesta_ok, sizeof(respuesta_ok), 0) == -1) {
+            perror("Error al enviar respuesta de escritura a CPU");
+        }
+        
+        log_info(memoria_log_obligatorios, "## Escritura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_write_mem->pidHilo, datos_write_mem->tidHilo, datos_write_mem->dir_fis, datos_write_mem->valor);
+    }
+    else{
+        log_error(memoria_logger,"ERROR en ESCRITURA");
+    }
+} 
+
+void read_mem(t_paquete* paquete_cpu){
+    t_datos_read_mem* datos_read_mem = deserializar_read_mem(paquete_cpu);
+    if (datos_read_mem->dir_fis + sizeof(uint32_t) < tamanio_memoria) {
+        uint32_t dato;
+        memcpy(&dato, (char *)memoria + datos_read_mem->dir_fis, sizeof(uint32_t));
+        send(fd_cpu, &dato, sizeof(dato), 0);
+
+        log_info(memoria_log_obligatorios, "## Lectura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_read_mem->pidHilo, datos_read_mem->tidHilo, datos_read_mem->dir_fis, dato);
+
+    }
+    else{
+        log_error(memoria_logger,"ERROR en LECTURA");
+    }
+
+   
+} 

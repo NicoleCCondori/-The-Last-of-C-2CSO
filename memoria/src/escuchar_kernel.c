@@ -1,21 +1,24 @@
 #include <escuchar_kernel.h>
-#include <m_conexiones.h>
+
 
 void escuchar_kernel(){
     printf("Ejecuto escuchar_kernel.c \n");
 
-    
     while (1){
 		t_paquete* paquete_kernel = recibir_paquete(fd_kernel);
         op_code codigo_operacion = paquete_kernel->codigo_operacion;
 		switch (codigo_operacion)
 		{
 		case ASIGNAR_MEMORIA:
-            asignar_memoria();
+            //crear_proceso(paquete_kernel);
             break;
 
 		case HILO_READY:
-		     crear_hilo();
+		    // crear_hilo(paquete_kernel);
+			break;
+        
+        case DUMP_MEMORY:
+		     //envio_datos_a_FS(paquete_kernel);
 			break;
 
 		default:
@@ -26,7 +29,21 @@ void escuchar_kernel(){
 	}
 }
 
-void asignar_memoria(){
+/*
+2. Particiones Dinámicas: la misma se va a ir subdividiendo a medida que lleguen los pedidos 
+de creación de los procesos, es por esto que la lista será dinámica.
+
+En ambos esquemas, el hueco a asignar y/o fraccionar se deberá elegir utilizando alguna de las siguientes estrategias:
+●	First Fit
+●	Best Fit
+●	Worst Fit
+En caso de encontrar un hueco libre, se le asignará la partición, se creará la estructura necesaria para administrar la Memoria de Sistema, y se responderá como OK al Kernel.
+En caso de no encontrar un hueco libre, se le responderá al Kernel que el proceso no pudo ser inicializado. Para este trabajo práctico, no debe realizarse el proceso de compactación bajo ningún caso.
+
+*/
+/*
+
+void crear_proceso(t_paquete* paquete_kernel){
     if (strcmp(valores_config_memoria->esquema, "FIJAS")==0){
         asignar_particiones_fijas();
     }
@@ -37,7 +54,6 @@ void asignar_memoria(){
 
 void asignar_particiones_fijas(uint32_t tamanio_proceso, uint32_t pid){
     t_list* particiones = list_create();
-      //for (int i = 0; list_size( valores_config_memoria->particiones)!= 0; i++) {//
       for (int i = 0; valores_config_memoria->particiones[i] != NULL; i++) {
 
         uint32_t tamanio = atoi(valores_config_memoria->particiones[i]);
@@ -91,7 +107,7 @@ void asignar_particiones_dinamicas(uint32_t tamanio_proceso, uint32_t pid){
     
     else send(fd_kernel, &valor_a_enviar, sizeof(int), -1);
 }
-
+}
 void dividir_particion(particion_t* particion, uint32_t tamanio_proceso) {
     uint32_t espacio_restante = particion->tamanio - tamanio_proceso;
     particion->tamanio = tamanio_proceso;
@@ -144,7 +160,7 @@ particion_t* algoritmo_worst_fit(uint32_t tamanio_proceso) {
     return particion_elegida;
 }
 
-void crear_hilo(){
+void crear_hilo(t_paquete* paquete_kernel){
 	t_paquete* enviar_contexto = recibir_paquete(fd_cpu);
     t_crear_hilo* datos_hilo = deserializar_crear_hilo(enviar_contexto);
 
@@ -185,3 +201,4 @@ void crear_hilo(){
 	//free(enviar_contexto);
     destruir_buffer_paquete(enviar_contexto);
 }
+*/
