@@ -32,8 +32,8 @@ void planificador_corto_plazo(/*TCB* hilo*/){
             /*sem_wait(&sem_mutex_cola_ready);
             list_add(lista_ready, hilo);
             sem_post(&sem_mutex_cola_ready);*/
-            
-            TCB* hilo_exec = list_get(lista_ready,0);
+            //debemos sacar el primer elemento de la lista
+            TCB* hilo_exec = list_remove(lista_ready,0);
             //CAmbiar el estado del hilo
             hilo_exec->estadoHilo = EXEC;
             //LO agrego en la cola_exec
@@ -45,6 +45,7 @@ void planificador_corto_plazo(/*TCB* hilo*/){
 
             enviar_paquete(hilo_cpu, fd_cpu_dispatch);
             // 
+            eliminar_paquete(hilo_cpu);
 
         }
         if(strcmp(valores_config_kernel->algoritmo_planificacion,"PRIORIDADES")==0){
@@ -345,7 +346,24 @@ void finalizar_hilo(TCB* hilo)
 	}
     list_remove_element(tid_a_retirar->tid,(void*) hilo->tid);
     //list_remove_element(tid_a_retirar->tid, (void *)(uintptr_t)hilo->tid);
+
     //3ro a) ver que onda con los recursos de mutex-> deberia liberarlo tmb
+    for(int i=0; i<list_size(tid_a_retirar->mutex); i++){
+        t_mutex* mutex_pos = list_get(tid_a_retirar->mutex, i);
+        if(mutex_pos->tid == hilo->tid){
+            if (!queue_is_empty(mutex_pos->bloqueados_mutex)) {
+                TCB* sgte_hilo = queue_pop(mutex_pos->bloqueados_mutex);
+
+                sgte_hilo->estadoHilo = READY;
+                mutex_pos->tid = sgte_hilo->tid;
+
+                list_add(lista_ready, sgte_hilo);
+            } else {
+                //Si no hay hilos bloqueados, asignar el tid como vacio
+                mutex_pos->tid = -1;
+            }
+        }
+    }
 
     //4to)informar a memoria
     informar_a_memoria_fin_hilo(fd_memoria,hilo);

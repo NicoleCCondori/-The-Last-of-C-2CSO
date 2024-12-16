@@ -171,14 +171,26 @@ void kernel_escucha_cpu_dispatch(){
 					printf("NO EXISTE EL MUTEX\n");
 				}
 				if(unlock->tid == invocadores->tid_inv){
-					uint32_t tid_cola = queue_pop(unlock->bloqueados_mutex);
-					//uint32_t tid_cola = (uint32_t)(uintptr_t)queue_pop(unlock->bloqueados_mutex); //-->solución con la biblioteca #include <stdint.h> 
-					unlock->tid = tid_cola;
+
 					//El hilo que lo invocó vuelve a la ejecución es decir a la cola de READY
+					if (!queue_is_empty(unlock->bloqueados_mutex)){
+						uint32_t tid_cola = queue_pop(unlock->bloqueados_mutex);
+						TCB* hilo_a_ready = buscar_tcbs(lista_tcbs, tid_cola, invocadores->pid_inv);
+						if (hilo_a_ready != NULL) {
+							hilo_a_ready->estadoHilo = READY;
+							unlock->tid = hilo_a_ready->tid;
+							list_add(lista_ready, hilo_a_ready);
+						}else{
+							printf("No se encontro el TID: %u del PID:%u\n", tid_cola,invocadores->pid_inv);
+						}
+					}else{
+						//digo que el mutex ya no tiene un hilo asignado
+						unlock->tid = -1;
+					}
 				}else{
 					//No pasa nada ya que no puede desbloquear nada
 				}
-					
+				free(recurso_unlock);
 				break;
 			case DUMP_MEMORY:
 				enviar_memoria_dump_memory(fd_memoria, invocadores);
@@ -200,8 +212,25 @@ void kernel_escucha_cpu_dispatch(){
 			
 			case IO:
 				int tiempo_io = deserializar_IO(datos_de_cpu);
-				//Tiempo que pasará el hilo realizando la operación en Entrada y SAlida
-				
+				TCB* hilo_a_dormir = buscar_tcbs(lista_tcbs,invocadores->tid_inv,invocadores->pid_inv);
+				if(hilo_a_dormir == NULL){
+					printf("No se encontro el TID: %u del PID:%u\n", invocadores->tid_inv,invocadores->pid_inv);
+				}else{
+					hilo_a_dormir->estadoHilo = BLOCKED;
+					list_add(lista_blocked, hilo_a_dormir);
+					log_info(kernel_logs_obligatorios, "Motivo de Bloqueo: ## (PID:%u TID:%u) - Bloqueado por: IO", invocadores->pid_inv,invocadores->tid_inv);
+					//Tiempo que pasará el hilo realizando la operación en Entrada y SAlida
+					usleep(tiempo_io * 1000);
+
+					//Lo debo sacar de la lista de bloqueados
+					list_remove(lista_blocked,hilo_a_dormir);
+
+					log_info(kernel_logs_obligatorios, "Fin de IO: ## (PID:%u TID:%u) finalizó IO y pasa a READY", invocadores->pid_inv,invocadores->tid_inv);
+
+					hilo_a_dormir->estadoHilo = READY;
+					list_add(lista_ready, hilo_a_dormir);
+
+				}
 				break;
 			case PAQUETE:
 
