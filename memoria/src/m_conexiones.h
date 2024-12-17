@@ -3,6 +3,8 @@
 
 #include <utils/serializar.h>
 
+#include <pthread.h>
+#include <unistd.h>
 
 typedef struct{
 	t_config* config;
@@ -19,11 +21,23 @@ typedef struct{
 }t_config_memoria;
 
 typedef struct {
-    size_t inicio;
-    size_t tamanio;
+    uint32_t base;
+    uint32_t limite;
+    uint32_t tamanio;
     bool libre;
     uint32_t pid;
 } Particion;
+
+typedef struct {
+    uint32_t pid;
+    uint32_t tid; // Proceso asociado
+    uint32_t base; // Dirección base de la partición
+    uint32_t limite; // Tamaño de la partición
+    RegistrosCPU registros; // Registros inicializados en 0
+    uint32_t pc; // Program Counter inicializado en 0
+    char* instrucciones;
+    int prioridad;
+} ContextoEjecucion;
 
 extern t_log* memoria_logger;
 extern t_log* memoria_log_obligatorios;
@@ -41,7 +55,22 @@ extern pthread_t hilo_kernel;
 
 extern void* memoria;
 extern t_list* lista_particiones;
+extern t_list* lista_contextos;
 extern int tamanio_memoria;
+
+pthread_mutex_t mutex_lista_particiones;
+pthread_mutex_t mutex_memoria;
+pthread_mutex_t mutex_contextos;
+
+pthread_t hilo_FS;
+pthread_t hilo_cpu;
+pthread_t hilo_kernel;
+void* memoria;
+
+int tamanio_memoria;
+
+t_list* lista_particiones;
+t_list* lista_contextos;
 
 void inicializar_memoria();
 void configurar_memoria();
@@ -54,6 +83,4 @@ void conectar_kernel();
 void memoria_escucha_FS();
 void escuchar_cpu();
 void escuchar_kernel();
-
-void inicializar_lista_tcb();
 #endif
