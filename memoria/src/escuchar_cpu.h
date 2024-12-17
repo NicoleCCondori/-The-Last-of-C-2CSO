@@ -13,5 +13,6 @@ void obtener_instruccion(t_paquete* paquete);
 void actualizar_contexto_de_ejecucion(t_paquete* paquete);
 void read_mem(t_paquete* paquete);
 void write_mem(t_paquete* paquete);
+char* obtener_instruccion_por_pc(uint32_t pc, char* path);
 
 #endif

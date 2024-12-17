@@ -33,93 +33,105 @@ void escuchar_cpu(){
 	}
 }
 
+ContextoEjecucion* buscar_contexto_por_tid(uint32_t tid_buscado) {
+    pthread_mutex_lock(&mutex_contextos);
+    for (int i = 0; i < list_size(lista_contextos); i++) {
+        ContextoEjecucion* contexto_actual = list_get(lista_contextos, i);
+        if (contexto_actual->tid == tid_buscado) {
+            pthread_mutex_unlock(&mutex_contextos);
+            return contexto_actual;
+        }
+    }
+    pthread_mutex_unlock(&mutex_contextos);
+    return NULL;
+}
+
+/*DEVOLVER CONTEXTO EJECUCION*/
 void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
     t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_cpu);
-    
-    TCB* hilo = buscar_tcb_por_tid(datos_contexto->TID);
-    if (hilo == NULL) {
+    usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
+
+    ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_contexto->TID);
+    if (contexto == NULL) {
         log_error(memoria_logger, "Hilo no encontrado");
-        exit(EXIT_FAILURE);
+        return;
     }
 
-    if (hilo->pid ==! datos_contexto->PID) {
+    if (contexto->pid ==! datos_contexto->PID) {
             log_error(memoria_logger, "El proceso no corresponde");
     }
 
-    // Crear y llenar el contexto de ejecucion
-    t_contextoEjecucion* contexto = malloc(sizeof(t_contextoEjecucion));
-    if (contexto == NULL) {
+    t_contextoEjecucion* nuevo_contexto = malloc(sizeof(t_contextoEjecucion));
+    if (nuevo_contexto == NULL) {
         log_error(memoria_logger, "Error al asignar memoria para el contexto");
         exit(EXIT_FAILURE);
     }
 
     // Copiar los registros y valores
-    contexto->RegistrosCPU->AX = hilo->registro->AX;
-    contexto->RegistrosCPU->BX = hilo->registro->BX;
-    contexto->RegistrosCPU->CX = hilo->registro->CX;
-    contexto->RegistrosCPU->DX = hilo->registro->DX;
-    contexto->RegistrosCPU->EX= hilo->registro->EX;
-    contexto->RegistrosCPU->FX = hilo->registro->FX;
-    contexto->RegistrosCPU->GX = hilo->registro->GX;
-    contexto->RegistrosCPU->HX = hilo->registro->HX;
-
-    contexto->PC = hilo->pc;
-
-//Completar de donde saco base y limite
-    contexto->base = 0;
-    contexto->limite = 0;
-
-    contexto->TID = datos_contexto->TID;
-
+    *(nuevo_contexto->RegistrosCPU) = contexto->registros;
+    nuevo_contexto->PC = contexto->pc;
+    nuevo_contexto->base = contexto->base;
+    nuevo_contexto->limite = contexto->limite;
+    nuevo_contexto->TID = contexto->tid;
     
     t_paquete* paquete_enviar_contexto = crear_paquete(ENVIAR_CONTEXTO);
-    serializar_enviar_contexto(paquete_enviar_contexto, contexto);
+    serializar_enviar_contexto(paquete_enviar_contexto, nuevo_contexto);
     enviar_paquete(paquete_enviar_contexto, fd_cpu);
+
+    log_info(memoria_log_obligatorios, "## Contexto Solicitado - (PID:TID) - (<%u>:<%u>)", contexto->pid, contexto->tid);
+
     eliminar_paquete(paquete_enviar_contexto);
+    free(nuevo_contexto);
 }
 
-TCB* buscar_tcb_por_tid(uint32_t tid_buscado) {
-    for (int i = 0; i < list_size(lista_tcb); i++) {
-        TCB* tcb_actual = list_get(lista_tcb, i);
-
-        if (tcb_actual->tid == tid_buscado) {
-            return tcb_actual;
-        }
-    }
-    return NULL;
-}
-
+/*ACTUALIZAR CONTEXTO EJECUCION*/
 void actualizar_contexto_de_ejecucion(t_paquete* paquete_cpu) {
     t_actualizar_contexto* datos_contexto = deserializar_actualizar_contexto(paquete_cpu);
+    usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
 
-    TCB* hilo = buscar_tcb_por_tid(datos_contexto->TID);
-    
-    hilo->registro->AX = datos_contexto->contexto_ejecucion->RegistrosCPU->AX;
-    hilo->registro->BX = datos_contexto->contexto_ejecucion->RegistrosCPU->BX;
-    hilo->registro->CX = datos_contexto->contexto_ejecucion->RegistrosCPU->CX;
-    hilo->registro->DX = datos_contexto->contexto_ejecucion->RegistrosCPU->DX;
-    hilo->registro->EX = datos_contexto->contexto_ejecucion->RegistrosCPU->EX;
-    hilo->registro->FX = datos_contexto->contexto_ejecucion->RegistrosCPU->FX;
-    hilo->registro->GX = datos_contexto->contexto_ejecucion->RegistrosCPU->GX;
-    hilo->registro->HX = datos_contexto->contexto_ejecucion->RegistrosCPU->HX;
+    pthread_mutex_lock(&mutex_contextos);
+    ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_contexto->TID);
+    if (!contexto) {
+        log_error(memoria_logger, "Contexto no encontrado para TID %u", datos_contexto->TID);
+        pthread_mutex_unlock(&mutex_contextos);
+        return;
+    }
 
-    hilo->pc = datos_contexto->contexto_ejecucion->PC;
+    contexto->registros = *(datos_contexto->contexto_ejecucion->RegistrosCPU);
+    contexto->pc = datos_contexto->contexto_ejecucion->PC;
 
-    log_info(memoria_logger, "Contexto actualizado para TID %d", datos_contexto->TID);
-
+    log_info(memoria_log_obligatorios, "## Contexto Actualizado - (PID:TID) - (<%u>:<%u>)", contexto->pid, contexto->tid);
+    pthread_mutex_unlock(&mutex_contextos);
 }
 
 void obtener_instruccion(t_paquete* paquete_cpu) {
     t_obtener_instruccion* datos_instruccion = deserializar_obtener_instruccion(paquete_cpu);
-    
-    TCB* hilo = buscar_tcb_por_tid(datos_instruccion->TID);
-    if (hilo == NULL) {
-        log_error(memoria_logger, "Hilo no encontrado");
-    	exit(EXIT_FAILURE);
+    usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
+
+    ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_instruccion->TID);
+    if (!contexto) {
+        log_error(memoria_logger, "Hilo no encontrado para obtener instrucción");
+        return;
     }
 
+    char* instruccion = obtener_instruccion_por_pc(contexto->pc, contexto->instrucciones);
+    if (!instruccion) {
+        log_error(memoria_logger, "No se pudo obtener la instrucción en PC %u para TID %u", contexto->pc, contexto->tid);
+        return;
+    }
+
+    log_info(memoria_log_obligatorios, "## Obtener instrucción - (PID:TID) - (<%u>:<%u>) - Instrucción: %s", contexto->pid, contexto->tid, instruccion);
+
+    t_paquete* paquete_instruccion = crear_paquete(ENVIAR_INSTRUCCION);
+    serializar_enviar_instruccion(paquete_instruccion, instruccion);
+    enviar_paquete(paquete_instruccion, fd_cpu);
+    eliminar_paquete(paquete_instruccion);
+    free(instruccion);
+}
+
+char* obtener_instruccion_por_pc(uint32_t pc, char* path) {
+
     char* path_instrucciones = valores_config_memoria->path_instrucciones;
-    char* path = hilo->path;
     
     int path1 = strlen(path_instrucciones);
     int path2 = strlen(path);
@@ -182,7 +194,7 @@ void obtener_instruccion(t_paquete* paquete_cpu) {
     free(path_completo);
 
     // Verificar que el PC sea un valor valido
-    if (hilo->pc < 0 || hilo->pc >= num_lineas) {
+    if (pc < 0 || pc >= num_lineas) {
         log_error(memoria_logger, "El valor de PC proporcionado es invalido.");
         // Liberar la memoria usada por las líneas leídas
         for (size_t i = 0; i < num_lineas; i++) {
@@ -193,52 +205,54 @@ void obtener_instruccion(t_paquete* paquete_cpu) {
     }
 
     // Devolver la instrucción correspondiente al PC
-    char *instruccion = strdup(lineas[hilo->pc]);
+    char* instruccion = strdup(lineas[pc]);
+
+    
 
     // Liberar la memoria usada por las líneas leídas
     for (size_t i = 0; i < num_lineas; i++) {
         free(lineas[i]);
     }
+    
     free(lineas);
 
-    t_paquete* paquete_enviar_instruccion = crear_paquete(ENVIAR_INSTRUCCION);
-    serializar_enviar_instruccion(paquete_enviar_instruccion, instruccion);
-    enviar_paquete(paquete_enviar_instruccion, fd_cpu);
-    eliminar_paquete(paquete_enviar_instruccion);
+    return instruccion;
 }
 
 void write_mem(t_paquete* paquete_cpu){
     t_datos_write_mem* datos_write_mem = deserializar_write_mem(paquete_cpu);
-   
+    usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
+    
+    pthread_mutex_lock(&mutex_memoria);
     if (datos_write_mem->dir_fis + sizeof(uint32_t) < tamanio_memoria) {
 
         memcpy((char *)memoria + datos_write_mem->dir_fis, &datos_write_mem->valor, sizeof(uint32_t));
     
         uint32_t respuesta_ok = 1;
-        if (send(fd_memoria, &respuesta_ok, sizeof(respuesta_ok), 0) == -1) {
-            perror("Error al enviar respuesta de escritura a CPU");
-        }
+        send(fd_cpu, &respuesta_ok, sizeof(respuesta_ok), 0);
         
         log_info(memoria_log_obligatorios, "## Escritura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_write_mem->pidHilo, datos_write_mem->tidHilo, datos_write_mem->dir_fis, datos_write_mem->valor);
     }
     else{
-        log_error(memoria_logger,"ERROR en ESCRITURA");
+        log_error(memoria_logger,"ERROR en ESCRITURA para dirección %u", datos_write_mem->dir_fis);
     }
+    pthread_mutex_unlock(&mutex_memoria);
 } 
 
 void read_mem(t_paquete* paquete_cpu){
     t_datos_read_mem* datos_read_mem = deserializar_read_mem(paquete_cpu);
+    usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
+
+    pthread_mutex_lock(&mutex_memoria);
     if (datos_read_mem->dir_fis + sizeof(uint32_t) < tamanio_memoria) {
-        uint32_t dato;
-        memcpy(&dato, (char *)memoria + datos_read_mem->dir_fis, sizeof(uint32_t));
-        send(fd_cpu, &dato, sizeof(dato), 0);
+        uint32_t valor;
+        memcpy(&valor, (char *)memoria + datos_read_mem->dir_fis, sizeof(uint32_t));
+        send(fd_cpu, &valor, sizeof(valor), 0);
 
-        log_info(memoria_log_obligatorios, "## Lectura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_read_mem->pidHilo, datos_read_mem->tidHilo, datos_read_mem->dir_fis, dato);
-
+        log_info(memoria_log_obligatorios, "## Lectura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_read_mem->pidHilo, datos_read_mem->tidHilo, datos_read_mem->dir_fis, valor);
     }
     else{
         log_error(memoria_logger,"ERROR en LECTURA");
     }
-
-   
+    pthread_mutex_unlock(&mutex_memoria);
 } 

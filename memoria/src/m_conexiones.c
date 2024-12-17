@@ -1,7 +1,6 @@
 #include <m_conexiones.h>
 
-
-t_log* memoria_logger;
+/*t_log* memoria_logger;
 t_log* memoria_log_obligatorios;
 
 t_config_memoria* valores_config_memoria;
@@ -14,12 +13,11 @@ int fd_kernel;
 pthread_t hilo_FS;
 pthread_t hilo_cpu;
 pthread_t hilo_kernel;
-void* memoria;
 
-int tamanio_memoria;
-//listas
+void* memoria;
 t_list* lista_particiones;
-//t_list* lista_tcb;
+t_list* lista_contextos;
+int tamanio_memoria;*/
 
 void inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");
@@ -29,10 +27,18 @@ void inicializar_memoria(){
 
 	tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
 	memoria = malloc(tamanio_memoria);
+    if (!memoria) {
+        log_error(memoria_logger, "Error al asignar memoria principal");
+        exit(EXIT_FAILURE);
+    }
+
+    lista_contextos = list_create();
+    if (!lista_contextos) {
+        log_error(memoria_logger, "Error al crear la lista de contextos de ejecución");
+        exit(EXIT_FAILURE);
+    }
 
     configurar_particiones();
-
-	inicializar_lista_tcb();
 }
 
 void configurar_memoria(){
@@ -51,44 +57,47 @@ void configurar_memoria(){
     valores_config_memoria->log_level = config_get_string_value(valores_config_memoria->config,"LOG_LEVEL");
 }
 
-/*Particiones Fijas: En este esquema la lista de particiones vendrá dada por archivo de configuración 
-y la misma no se podrá alterar a lo largo de la ejecución.*/
-
 void configurar_particiones() {
     lista_particiones = list_create();
 
     if (strcmp(valores_config_memoria->esquema, "FIJAS") == 0) {
         size_t inicio = 0;
         for (char** particion = valores_config_memoria->particiones; *particion != NULL; ++particion) {
+            pthread_mutex_lock(&mutex_lista_particiones);
             Particion* nueva_particion = malloc(sizeof(Particion));
-            nueva_particion->inicio = inicio;
-            nueva_particion->tamanio = atoi(*particion) - 1;
+            if (!nueva_particion) {
+                log_error(memoria_logger, "Error al asignar memoria para partición fija");
+                pthread_mutex_unlock(&mutex_lista_particiones);
+                continue;
+            }
+            nueva_particion->base = inicio;
+            nueva_particion->limite = atoi(*particion) - 1;
+            nueva_particion->tamanio = atoi(*particion);
             nueva_particion->libre = true;
             list_add(lista_particiones, nueva_particion);
+            log_info(memoria_logger, "Partición fija creada: base=%u, limite=%u", 
+                     nueva_particion->base, nueva_particion->limite);
+            pthread_mutex_unlock(&mutex_lista_particiones);
             inicio += nueva_particion->tamanio;
         }
 
-    /*
-    Particiones Dinámicas: En este esquema la lista de particiones, va a iniciar como una única partición libre del tamaño total de la memoria y 
-    la misma se va a ir subdividiendo a medida que lleguen los pedidos de creación de los procesos, es por esto que la lista será dinámica.
-    */
-
     } else if (strcmp(valores_config_memoria->esquema, "DINAMICAS") == 0) {
+        pthread_mutex_lock(&mutex_lista_particiones);
         Particion* particion_unica = malloc(sizeof(Particion));
-        particion_unica->inicio = 0;
-        particion_unica->tamanio = atoi(valores_config_memoria->tam_memoria) - 1;
+        if (!particion_unica) {
+            log_error(memoria_logger, "Error al asignar memoria para partición dinámica");
+            pthread_mutex_unlock(&mutex_lista_particiones);
+            return;
+        }
+        particion_unica->base = 0;
+        particion_unica->limite = atoi(valores_config_memoria->tam_memoria) - 1;
+        particion_unica->tamanio = atoi(valores_config_memoria->tam_memoria);
         particion_unica->libre = true;
         list_add(lista_particiones, particion_unica);
+        log_info(memoria_logger, "Partición fija creada: base=%u, limite=%u", 
+                     particion_unica->base, particion_unica->limite);
+        pthread_mutex_unlock(&mutex_lista_particiones);
     }
-}
-
-void inicializar_lista_tcb() {
-    lista_tcb = list_create();
-    if (lista_tcb == NULL) {
-        log_error(memoria_logger, "Error al crear la lista de TCBs");
-        exit(EXIT_FAILURE);
-    }
-    log_info(memoria_logger, "Lista global de TCBs inicializada correctamente");
 }
 
 void conectar_cpu(){
@@ -121,8 +130,7 @@ void conectar_kernel(){
 		if(fd_kernel == -1){
 			log_error(memoria_logger, "Error creando conexion con kernel");
 		}
-
-		log_info(memoria_logger, "Conexion exitosa con kernel");
+		log_info(memoria_log_obligatorios, "## Kernel Conectado - FD del socket: %d", fd_kernel);
 		handshakeServer(fd_kernel);
         
 		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);

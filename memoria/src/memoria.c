@@ -1,13 +1,13 @@
 #include <memoria.h>
 
+
 int main(int argc, char* argv[]) {
     
     inicializar_memoria();
 
-    sem_t mutex_memoria;
-    sem_init(&mutex_memoria, 0, 1);
-
-    conectar_con_FS();
+    pthread_mutex_init(&mutex_lista_particiones, NULL);
+    pthread_mutex_init(&mutex_memoria, NULL);
+    pthread_mutex_init(&mutex_contextos, NULL);
     
     fd_memoria= iniciar_servidor(valores_config_memoria->puerto_escucha ,memoria_logger,"MEMORIA");
     log_info(memoria_logger, "MEMORIA lista para recibir clientes");
@@ -22,9 +22,15 @@ int main(int argc, char* argv[]) {
 
     finalizar_modulo(memoria_logger,memoria_log_obligatorios,valores_config_memoria->config);
     
-    free(valores_config_memoria);
-    free(memoria);
-    free(lista_particiones);
+    //para evitar SF
+    if (valores_config_memoria) free(valores_config_memoria);
+    if (memoria) free(memoria);
+    if (lista_particiones) {
+        list_destroy_and_destroy_elements(lista_particiones, free);
+    }
+    if (lista_contextos) {
+        list_destroy_and_destroy_elements(lista_contextos, free);
+    }
 
     //finalizar las conexiones
     close(fd_memoria);
