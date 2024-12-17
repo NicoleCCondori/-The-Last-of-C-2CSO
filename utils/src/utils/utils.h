@@ -20,6 +20,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <stdint.h>
+
 typedef enum
 {
 	MENSAJE,

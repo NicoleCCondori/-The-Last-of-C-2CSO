@@ -344,8 +344,8 @@ void finalizar_hilo(TCB* hilo)
 		printf("No se encontro el PID: %d", hilo->pid);
         return;
 	}
-    list_remove_element(tid_a_retirar->tid,(void*) hilo->tid);
-    //list_remove_element(tid_a_retirar->tid, (void *)(uintptr_t)hilo->tid);
+    //list_remove_element(tid_a_retirar->tid,(void*) hilo->tid);
+    list_remove_element(tid_a_retirar->tid, (void *)(uintptr_t)hilo->tid);
 
     //3ro a) ver que onda con los recursos de mutex-> deberia liberarlo tmb
     for(int i=0; i<list_size(tid_a_retirar->mutex); i++){

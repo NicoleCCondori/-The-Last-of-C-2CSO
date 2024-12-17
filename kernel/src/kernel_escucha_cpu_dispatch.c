@@ -149,8 +149,8 @@ void kernel_escucha_cpu_dispatch(){
 					lockeado->tid = invocadores->tid_inv;
 				}else{ //3ro si esta tomado -> 
 					//Ingresa a la cola de bloqueados de la lista mutex de la lista de procesos
-					queue_push(lockeado->bloqueados_mutex,invocadores->tid_inv);
-					//queue_push(lockeado->bloqueados_mutex, (void *)(uintptr_t)invocadores->tid_inv);
+					//queue_push(lockeado->bloqueados_mutex,invocadores->tid_inv);
+					queue_push(lockeado->bloqueados_mutex, (void *)(uintptr_t)invocadores->tid_inv);
 					//Tmb ingresa a la lista de bloqueados general de hilos
 					hilo_block_mutex->estadoHilo = BLOCKED;
 					hilo_block_mutex->tid_que_lo_bloqueo = lockeado->tid;
@@ -174,7 +174,8 @@ void kernel_escucha_cpu_dispatch(){
 
 					//El hilo que lo invocó vuelve a la ejecución es decir a la cola de READY
 					if (!queue_is_empty(unlock->bloqueados_mutex)){
-						uint32_t tid_cola = queue_pop(unlock->bloqueados_mutex);
+						//uint32_t tid_cola = queue_pop(unlock->bloqueados_mutex);
+						uint32_t tid_cola = (uint32_t)(uintptr_t)queue_pop(unlock->bloqueados_mutex);
 						TCB* hilo_a_ready = buscar_tcbs(lista_tcbs, tid_cola, invocadores->pid_inv);
 						if (hilo_a_ready != NULL) {
 							hilo_a_ready->estadoHilo = READY;
@@ -223,8 +224,8 @@ void kernel_escucha_cpu_dispatch(){
 					usleep(tiempo_io * 1000);
 
 					//Lo debo sacar de la lista de bloqueados
-					list_remove(lista_blocked,hilo_a_dormir);
-
+					//list_remove(lista_blocked,hilo_a_dormir);
+					list_remove_element(lista_blocked,hilo_a_dormir);
 					log_info(kernel_logs_obligatorios, "Fin de IO: ## (PID:%u TID:%u) finalizó IO y pasa a READY", invocadores->pid_inv,invocadores->tid_inv);
 
 					hilo_a_dormir->estadoHilo = READY;
