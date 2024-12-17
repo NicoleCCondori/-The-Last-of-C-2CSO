@@ -224,6 +224,7 @@ void write_mem(t_paquete* paquete_cpu){
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
     
     pthread_mutex_lock(&mutex_memoria);
+
     if (datos_write_mem->dir_fis + sizeof(uint32_t) < tamanio_memoria) {
 
         memcpy((char *)memoria + datos_write_mem->dir_fis, &datos_write_mem->valor, sizeof(uint32_t));

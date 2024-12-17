@@ -12,11 +12,13 @@ int main(int argc, char* argv[]) {
     fd_memoria= iniciar_servidor(valores_config_memoria->puerto_escucha ,memoria_logger,"MEMORIA");
     log_info(memoria_logger, "MEMORIA lista para recibir clientes");
 
+    conectar_con_FS();
+    
     conectar_cpu();
 
     conectar_kernel();
 
-    conectar_con_FS();
+    
 
     //liberar los logs y config
 

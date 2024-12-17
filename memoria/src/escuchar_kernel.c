@@ -37,9 +37,11 @@ void escuchar_kernel(){
 void crear_proceso(t_paquete* paquete_kernel){
     t_asignar_memoria* datos_asignar_memoria = deserializar_asignar_memoria((paquete_kernel));
     if (strcmp(valores_config_memoria->esquema, "FIJAS")==0){
+        log_info(memoria_logger, "Asignando memoria con particiones fijas");
         asignar_particiones_fijas(datos_asignar_memoria);
     }
     else if (strcmp(valores_config_memoria->esquema, "DINAMICAS")==0){
+        log_info(memoria_logger, "Asignando memoria con particiones dinamicas");
         asignar_particiones_dinamicas(datos_asignar_memoria);
     }
 }
@@ -52,7 +54,7 @@ void asignar_particiones_fijas(t_asignar_memoria* datos_asignar_memoria){
         particion_asignada->libre = false;
         particion_asignada->pid = datos_asignar_memoria->pid;
 
-	    valor_a_enviar = 0;
+	    valor_a_enviar = 1;
         log_info(memoria_log_obligatorios, "Proceso creado: PID=%u, Base=%u, Limite=%u",
          particion_asignada->pid, particion_asignada->base, particion_asignada->limite);
         }
@@ -70,7 +72,7 @@ void asignar_particiones_dinamicas(t_asignar_memoria* datos_asignar_memoria){
 
         if (particion_asignada->tamanio > datos_asignar_memoria->tam_proceso) {
             dividir_particion(particion_asignada, datos_asignar_memoria->tam_proceso);
-            valor_a_enviar = 0;
+            valor_a_enviar = 1;
             log_info(memoria_log_obligatorios, "Proceso creado: PID=%u, Base=%u, Limite=%u",
              particion_asignada->pid, particion_asignada->base, particion_asignada->limite);
             }
@@ -78,6 +80,7 @@ void asignar_particiones_dinamicas(t_asignar_memoria* datos_asignar_memoria){
     send(fd_kernel, &valor_a_enviar, sizeof(int), 0);
 }
 }
+
 void dividir_particion(Particion* particion, uint32_t tamanio_proceso) {
     uint32_t espacio_restante = particion->tamanio - tamanio_proceso;
     particion->tamanio = tamanio_proceso;
@@ -214,6 +217,8 @@ void consolidar_particiones_libres(int indice) {
 void crear_hilo(t_paquete* paquete_kernel){
     t_crear_hilo* datos_hilo = deserializar_crear_hilo(paquete_kernel);
 
+    log_info(memoria_logger, "Estoy creando hilo:%u", datos_hilo->PID);
+
     ContextoEjecucion* nuevo_contexto = malloc(sizeof(ContextoEjecucion));
     nuevo_contexto->pid = datos_hilo->PID;
     nuevo_contexto->tid = datos_hilo->TID;
@@ -224,13 +229,16 @@ void crear_hilo(t_paquete* paquete_kernel){
     nuevo_contexto->limite = particion->limite;
     memset(&(nuevo_contexto->registros), 0, sizeof(RegistrosCPU));
     nuevo_contexto->pc = 0;
-    nuevo_contexto-> instrucciones = datos_hilo->path;
+    nuevo_contexto-> instrucciones = strdup(datos_hilo->path);
     nuevo_contexto-> prioridad = datos_hilo->prioridad;
 
     list_add(lista_contextos, nuevo_contexto);
 
 	int valor_a_enviar = 0;
 	send(fd_kernel, &valor_a_enviar, sizeof(valor_a_enviar), 0);
+
+    free(nuevo_contexto);
+    free(nuevo_contexto->instrucciones);
 }
 
 /*Finalización de hilos
@@ -255,16 +263,40 @@ t_datos_esenciales* deserializar_datos_dump_memory(t_paquete* paq_dump_memory){
 }
 
 void envio_datos_a_FS(t_paquete* paquete_kernel){
-   /* int valor_a_enviar = -1;
+    int valor_a_enviar;
     t_datos_esenciales* datos_dm = deserializar_datos_dump_memory(paquete_kernel);
 
-    
+    Particion* particion= buscar_particion_por_pid(datos_dm->pid_inv);
+    uint32_t base = particion->base;
+    uint32_t tamanio = particion->tamanio;
 
-    
-    send(fd_FS, &datos_dm, sizeof(datos_dm), 0);
-    recv(fd_FS, &valor_a_enviar, sizeof(valor_a_enviar), 0);
-    if(valor_a_enviar == 0){
-        valor_a_enviar = 0;
-    }
-    send(fd_FS, &valor_a_enviar, sizeof(valor_a_enviar), 0);*/
+    void* datos = malloc(tamanio);
+
+    pthread_mutex_lock(&mutex_memoria);
+    memcpy(datos, (char*)memoria + base, tamanio);
+    pthread_mutex_unlock(&mutex_memoria);
+
+    char nombre[256];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+
+    snprintf(nombre, sizeof(nombre), "%d-%d-%04d-%02d-%02d_%02d-%02d-%02d.dmp", 
+            datos_dm->pid_inv, datos_dm->tid_inv, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+    log_info(memoria_logger, "Nombre de archivo: %s\n", nombre);
+
+    t_paquete* paquete_dump_memory = crear_paquete(DUMP_MEMORY);
+    //serializar_enviar_DUMP_MEMORY(paquete_dump_memory, datos, tamanio, nombre);
+    enviar_paquete(paquete_dump_memory, fd_FS);
+    eliminar_paquete(paquete_dump_memory);
+
+   /*En caso de que el FileSystem responda con error, se devolverá el mismo mensaje al Kernel,
+    en caso positivo, se responde como OK.*/
+      
+    recv(fd_FS, &valor_a_enviar, sizeof(int), 0);
+    send(fd_kernel, &valor_a_enviar, sizeof(valor_a_enviar), 0);
+
+    free(datos);
 }
+

@@ -3,9 +3,6 @@
 
 #include <utils/serializar.h>
 
-#include <pthread.h>
-#include <unistd.h>
-
 typedef struct{
 	t_config* config;
 	char* puerto_escucha;
@@ -58,19 +55,19 @@ extern t_list* lista_particiones;
 extern t_list* lista_contextos;
 extern int tamanio_memoria;
 
-pthread_mutex_t mutex_lista_particiones;
-pthread_mutex_t mutex_memoria;
-pthread_mutex_t mutex_contextos;
+extern pthread_mutex_t mutex_lista_particiones;
+extern pthread_mutex_t mutex_memoria;
+extern pthread_mutex_t mutex_contextos;
 
-pthread_t hilo_FS;
-pthread_t hilo_cpu;
-pthread_t hilo_kernel;
-void* memoria;
+extern pthread_t hilo_FS;
+extern pthread_t hilo_cpu;
+extern pthread_t hilo_kernel;
+extern void* memoria;
 
-int tamanio_memoria;
+extern int tamanio_memoria;
 
-t_list* lista_particiones;
-t_list* lista_contextos;
+extern t_list* lista_particiones;
+extern t_list* lista_contextos;
 
 void inicializar_memoria();
 void configurar_memoria();

@@ -1,6 +1,6 @@
 #include <m_conexiones.h>
 
-/*t_log* memoria_logger;
+t_log* memoria_logger;
 t_log* memoria_log_obligatorios;
 
 t_config_memoria* valores_config_memoria;
@@ -17,7 +17,21 @@ pthread_t hilo_kernel;
 void* memoria;
 t_list* lista_particiones;
 t_list* lista_contextos;
-int tamanio_memoria;*/
+int tamanio_memoria;
+
+pthread_mutex_t mutex_lista_particiones;
+pthread_mutex_t mutex_memoria;
+pthread_mutex_t mutex_contextos;
+
+pthread_t hilo_FS;
+pthread_t hilo_cpu;
+pthread_t hilo_kernel;
+void* memoria;
+
+int tamanio_memoria;
+
+t_list* lista_particiones;
+t_list* lista_contextos;
 
 void inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");

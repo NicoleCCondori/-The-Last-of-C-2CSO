@@ -240,13 +240,12 @@ void eliminar_paquete(t_paquete* paquete){
 	free(paquete);
 }
 
-void* serializar_hilo_ready(t_paquete* paquete_hilo,TCB* hilo){
-    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->pid);
-    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->tid);
+void* serializar_hilo_ready(t_paquete* paquete_hilo,t_crear_hilo* hilo){
+    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->PID);
+    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->TID);
     agregar_buffer_int(paquete_hilo->buffer, hilo->prioridad);
-    agregar_buffer_registrosCPU(paquete_hilo->buffer, hilo->registro);
     agregar_buffer_string(paquete_hilo->buffer, hilo->path);
-    agregar_buffer_Uint32(paquete_hilo->buffer, hilo->pc);
+  
     return NULL; // retorno por defecto
 }
 
@@ -414,5 +413,19 @@ void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t dire
     agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer, direccion_fisica);
     agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer,PidHilo);
     agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer,TidHilo);
+    return NULL;
+}
+
+void* serializar_enviar_DUMP_MEMORY(t_paquete* paquete_dump_memory, void* datos,uint32_t tamanio,char* nombre){
+    agregar_buffer_Uint32(paquete_dump_memory->buffer, tamanio);
+
+    // Agrego el contenido de la memoria
+    paquete_dump_memory->buffer->stream = realloc(paquete_dump_memory->buffer->stream, paquete_dump_memory->buffer->size + tamanio);
+    memcpy(paquete_dump_memory->buffer->stream + paquete_dump_memory->buffer->offset, datos, tamanio);
+    paquete_dump_memory->buffer->offset += tamanio;
+    paquete_dump_memory->buffer->size += tamanio;
+
+    agregar_buffer_string(paquete_dump_memory->buffer, nombre);
+
     return NULL;
 }

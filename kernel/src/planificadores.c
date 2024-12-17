@@ -112,8 +112,18 @@ TCB* buscar_hilo_menorNro_prioridad(){
 //Mandamos hilo a memoria
 void enviar_a_memoria(int fd_memoria,TCB* hilo){
     t_paquete* paquete_hilo = crear_paquete(HILO_READY);
-    serializar_hilo_ready(paquete_hilo, hilo);
+
+    t_crear_hilo* crear_hilo = malloc(sizeof(t_crear_hilo));
+    crear_hilo->PID = hilo->pid;
+    crear_hilo->TID = hilo->tid;
+    crear_hilo->prioridad= hilo->prioridad;
+    crear_hilo->path = strdup(hilo->path);
+
+    serializar_hilo_ready(paquete_hilo, crear_hilo);
     enviar_paquete(paquete_hilo, fd_memoria);
+    eliminar_paquete(paquete_hilo);
+    free(crear_hilo->path);
+    free(crear_hilo);
 }
 
 //Mandamos mensaje a memoria para saber si hay espacio disponible
@@ -125,9 +135,12 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
     eliminar_paquete(paquete_asignar_memoria);
 
     //recibimos la respuesta de memoria
-	//recv(fd_memoria, &result, sizeof(int32_t), 0);
-    char* result = recibir_mensajeV2(fd_memoria);
-	if (result[0] == '0'){
+    int result;
+     log_info(kernel_logger,"Antes de recibir\n");
+	recv(fd_memoria, &result, sizeof(int32_t), 0);
+    log_info(kernel_logger,"Recibio de memoria: %d\n",result);
+    //int result = recibir_mensaje(fd_memoria);
+	if (result == 1){ // 1 ok ; 0 es no ok
         printf("Hay espacio en memoria\n");//debemos crear el espacio de memoria para el proceso?      
         //Si hay Espacio se crea el hilo main
         //crea el hilo tid 0
@@ -153,6 +166,8 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
         TCB* hilo_main = iniciar_hilo(tid_main, prioridad,proceso_agregar_tidM->pid,proceso_agregar_tidM->path_main);
 
         //informar a memoria
+        printf("Enviamos el hilo a memoria\n");
+
         enviar_a_memoria(fd_memoria,hilo_main);
 
         //Meterlo en la lista de TCBs general
@@ -171,7 +186,6 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
         //sem_wait(&sem_binario_memoria);
         //Se mantiene en el estado NEW
     }
-    free(result);
 
     destruir_buffer_paquete(paquete_asignar_memoria);
 /* No nos olvidamos de liberar la memoria que ya no usaremos
