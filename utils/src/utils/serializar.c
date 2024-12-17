@@ -429,3 +429,8 @@ void* serializar_enviar_DUMP_MEMORY(t_paquete* paquete_dump_memory, void* datos,
 
     return NULL;
 }
+
+void serializar_obtener_contexto(t_paquete* paquete_obtener_contexto, uint32_t pid, uint32_t tidHilo){
+    agregar_buffer_Uint32(paquete_obtener_contexto->buffer,pid);
+    agregar_buffer_Uint32(paquete_obtener_contexto->buffer,tidHilo);
+}

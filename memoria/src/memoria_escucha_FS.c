@@ -10,9 +10,9 @@ void memoria_escucha_FS(){
 		switch (cod_op)
 		{
 		case MENSAJE:
+		break;
 
 		case PAQUETE:
-
 			break;
 		case -1:
 			log_error(memoria_logger, "Desconexion de FILESYSTEM");

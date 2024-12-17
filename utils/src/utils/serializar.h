@@ -157,4 +157,6 @@ void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint3
 void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica, uint32_t PidHilo, uint32_t TidHilo);
 t_datos_read_mem* deserializar_read_mem(t_paquete* paquete);
 void* serializar_enviar_DUMP_MEMORY(t_paquete* paquete_dump_memory, void* datos,uint32_t tamanio,char* nombre);
+void serializar_obtener_contexto(t_paquete* paquete_obtener_contexto, uint32_t pid, uint32_t tidHilo);
+
 #endif

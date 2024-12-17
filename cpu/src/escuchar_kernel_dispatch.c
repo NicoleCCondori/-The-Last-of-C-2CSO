@@ -1,6 +1,4 @@
 #include <escuchar_kernel_dispatch.h>
-#include <c_conexiones.h>
-
 
 
 void escuchar_kernel_dispatch(){
@@ -8,44 +6,62 @@ void escuchar_kernel_dispatch(){
     bool control_key=1;
     while (control_key)
 	{
-		int cod_op = recibir_operacion(fd_kernel_dispatch);
+        op_code cod_op = recibir_operacion(fd_kernel_dispatch);
+
+        log_info(cpu_logger,"recibiendo paquete de kernel: %d\n",cod_op);
+        
 		switch (cod_op)
 		{
-		case MENSAJE:
+            case MENSAJE:
+                break;
+            case RECIBIR_TID:
+            log_info(cpu_logger,"recibiendo paquete de kernel!!!\n");
+                
 
-		case RECIBIR_TID:
-			t_paquete* paquete_aux = recibir_paquete(fd_kernel_dispatch);
+                //deserializo llamando a la función "deserializar_enviar_contexto"
+                t_paquete* paquete_aux = recibir_paquete(fd_kernel_dispatch);   
+                t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_aux);
+                log_info(cpu_logger,"El pid <%d> y tid <%d>", contexto->PID, contexto->TID);
+                PidHilo = contexto->PID;
+                TidHilo = contexto->TID;
 
-            //deserializo llamando a la función "deserializar_enviar_contexto"
-			    
-            t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_aux);
-            //uint32_t pidHilo= leer_buffer_Uint32(paquete_aux->buffer);
-		    //uint32_t tidHilo = leer_buffer_Uint32(paquete_aux->buffer);
-            PidHilo = contexto->PID;
-            TidHilo = contexto->TID;
-            //Debo liberar la memoria
-            //free(contexto); no sé si liberaba aca por el tema del malloc
-            destruir_buffer_paquete(paquete_aux);
-			obtener_contexto(fd_memoria, PidHilo, TidHilo); //se envia a memoria el tid y pid para obtener el contexto de ejecucion
+                log_info(cpu_logger,"El pid <%d> y tid <%d>", PidHilo, TidHilo);
 
-		case PAQUETE:
+                //Debo liberar la memoria
+                //free(contexto); no sé si liberaba aca por el tema del malloc
+                destruir_buffer_paquete(paquete_aux);
 
-			break;
-		case -1:
-			log_error(cpu_logger, "Desconexion de KERNEL - Dispatch");
-			exit(EXIT_FAILURE);
-		default:
-			log_warning(cpu_logger, "Operacion desconocida de KERNEL -Interrupt");
-			break;
-		}
+                pthread_mutex_lock(&mutex_contextos2);
+                
+                obtener_contexto(fd_memoria, PidHilo, TidHilo); //se envia a memoria el tid y pid para obtener el contexto de ejecucion
+                pthread_mutex_unlock(&mutex_contextos2);
+
+                break;
+            case PAQUETE:
+
+                break;
+            case -1:
+                log_error(cpu_logger, "Desconexion de KERNEL - Dispatch");
+                exit(EXIT_FAILURE);
+            default:
+                log_warning(cpu_logger, "Operacion desconocida de KERNEL -Dispatch");
+                break;
+            }
 	}    
 }
-
-
+void obtener_contexto(int fd_memoria,uint32_t pid, uint32_t tidHilo){
+    log_info(cpu_logger,"El pid <%d> y tid <%d> que se envian a memoria", pid, tidHilo);
+    t_paquete* paquete_obtener_contexto = crear_paquete(OBTENER_CONTEXTO);
+    serializar_obtener_contexto(paquete_obtener_contexto,pid,tidHilo);
+    enviar_paquete(paquete_obtener_contexto, fd_memoria);
+    log_info(cpu_logger,"se acaba de pedir el contexto a memoria\n");
+    eliminar_paquete(paquete_obtener_contexto);
+}
+/*
 void obtener_contexto(int fd_memoria,uint32_t pid, uint32_t tidHilo){
     log_info(cpu_logger,"## TID: <%d> - Solicito contexto Ejecucion",tidHilo);
-    t_paquete* paquete=malloc(sizeof(t_paquete));
-    paquete->codigo_operacion=OBTENER_CONTEXTO;
+
+    t_paquete* paquete = crear_paquete(OBTENER_CONTEXTO);
     paquete->buffer=malloc(sizeof(t_buffer));
 
     paquete->buffer->size=sizeof(uint32_t)*2;
@@ -72,9 +88,10 @@ void obtener_contexto(int fd_memoria,uint32_t pid, uint32_t tidHilo){
     {
         log_error(cpu_logger,"Error al enviar PID y TID");
     }
-    
+    log_info(cpu_logger,"se acaba de pedir el contexto a memoria\n");
+
     free(paquete->buffer->stream);
     free(paquete->buffer);
     free(paquete);
     free(a_enviar);    
-}
+}*/

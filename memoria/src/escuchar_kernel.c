@@ -234,7 +234,7 @@ void crear_hilo(t_paquete* paquete_kernel){
 
     list_add(lista_contextos, nuevo_contexto);
 
-	int valor_a_enviar = 0;
+	int valor_a_enviar = 1;
 	send(fd_kernel, &valor_a_enviar, sizeof(valor_a_enviar), 0);
 
     free(nuevo_contexto);

@@ -9,6 +9,7 @@ extern uint32_t TidHilo;
 
 //semaforos
 extern sem_t sem_syscall;
+extern pthread_mutex_t mutex_contextos2;
 
 extern char* instruccionActual;
 //char* operacionAux;

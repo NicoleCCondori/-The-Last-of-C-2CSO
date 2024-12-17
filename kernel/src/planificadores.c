@@ -41,6 +41,7 @@ void planificador_corto_plazo(/*TCB* hilo*/){
 
             //mandar a cpu tid y pid
             t_paquete* hilo_cpu = crear_paquete(RECIBIR_TID);
+            log_info(kernel_logger,"El pid <%d> y tid <%d>", hilo_exec->pid, hilo_exec->tid);
             serializar_hilo_cpu(hilo_cpu, hilo_exec->pid, hilo_exec->tid);
 
             enviar_paquete(hilo_cpu, fd_cpu_dispatch);
@@ -136,8 +137,10 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
 
     //recibimos la respuesta de memoria
     int result;
-     log_info(kernel_logger,"Antes de recibir\n");
+    log_info(kernel_logger,"Antes de recibir\n");
+
 	recv(fd_memoria, &result, sizeof(int32_t), 0);
+    
     log_info(kernel_logger,"Recibio de memoria: %d\n",result);
     //int result = recibir_mensaje(fd_memoria);
 	if (result == 1){ // 1 ok ; 0 es no ok
@@ -169,6 +172,12 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
         printf("Enviamos el hilo a memoria\n");
 
         enviar_a_memoria(fd_memoria,hilo_main);
+
+        int result;
+	    recv(fd_memoria, &result, sizeof(int32_t), 0);
+        if (result == 1){
+            log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
+        }
 
         //Meterlo en la lista de TCBs general
         list_add(lista_tcbs, hilo_main);
@@ -211,7 +220,7 @@ TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
     tcb->path = strdup(path);
     tcb->estadoHilo = READY;
 
-    log_info(kernel_logs_obligatorios, "Creación de Hilo: “## (<PID>: %u <TID>: %u) Se crea el Hilo - Estado: READY”", tcb->pid, tcb->tid);
+    log_info(kernel_logs_obligatorios, "Creacion de Hilo: “## (<PID>: %u <TID>: %u) Se crea el Hilo - Estado: READY”", tcb->pid, tcb->tid);
     return tcb;
 }
 
@@ -224,7 +233,7 @@ void iniciar_proceso(){
         asignar_espacio_memoria(proceso_new->pid, proceso_new->tam_proceso, proceso_new->prioridad_main, proceso_new->path_main);
      
     } else {
-        printf("La cola está vacía.\n");
+        printf("La cola esta vacia.\n");
 
     }
 }
@@ -280,7 +289,7 @@ void* finalizar_proceso(PCB* pcb_afuera)
     //confirmacion de parte de memoria
     char* mensaje = informar_a_memoria_fin_proceso(fd_memoria, pcb_afuera->pid);
     if(strcmp(mensaje, "OK")== 0){
-        log_info(kernel_logger,"Recibí el OK de parte de memoria (Finalización del proceso)");
+        log_info(kernel_logger,"Recibí el OK de parte de memoria (Finalizacion del proceso)");
         log_info(kernel_logs_obligatorios, "Fin de Proceso: ## Finaliza el proceso <PID>: %u", pcb_afuera->pid);
         
         //Si la lista pcb_afuera->tid solo tiene enteros solo hago un destroy, ya que no es necesario
@@ -320,7 +329,7 @@ void* finalizar_proceso(PCB* pcb_afuera)
         iniciar_proceso();
     
     }else {
-        log_error(kernel_logger, "Error al recibir el mensaje de memoria (Finalización del proceso)");
+        log_error(kernel_logger, "Error al recibir el mensaje de memoria (Finalizacion del proceso)");
     }
     free(mensaje);
 
@@ -398,9 +407,9 @@ void informar_a_memoria_fin_hilo(int fd_memoria, TCB* hilo){
 
     char* mensaje = recibir_mensajeV2(fd_memoria);
     if(strcmp(mensaje, "OK") == 0){
-        log_info(kernel_logger,"Recibí el OK de parte de memoria (Finalización del hilo)");
+        log_info(kernel_logger,"Recibi el OK de parte de memoria (Finalizacion del hilo)");
     }else {
-        log_error(kernel_logger, "Error al recibir el mensake de memoria (Finalización del hilo)");
+        log_error(kernel_logger, "Error al recibir el mensake de memoria (Finalizacion del hilo)");
     }
     free(mensaje);
 }

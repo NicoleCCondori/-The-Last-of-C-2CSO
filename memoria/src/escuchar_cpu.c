@@ -8,22 +8,29 @@ void escuchar_cpu(){
     while (1){
         t_paquete* paquete_cpu = recibir_paquete(fd_cpu);
         op_code codigo_operacion = paquete_cpu->codigo_operacion;
+        log_info(memoria_logger,"Codigo de operacion: %d", codigo_operacion);
 		switch (codigo_operacion)
 		{
 		case OBTENER_CONTEXTO:
+        
 			devolver_contexto_ejecucion(paquete_cpu);
+            break;
 
 		case ACTUALIZAR_CONTEXTO:
 			actualizar_contexto_de_ejecucion(paquete_cpu);
+            break;
 
 		case OBTENER_INSTRUCCION:
 			obtener_instruccion(paquete_cpu);
+            break;
 
         case WRITE_MEM:
 			write_mem(paquete_cpu);
+            break;
         
         case READ_MEM:
 			read_mem(paquete_cpu);
+            break;
 
 		default:
 			log_warning(memoria_logger, "Operacion desconocida de CPU");
@@ -50,7 +57,8 @@ ContextoEjecucion* buscar_contexto_por_tid(uint32_t tid_buscado) {
 void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
     t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_cpu);
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
-
+    
+    log_info(memoria_logger, "Tengo que buscar con el siguiente TID: %u", datos_contexto->TID);
     ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_contexto->TID);
     if (contexto == NULL) {
         log_error(memoria_logger, "Hilo no encontrado");

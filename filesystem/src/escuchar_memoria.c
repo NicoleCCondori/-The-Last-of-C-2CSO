@@ -4,7 +4,7 @@
 void escuchar_memoria(){
 	while(1){
 
-		int op_code_memoria = recibir_operacion(fd_memoria);
+		op_code op_code_memoria = recibir_operacion(fd_memoria);
 
 		switch(op_code_memoria){
             case DUMP_MEMORY:

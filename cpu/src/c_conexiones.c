@@ -2,8 +2,8 @@
 //#include <escuchar_kernel_dispatch.h>
 
 //en kernel_dispatch.c se inicializa con los argumento pasado por el modulo de kernel 
-uint32_t PidHilo;
-uint32_t TidHilo;
+uint32_t PidHilo = 100;
+uint32_t TidHilo= 100;
 
 t_log* cpu_logger;
 t_log* cpu_log_debug;
@@ -20,6 +20,7 @@ int fd_memoria;
 pthread_t hilo_kernel_dispatch;
 pthread_t hilo_kernel_interrupt;
 pthread_t hilo_memoria;
+pthread_mutex_t mutex_contextos2;
 
 
 char* instruccionActual;
