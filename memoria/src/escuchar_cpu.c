@@ -3,12 +3,13 @@
 
 void escuchar_cpu(){
     //atender los msjs de cpu-dispatch , otra funcion?
-    printf("Ejecuto memoria_escucha_cpu.c \n");
+    //printf("Ejecuto memoria_escucha_cpu.c \n");
 
     while (1){
         t_paquete* paquete_cpu = recibir_paquete(fd_cpu);
         op_code codigo_operacion = paquete_cpu->codigo_operacion;
         log_info(memoria_logger,"Codigo de operacion: %d", codigo_operacion);
+        
 		switch (codigo_operacion)
 		{
 		case OBTENER_CONTEXTO:
@@ -41,9 +42,13 @@ void escuchar_cpu(){
 }
 
 ContextoEjecucion* buscar_contexto_por_tid(uint32_t tid_buscado) {
+
     pthread_mutex_lock(&mutex_contextos);
     for (int i = 0; i < list_size(lista_contextos); i++) {
         ContextoEjecucion* contexto_actual = list_get(lista_contextos, i);
+        
+        printf("Contexto tid: %u y pid: %u\n", contexto_actual->tid, contexto_actual->pid);//
+
         if (contexto_actual->tid == tid_buscado) {
             pthread_mutex_unlock(&mutex_contextos);
             return contexto_actual;
@@ -58,7 +63,8 @@ void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
     t_enviar_contexto* datos_contexto = deserializar_enviar_contexto(paquete_cpu);
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
     
-    log_info(memoria_logger, "Tengo que buscar con el siguiente TID: %u", datos_contexto->TID);
+    log_info(memoria_logger, "Tengo que buscar con el siguiente TID: %u y pid: %u ", datos_contexto->TID, datos_contexto->PID);
+   
     ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_contexto->TID);
     if (contexto == NULL) {
         log_error(memoria_logger, "Hilo no encontrado");
@@ -68,6 +74,7 @@ void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
 
     if (contexto->pid ==! datos_contexto->PID) {
             log_error(memoria_logger, "El proceso no corresponde");
+            return;
     }
 
     t_contextoEjecucion* nuevo_contexto = malloc(sizeof(t_contextoEjecucion));
@@ -90,7 +97,7 @@ void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
     nuevo_contexto->TID = contexto->tid;
     
     t_paquete* paquete_enviar_contexto = crear_paquete(ENVIAR_CONTEXTO);
-    serializar_enviar_contexto(paquete_enviar_contexto, nuevo_contexto);
+    serializar_enviar_contexto_cpu(paquete_enviar_contexto, nuevo_contexto);
     enviar_paquete(paquete_enviar_contexto, fd_cpu);
 
     log_info(memoria_log_obligatorios, "## Contexto Solicitado - (PID:TID) - (<%u>:<%u>)", contexto->pid, contexto->tid);

@@ -18,7 +18,7 @@ void destruir_buffer_paquete(t_paquete* paquete);
 void agregar_buffer_Uint32(t_buffer* buffer, uint32_t entero);
 void agregar_buffer_Uint8(t_buffer* buffer, uint8_t entero);
 void agregar_buffer_string(t_buffer* buffer, char *args);
-t_contextoEjecucion* leer_contexto_de_memoria(t_buffer* buffer);
+t_contextoEjecucion* leer_contexto_de_memoria(t_paquete* paquete);
 
 uint32_t leer_buffer_Uint32(t_buffer* buffer);
 uint8_t leer_buffer_Uint8(t_buffer* buffer);
@@ -100,7 +100,7 @@ typedef struct{
 
 t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete);
 t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete);
-void serializar_enviar_contexto(t_paquete* paquete_devolver_contexto,t_contextoEjecucion* contextoEjecucion);
+void serializar_enviar_contexto_cpu(t_paquete* paquete_devolver_contexto,t_contextoEjecucion* contextoEjecucion);
 t_obtener_instruccion* deserializar_obtener_instruccion(t_paquete* paquete);
 void serializar_enviar_instruccion(t_paquete* paquete_enviar_instruccion, char* instruccion);
 t_actualizar_contexto* deserializar_actualizar_contexto(t_paquete* paquete);
@@ -132,8 +132,8 @@ typedef struct{
 }t_datos_read_mem;
 
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
-void* serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
-void* serializar_hilo_ready(t_paquete* paquete_hilo,t_crear_hilo* hilo);
+void serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
+void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, int prioridad, const char* path);
 void* serializar_asignar_memoria(t_paquete* paquete_asignar_memoria, uint32_t pid, int tam_proceso);
 t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete);
 RegistrosCPU* leer_buffer_registro(t_buffer* buffer);
@@ -157,6 +157,7 @@ void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint3
 void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica, uint32_t PidHilo, uint32_t TidHilo);
 t_datos_read_mem* deserializar_read_mem(t_paquete* paquete);
 void* serializar_enviar_DUMP_MEMORY(t_paquete* paquete_dump_memory, void* datos,uint32_t tamanio,char* nombre);
-void serializar_obtener_contexto(t_paquete* paquete_obtener_contexto, uint32_t pid, uint32_t tidHilo);
+
+void* serializar_obtener_contexto(t_paquete* paquete_obtener_contexto, uint32_t pid, uint32_t tidHilo);
 
 #endif

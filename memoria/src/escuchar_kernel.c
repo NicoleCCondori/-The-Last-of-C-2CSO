@@ -217,7 +217,7 @@ void consolidar_particiones_libres(int indice) {
 void crear_hilo(t_paquete* paquete_kernel){
     t_crear_hilo* datos_hilo = deserializar_crear_hilo(paquete_kernel);
 
-    log_info(memoria_logger, "Estoy creando hilo:%u", datos_hilo->PID);
+    log_info(memoria_logger, "Estoy creando hilo:%u para PID:%u", datos_hilo->TID, datos_hilo->PID);
 
     ContextoEjecucion* nuevo_contexto = malloc(sizeof(ContextoEjecucion));
     nuevo_contexto->pid = datos_hilo->PID;
@@ -237,8 +237,8 @@ void crear_hilo(t_paquete* paquete_kernel){
 	int valor_a_enviar = 1;
 	send(fd_kernel, &valor_a_enviar, sizeof(valor_a_enviar), 0);
 
-    free(nuevo_contexto);
     free(nuevo_contexto->instrucciones);
+   // free(nuevo_contexto);
 }
 
 /*Finalización de hilos

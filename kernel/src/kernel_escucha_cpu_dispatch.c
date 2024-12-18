@@ -1,10 +1,9 @@
 #include <kernel_escucha_cpu_dispatch.h>
-#include <k_conexiones.h>
-#include <planificadores.h>
+
 
 void kernel_escucha_cpu_dispatch(){
     //atender los msjs de cpu-dispatch , otra funcion?
-    printf("Ejecuto kernel_escucha_cpu_dispatch.c \n");
+    
     bool control_key = 1;
     while (control_key){
 
@@ -243,7 +242,7 @@ void kernel_escucha_cpu_dispatch(){
 				log_warning(kernel_logger, "Operacion desconocida de CPU-Dispatch\n");
 				break;
 		}
-		//destruir_buffer_paquete(datos_de_cpu);
+	
 	}
 	//close(fd_cpu_dispatch); //liberar_conexion(fd_cpu_dispatch);
 }
@@ -268,7 +267,7 @@ void enviar_memoria_dump_memory(int fd_memoria,t_datos_esenciales* invocadores){
 	t_paquete* paquete_a_memoria = crear_paquete(DUMP_MEMORY);
     serializar_datos_dump_memory(paquete_a_memoria,invocadores);
 	enviar_paquete(paquete_a_memoria, fd_memoria);
-	destruir_buffer_paquete(paquete_a_memoria);
+	eliminar_paquete(paquete_a_memoria);
 }
 
 void serializar_datos_dump_memory(t_paquete* paquete_a_memoria, t_datos_esenciales* invocadores){

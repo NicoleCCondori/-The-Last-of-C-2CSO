@@ -3,15 +3,18 @@
 
 int main(int argc, char* argv[]) {
 
-    if (argc < 2) {
+    /*if (argc < 2) {
         fprintf(stderr, "Uso: %s <ruta_archivo_configuracion>\n", argv[0]);
         return EXIT_FAILURE;
-    }
+    }*/
 
  //./bin/kernel [archivo_pseudocodigo] [tamanio_proceso] [...args]
 
-    archivo_pseudocodigo_main = argv[1];
-	tamanio_proceso_main = atoi(argv[2]);
+    //archivo_pseudocodigo_main = argv[1];
+	//tamanio_proceso_main = atoi(argv[2]);
+
+    archivo_pseudocodigo_main = "proceso1";
+	tamanio_proceso_main = 20;
 
     inicializar_kernel();
     

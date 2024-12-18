@@ -1,5 +1,5 @@
 #include <escuchar_memoria.h>
-#include <f_conexiones.h>
+
 
 void escuchar_memoria(){
 	while(1){

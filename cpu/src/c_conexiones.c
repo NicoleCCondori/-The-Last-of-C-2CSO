@@ -204,41 +204,11 @@ void fetch(uint32_t tidHilo, uint32_t pc){
 }
 
 int enviar_pc_a_memoria(uint32_t PC,uint32_t TID){
-    t_paquete* paquete=malloc(sizeof(t_paquete));
-    paquete->codigo_operacion=OBTENER_INSTRUCCION;
-    paquete->buffer=malloc(sizeof(t_buffer));
-
-    paquete->buffer->size=sizeof(uint32_t)*2;
-    paquete->buffer->stream=malloc(paquete->buffer->size);
-    int offset=0;
-
-    memcpy(paquete->buffer->stream,&PC,sizeof(uint32_t));
-    offset+=sizeof(uint32_t);
-    memcpy(paquete->buffer->stream,&TID,sizeof(uint32_t));
-
-
-    int bytes=sizeof(op_code)+sizeof(int)+paquete->buffer->size;
-    void* a_enviar=malloc(bytes);
-    //int offset=0;
-
-    memcpy(a_enviar+offset,&(paquete->codigo_operacion),sizeof(op_code));
-    offset+=sizeof(op_code);
-
-    memcpy(a_enviar+offset,&(paquete->buffer->size),sizeof(int));
-    offset+=sizeof(int);
-
-     memcpy(a_enviar+offset,&(paquete->buffer->stream),paquete->buffer->size);
-
-     int flags=send(fd_memoria,a_enviar,bytes,0);
-     if(flags==-1){
-        log_error(cpu_logger,"Error al enviar PC y TID a MEMORIA");
-        return -1;
-     }
-
-    free(paquete->buffer->stream);
-    free(paquete->buffer);
-    free(paquete);
-    free(a_enviar);
+    t_paquete* paquete = crear_paquete(OBTENER_INSTRUCCION);
+    serializar_hilo_cpu(paquete, PC, TID);
+    enviar_paquete(paquete,fd_memoria);
+    log_info(cpu_logger,"Enviamos PC y TID a memoria");
+    eliminar_paquete(paquete);
 
     return 0;
 }
@@ -319,7 +289,7 @@ void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion
     
     t_paquete* paquete_contexto = crear_paquete(ACTUALIZAR_CONTEXTO); 
 
-    serializar_enviar_contexto(paquete_contexto, contexto_ejecucion);
+    serializar_enviar_contexto_cpu(paquete_contexto, contexto_ejecucion);
 
     // Enviar el paquete serializado al socket de memoria 
     enviar_paquete(paquete_contexto, fd_memoria);
@@ -798,7 +768,7 @@ void enviar_a_kernel_IO(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,int tie
     serializar_IO(paquete_IO, tiempo);
 
     enviar_paquete(paquete_IO,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_IO);
+    eliminar_paquete(paquete_IO);
 }
 void serializar_IO(t_paquete* paquete_IO, int tiempo){
     agregar_buffer_int(paquete_IO->buffer, tiempo);
@@ -810,7 +780,7 @@ void enviar_a_kernel_THREAD_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t 
     serializar_thread_create(paquete_thread_create, archivo,prioridad);
 
     enviar_paquete(paquete_thread_create,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_thread_create);
+    eliminar_paquete(paquete_thread_create);
 }
 void serializar_thread_create(t_paquete* paquete_thread_create,char* archivo, uint32_t prioridad){
     agregar_buffer_string(paquete_thread_create->buffer,archivo);
@@ -823,7 +793,7 @@ void enviar_a_kernel_THREAD_JOIN(int fd_kernel_dispatch,uint32_t PID,uint32_t TI
     serializar_thread_join_y_cancel(paquete_thread_join, tid);
 
     enviar_paquete(paquete_thread_join,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_thread_join);
+    eliminar_paquete(paquete_thread_join);
 }
 void serializar_thread_join_y_cancel(t_paquete* paquete_thread_join_y_cancel,uint32_t tid){
     agregar_buffer_Uint32(paquete_thread_join_y_cancel->buffer,tid);
@@ -835,7 +805,7 @@ void enviar_a_kernel_THREAD_CANCEL(int fd_kernel_dispatch,uint32_t PID,uint32_t 
     serializar_thread_join_y_cancel(paquete_thread_cancel, tid);
 
     enviar_paquete(paquete_thread_cancel,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_thread_cancel);
+    eliminar_paquete(paquete_thread_cancel);
 }
 
 
@@ -845,7 +815,7 @@ void enviar_a_kernel_MUTEX_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t T
     serializar_mutex(paquete_mutex_create, recurso);
 
     enviar_paquete(paquete_mutex_create,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_mutex_create);
+    eliminar_paquete(paquete_mutex_create);
 }
 void serializar_mutex(t_paquete* paquete_mutex,char* recurso){
     agregar_buffer_string(paquete_mutex->buffer,recurso);  
@@ -857,7 +827,7 @@ void enviar_a_kernel_MUTEX_LOCK(int fd_kernel_dispatch,uint32_t PID,uint32_t TID
     serializar_mutex(paquete_mutex_lock, recurso);
 
     enviar_paquete(paquete_mutex_lock,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_mutex_lock);
+    eliminar_paquete(paquete_mutex_lock);
 }
 
 void enviar_a_kernel_MUTEX_UNLOCK(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* recurso){
@@ -865,21 +835,21 @@ void enviar_a_kernel_MUTEX_UNLOCK(int fd_kernel_dispatch,uint32_t PID,uint32_t T
     serializar_datos_esenciales(paquete_mutex_unlock,PID,TID);
     serializar_mutex(paquete_mutex_unlock, recurso);
     enviar_paquete(paquete_mutex_unlock,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_mutex_unlock);
+    eliminar_paquete(paquete_mutex_unlock);
 }
 
 void enviar_a_kernel_DUMP_MEMORY(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_dump_memory = crear_paquete(DUMP_MEMORY);
     serializar_datos_esenciales(paquete_dump_memory,PID,TID);
     enviar_paquete(paquete_dump_memory,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_dump_memory);
+    eliminar_paquete(paquete_dump_memory);
 }
 
 void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_thread_exit = crear_paquete(THREAD_EXIT);
     serializar_datos_esenciales(paquete_thread_exit,PID,TID);
     enviar_paquete(paquete_thread_exit,fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_thread_exit);
+    eliminar_paquete(paquete_thread_exit);
 }
 
 
@@ -887,7 +857,7 @@ void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t T
     t_paquete* paquete_process_exit = crear_paquete(PROCESS_EXIT);
     serializar_datos_esenciales(paquete_process_exit,PID,TID);
     enviar_paquete(paquete_process_exit, fd_kernel_dispatch);
-    destruir_buffer_paquete(paquete_process_exit);
+    eliminar_paquete(paquete_process_exit);
 }
 
 

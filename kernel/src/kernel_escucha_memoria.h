@@ -1,7 +1,7 @@
 #ifndef KERNEL_ESCUCHA_MEMORIA_H_
 #define KERNEL_ESCUCHA_MEMORIA_H_
 
-#include <utils/utils.h>
+#include <k_conexiones.h>
 
 
 void kernel_escucha_memoria();
