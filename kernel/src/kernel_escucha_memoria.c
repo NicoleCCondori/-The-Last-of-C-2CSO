@@ -67,18 +67,9 @@ void kernel_escucha_memoria(){
 				break;
 			
 			case CONFIRMAR_CREACION_HILO:
-				t_paquete* paquete_hilo = recibir_paquete(fd_memoria);
-				//int bit_confirmacion = deserializar_int(paquete_hilo);
-				//if(bit_confirmacion == 1){
 					log_info(kernel_logger, "ok de creo el hilo");
-					//log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
 					sem_post(&sem_binario_memoria);
-				//} else {
 					printf("No se pudo crear el hilo\n");
-					//sem_wait(&sem_binario_memoria);
-					//Se mantiene en el estado NEW
-				//}
-				eliminar_paquete(paquete_hilo);
 				break;
 			case -1:
 				log_error(kernel_logger, "Desconexion de MEMORIA");
