@@ -64,6 +64,7 @@ void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
         log_error(memoria_logger, "Hilo no encontrado");
         return;
     }
+    else log_info(memoria_logger, "Hilo encontrado");
 
     if (contexto->pid ==! datos_contexto->PID) {
             log_error(memoria_logger, "El proceso no corresponde");
@@ -76,6 +77,12 @@ void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
     }
 
     // Copiar los registros y valores
+    nuevo_contexto->RegistrosCPU = malloc(sizeof(*nuevo_contexto->RegistrosCPU));
+    if (nuevo_contexto->RegistrosCPU == NULL) {
+        // Error de asignación de memoria
+        log_error(memoria_logger, "Error: No se pudo asignar memoria para RegistrosCPU");
+        return;
+    }
     *(nuevo_contexto->RegistrosCPU) = contexto->registros;
     nuevo_contexto->PC = contexto->pc;
     nuevo_contexto->base = contexto->base;
@@ -89,6 +96,7 @@ void devolver_contexto_ejecucion(t_paquete* paquete_cpu) {
     log_info(memoria_log_obligatorios, "## Contexto Solicitado - (PID:TID) - (<%u>:<%u>)", contexto->pid, contexto->tid);
 
     eliminar_paquete(paquete_enviar_contexto);
+    free(nuevo_contexto->RegistrosCPU);
     free(nuevo_contexto);
 }
 

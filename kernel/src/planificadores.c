@@ -45,10 +45,9 @@ void planificador_corto_plazo(/*TCB* hilo*/){
             serializar_hilo_cpu(hilo_cpu, hilo_exec->pid, hilo_exec->tid);
 
             enviar_paquete(hilo_cpu, fd_cpu_dispatch);
-            // 
             eliminar_paquete(hilo_cpu);
-
         }
+
         if(strcmp(valores_config_kernel->algoritmo_planificacion,"PRIORIDADES")==0){
             printf("Planificación prioridades\n");
             //La máxima prioridad es el 0
@@ -64,8 +63,8 @@ void planificador_corto_plazo(/*TCB* hilo*/){
             //mandar a cpu tid y pid
             t_paquete* hilo_cpu = crear_paquete(RECIBIR_TID);
             serializar_hilo_cpu(hilo_cpu, hiloMayorPrioridad->pid, hiloMayorPrioridad->tid);
-
             enviar_paquete(hilo_cpu, fd_cpu_dispatch);
+            eliminar_paquete(hilo_cpu);
         }
 
         if(strcmp(valores_config_kernel->algoritmo_planificacion,"CMN")==0){

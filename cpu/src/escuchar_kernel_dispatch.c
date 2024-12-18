@@ -6,21 +6,32 @@ void escuchar_kernel_dispatch(){
     bool control_key=1;
     while (control_key)
 	{
-        op_code cod_op = recibir_operacion(fd_kernel_dispatch);
 
-        log_info(cpu_logger,"recibiendo paquete de kernel: %d\n",cod_op);
+        t_paquete* paquete_kernel = recibir_paquete(fd_kernel_dispatch);
+        if (paquete_kernel == NULL) {
+        log_error(cpu_logger, "Error: paquete_kernel es NULL");
+        return;
+        }
+
+        op_code cod_op = paquete_kernel->codigo_operacion;
+        log_info(cpu_logger,"Codigo de operacion: %d", cod_op);
+		
+        /*
+        op_code cod_op = recibir_operacion(fd_kernel_dispatch);
+        log_info(cpu_logger,"recibiendo paquete de kernel: %d\n",cod_op);*/
         
 		switch (cod_op)
 		{
             case MENSAJE:
                 break;
-            case RECIBIR_TID:
-            log_info(cpu_logger,"recibiendo paquete de kernel!!!\n");
-                
 
+            case RECIBIR_TID:
+            log_info(cpu_logger,"recibiendo paquete de kernel TID!!!\n");
+                
                 //deserializo llamando a la función "deserializar_enviar_contexto"
-                t_paquete* paquete_aux = recibir_paquete(fd_kernel_dispatch);   
-                t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_aux);
+              //  t_paquete* paquete_aux = recibir_paquete(fd_kernel_dispatch);   
+               
+                t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_kernel);
                 log_info(cpu_logger,"El pid <%d> y tid <%d>", contexto->PID, contexto->TID);
                 PidHilo = contexto->PID;
                 TidHilo = contexto->TID;
@@ -29,14 +40,14 @@ void escuchar_kernel_dispatch(){
 
                 //Debo liberar la memoria
                 //free(contexto); no sé si liberaba aca por el tema del malloc
-                destruir_buffer_paquete(paquete_aux);
+                destruir_buffer_paquete(paquete_kernel);
 
                 pthread_mutex_lock(&mutex_contextos2);
                 
                 obtener_contexto(fd_memoria, PidHilo, TidHilo); //se envia a memoria el tid y pid para obtener el contexto de ejecucion
                 pthread_mutex_unlock(&mutex_contextos2);
-
                 break;
+
             case PAQUETE:
 
                 break;

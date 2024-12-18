@@ -13,11 +13,11 @@ int main(int argc, char* argv[]) {
     archivo_pseudocodigo_main = argv[1];
 	tamanio_proceso_main = atoi(argv[2]);
 
-	printf("Archivo pseudocodigo: %s\n", archivo_pseudocodigo_main);
-    printf("Tamaño proceso: %d\n", tamanio_proceso_main);
-
     inicializar_kernel();
-
+    
+    log_info(kernel_logger, "Archivo pseudocodigo: %s\n", archivo_pseudocodigo_main);
+    log_info(kernel_logger, "Tamaño proceso: %d\n", tamanio_proceso_main);
+  
     conectar_cpu_dispatch();
     conectar_cpu_interrupt();
     conectar_memoria();

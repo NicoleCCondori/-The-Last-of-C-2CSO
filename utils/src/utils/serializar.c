@@ -202,8 +202,9 @@ t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete){
     t_enviar_contexto* enviar_contexto = malloc(sizeof(t_enviar_contexto));
 
     enviar_contexto->PID = leer_buffer_Uint32(paquete->buffer);
+    printf("PID %u:", enviar_contexto->PID );
     enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
-    
+    printf("TID %u:", enviar_contexto->TID );
     return enviar_contexto;
 }
 

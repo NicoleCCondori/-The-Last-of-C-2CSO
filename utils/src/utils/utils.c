@@ -108,6 +108,12 @@ int iniciar_servidor(char *puerto, t_log *logger, char *msj_server)
 							 servinfo->ai_socktype,
 							 servinfo->ai_protocol);
 
+	int reuse = 1;
+	if(setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse))<0){
+		perror("setsockopt failed");
+		exit(EXIT_FAILURE);
+	}
+
 	// Asociamos el socket a un puerto
 	int bind_resultado = bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
 	if (bind_resultado != 0)
