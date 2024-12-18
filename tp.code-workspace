@@ -29,7 +29,9 @@
       "string_view": "c",
       "initializer_list": "c",
       "utility": "c",
-      "string": "c"
+      "string": "c",
+      "functional": "c",
+      "cstdlib": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
   }

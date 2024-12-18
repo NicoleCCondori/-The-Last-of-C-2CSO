@@ -3,6 +3,12 @@
 
 int main(int argc, char* argv[]) {
     
+    // Inicializar semáforo binario a 0 (espera inicial)
+    if (sem_init(&semaforo_binario, 0, 0) != 0) {
+        perror("Error al inicializar el semáforo binario");
+        return -1;
+    }
+
     inicializar_memoria();
 
     pthread_mutex_init(&mutex_lista_particiones, NULL);

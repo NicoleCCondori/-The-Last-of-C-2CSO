@@ -255,7 +255,7 @@ void write_mem(t_paquete* paquete_cpu){
         uint32_t respuesta_ok = 1;
         send(fd_cpu, &respuesta_ok, sizeof(respuesta_ok), 0);
         
-        log_info(memoria_log_obligatorios, "## Escritura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_write_mem->pidHilo, datos_write_mem->tidHilo, datos_write_mem->dir_fis, datos_write_mem->valor);
+        log_info(memoria_log_obligatorios, "## Escritura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio a escribir: <%u>\n",datos_write_mem->pidHilo, datos_write_mem->tidHilo, datos_write_mem->dir_fis, sizeof(datos_write_mem->valor));
     }
     else{
         log_error(memoria_logger,"ERROR en ESCRITURA para dirección %u", datos_write_mem->dir_fis);
@@ -273,7 +273,7 @@ void read_mem(t_paquete* paquete_cpu){
         memcpy(&valor, (char *)memoria + datos_read_mem->dir_fis, sizeof(uint32_t));
         send(fd_cpu, &valor, sizeof(valor), 0);
 
-        log_info(memoria_log_obligatorios, "## Lectura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio: <%u>\n",datos_read_mem->pidHilo, datos_read_mem->tidHilo, datos_read_mem->dir_fis, valor);
+        log_info(memoria_log_obligatorios, "## Lectura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio leido: <%u>\n",datos_read_mem->pidHilo, datos_read_mem->tidHilo, datos_read_mem->dir_fis, sizeof(valor));
     }
     else{
         log_error(memoria_logger,"ERROR en LECTURA");

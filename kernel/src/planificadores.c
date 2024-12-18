@@ -11,9 +11,14 @@ void planificador_de_largo_plazo()
     //sem_init(&sem_mutex_cola_ready,0,1);//mutex de cola de ready
     //inicializar semáforos
     sem_init(&TCBaPlanificar, 0, 0);
+    
     while(1){
-        int prioridad = 0;
-        crear_proceso(tamanio_proceso_main, archivo_pseudocodigo_main, prioridad);
+        //obtener de la cola de new el proceso
+        sem_wait(&sem_plani_largo_plazo);
+        iniciar_proceso();
+        //mandar a la cola de ready
+        //int prioridad = 0;
+        //crear_proceso(tamanio_proceso_main, archivo_pseudocodigo_main, prioridad); llamar en kernel
        
     }
 }
@@ -28,7 +33,9 @@ void planificador_corto_plazo(/*TCB* hilo*/){
             list_add(lista_ready, hilo);
             sem_post(&sem_mutex_cola_ready);*/
             //debemos sacar el primer elemento de la lista
+            sem_wait(&sem_mutex_cola_ready);
             TCB* hilo_exec = list_remove(lista_ready,0);
+            sem_post(&sem_mutex_cola_ready);
             //CAmbiar el estado del hilo
             hilo_exec->estadoHilo = EXEC;
             //LO agrego en la cola_exec

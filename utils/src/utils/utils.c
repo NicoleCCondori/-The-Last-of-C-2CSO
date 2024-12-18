@@ -1,11 +1,23 @@
 #include <utils/utils.h>
 
+
 t_list* lista_tcb;
 
+// Inicialización del semáforo binario
+sem_t semaforo_binario;  // Declaración del semáforo binario
+
+
+
 PCB* buscar_proceso(t_list* lista, uint32_t pid){
+	//if (lista == NULL){
+	//	return NULL;
+	//}
 	for(int i=0; i<list_size(lista);i++)
 	{
 		PCB* proceso_actual = list_get(lista, i);
+		if(proceso_actual==NULL){
+			continue;
+		}
 		if (proceso_actual->pid == pid) {
             return proceso_actual;
         }

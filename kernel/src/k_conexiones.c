@@ -29,7 +29,7 @@ t_list* lista_tcbs; //Va a estar compuesto por TCBs
 sem_t sem_binario_memoria;
 sem_t sem_mutex_cola_ready;
 sem_t mutex;
-
+sem_t sem_plani_largo_plazo;
 
 
 sem_t TCBaPlanificar;
@@ -40,6 +40,7 @@ uint32_t pid=0;
 void inicializar_kernel(){
 
     sem_init(&mutex, 0, 1);
+    sem_init(&sem_plani_largo_plazo, 0, 1);
 
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
    
@@ -164,70 +165,23 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
     enviar_paquete(paquete_asignar_memoria, fd_memoria);
     eliminar_paquete(paquete_asignar_memoria);
 
-    //recibimos la respuesta de memoria
-    int result;
-    log_info(kernel_logger,"Antes de recibir\n");
+    log_info(kernel_logger,"Enviamos a memoria pid y tam_proceso\n");
 
-    sem_wait(&mutex);
-	recv(fd_memoria, &result, sizeof(int32_t), 0);
-    sem_post(&mutex);
-    
-    log_info(kernel_logger,"Recibio de memoria: %d\n",result);
+    // Espera a que el semáforo binario sea liberado por el emisor
+    //sem_wait(&semaforo_binario);  // Bloquea hasta que el semáforo esté liberado
+    //log_info(kernel_logger,"despues del semaforo bin\n");
+	//recv(fd_memoria, &result, sizeof(int32_t), 0);
+    //int bytes_recibidos = recv(fd_memoria, &result, sizeof(int32_t), 0);
+
+    //if (bytes_recibidos > 0) {    
+    //    log_info(kernel_logger,"Recibio de memoria: %d\n",result);
+    //}
+    //else{ log_error(kernel_logger,"No recibio nada de memoria");}
     //int result = recibir_mensaje(fd_memoria);
-	if (result == 1){ // 1 ok ; 0 es no ok
-        printf("Hay espacio en memoria\n");//debemos crear el espacio de memoria para el proceso?      
-        //Si hay Espacio se crea el hilo main
-        //crea el hilo tid 0
+    //result = 1;
 
-        //Agregar el tid_main a la lista de hilos del proceso (pcb->tid)
-        //Primero debemos identificar el pcb en la lista de procesos
-        PCB* proceso_agregar_tidM = buscar_proceso(lista_procesos, pid);//puede que necesitemos hacer un malloc
-        uint32_t tid_main = proceso_agregar_tidM->tid_contador;
-        uint32_t* tid_copia = malloc(sizeof(uint32_t));
-	    *tid_copia = tid_main;
-        if(proceso_agregar_tidM!= NULL){
-            list_add(proceso_agregar_tidM->tid, tid_copia);  // Agrega el hilo main a la lista de hilos del proceso
-        }
-        //Sacamos el pcb de la cola NEW
-        //los queue_pop retornan un valor
-        PCB* pcb_fuera_new = malloc(sizeof(PCB));
-        pcb_fuera_new = queue_pop(cola_new); 
-        if(pcb_fuera_new != NULL){
-           printf("El proceso que salió de la cola NEW para ir a READY es %d\n",pcb_fuera_new->pid);  
-        } 
-        
-        //CREACION DE HILO MAIN
-        TCB* hilo_main = iniciar_hilo(tid_main, prioridad,proceso_agregar_tidM->pid,proceso_agregar_tidM->path_main);
+	//if (sem_wait(&semaforo_binario) == 0){ // 1 ok ; 0 es no ok
 
-        //informar a memoria
-        printf("Enviamos el hilo a memoria\n");
-
-        enviar_a_memoria(fd_memoria,hilo_main);
-
-        int result;
-	    recv(fd_memoria, &result, sizeof(int32_t), 0);
-        if (result == 1){
-            log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
-        }
-
-        //Meterlo en la lista de TCBs general
-        list_add(lista_tcbs, hilo_main);
-
-        //Agregar el TCB tmb en la lista_ready va a ayudar para los algoritmos de corto plazo
-        //Pensar en la idea de usar semáforos
-        list_add(lista_ready,hilo_main);
-        sem_post(&TCBaPlanificar);
-        //planificador_corto_plazo(hilo_main);
-        planificador_corto_plazo();
-        //mandar_hilo_a_cola_ready(hilo_main);
-        //queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
-    } else {
-		printf("No hay espacio en memoria\n");
-        //sem_wait(&sem_binario_memoria);
-        //Se mantiene en el estado NEW
-    }
-
-    eliminar_paquete(paquete_asignar_memoria);
     //destruir_buffer_paquete(paquete_asignar_memoria);
 /* No nos olvidamos de liberar la memoria que ya no usaremos
     free(a_enviar);
@@ -238,6 +192,68 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
 }
 
 //CREACION DE HILO
+void crear_hilo(uint32_t pid_confirmado){
+    printf("Hay espacio en memoria\n");//debemos crear el espacio de memoria para el proceso?      
+        //Si hay Espacio se crea el hilo main
+        //crea el hilo tid 0
+
+        //Agregar el tid_main a la lista de hilos del proceso (pcb->tid)
+        //1ro) Debemos identificar el pcb en la lista de procesos
+        //PCB* proceso_agregar_tidM = malloc(sizeof(PCB));
+        log_info(kernel_logger,"El pid es: %u",pid_confirmado);
+        PCB* proceso_agregar_tidM = buscar_proceso(lista_procesos, pid_confirmado);//puede que necesitemos hacer un malloc
+        if(proceso_agregar_tidM == NULL ){
+            log_info(kernel_logger, "No encontro el proceso_agregar_tidM\n");
+        }
+        
+        log_info(kernel_logger,"el tid es: %u",proceso_agregar_tidM->tid_contador);
+        uint32_t tid_main = proceso_agregar_tidM->tid_contador;
+        uint32_t* tid_copia = malloc(sizeof(uint32_t));
+	    *tid_copia = tid_main;
+        if(proceso_agregar_tidM!= NULL){
+            list_add(proceso_agregar_tidM->lista_tid, tid_copia);  // Agrega el hilo main a la lista de hilos del proceso
+       }
+        //2do) Sacamos el pcb de la cola NEW
+        //los queue_pop retornan un valor
+        PCB* pcb_fuera_new = malloc(sizeof(PCB));
+        pcb_fuera_new = queue_pop(cola_new); 
+        if(pcb_fuera_new != NULL){
+           printf("El proceso que salió de la cola NEW para ir a READY es %d\n",pcb_fuera_new->pid);  
+        } 
+        
+        //CREACION DE HILO MAIN
+        TCB* hilo_main = iniciar_hilo(pcb_fuera_new->tid_contador, pcb_fuera_new->prioridad_main,pcb_fuera_new->pid, pcb_fuera_new->path_main);
+
+        //informar a memoria
+        printf("Enviamos el hilo a memoria\n");
+
+        enviar_a_memoria(fd_memoria,hilo_main);
+        //
+        sem_wait(&semaforo_binario);
+        //int result;
+	    //recv(fd_memoria, &result, sizeof(int32_t), 0);
+        //if (result == 1){
+            log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
+        //}
+
+        //Meterlo en la lista de TCBs general
+        list_add(lista_tcbs, hilo_main);
+
+        //Agregar el TCB tmb en la lista_ready va a ayudar para los algoritmos de corto plazo
+        //Pensar en la idea de usar semáforos
+        list_add(lista_ready,hilo_main);
+        //sem_post(&TCBaPlanificar);
+        //planificador_corto_plazo(hilo_main);
+        //planificador_corto_plazo();
+        //mandar_hilo_a_cola_ready(hilo_main);
+        //queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
+
+        
+        free(proceso_agregar_tidM);
+        free(pcb_fuera_new);
+}
+
+//INICIAR_HILO
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
     
     TCB* tcb = malloc(sizeof(TCB));
@@ -265,7 +281,7 @@ void iniciar_proceso(){
         log_info(kernel_logger,"El pid es: %u",proceso_new->pid);
         
         asignar_espacio_memoria(proceso_new->pid, proceso_new->tam_proceso, proceso_new->prioridad_main, proceso_new->path_main);
-     
+        
     } else {
         printf("La cola esta vacia.\n");
 
@@ -283,7 +299,7 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     
     pid++;
     pcb->pid = pid;
-    pcb->tid = list_create();
+    pcb->lista_tid = list_create();
     pcb->tid_contador = 0;
     pcb->mutex = list_create();
     //pcb->pc = 0;
@@ -301,7 +317,8 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     //agregar a la lista de procesos al proceso
     list_add(lista_procesos, pcb);
     
-    iniciar_proceso();
+
+    //iniciar_proceso();
     
   
     //liberar pcb_new
@@ -340,7 +357,7 @@ void* finalizar_proceso(PCB* pcb_afuera)
             }
         }
         //2do) destruyo la lista de tids(enteros) que tiene el pcb -> por las dudas jsjs
-        list_destroy(pcb_afuera->tid); 
+        list_destroy(pcb_afuera->lista_tid); 
         //list_destroy_and_destroy_elements(pcb_afuera->tid,free);
         
         //consultar si dejarlo en la lista de procesos general
@@ -402,7 +419,7 @@ void finalizar_hilo(TCB* hilo)
         return;
 	}
     //list_remove_element(tid_a_retirar->tid,(void*) hilo->tid);
-    list_remove_element(tid_a_retirar->tid, (void *)(uintptr_t)hilo->tid);
+    list_remove_element(tid_a_retirar->lista_tid, (void *)(uintptr_t)hilo->tid);
 
     //3ro a) ver que onda con los recursos de mutex-> deberia liberarlo tmb
     for(int i=0; i<list_size(tid_a_retirar->mutex); i++){

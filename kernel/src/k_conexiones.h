@@ -84,11 +84,14 @@ void planificador_de_largo_plazo();
 extern sem_t sem_binario_memoria;
 extern sem_t sem_mutex_cola_ready;
 extern sem_t TCBaPlanificar;
+extern sem_t sem_plani_largo_plazo;
 extern uint32_t pid;
 
 void crear_proceso(int tamanio_proceso, char* path, int prioridad_main);
 
 void asignar_espacio_memoria(uint32_t pid,int tam_proceso, int prioridad, char* path_main);
+
+void crear_hilo(uint32_t pid_confirmado);
 
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path);
 

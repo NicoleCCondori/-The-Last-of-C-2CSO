@@ -16,7 +16,7 @@ void cpu_escucha_memoria(){
 		case PAQUETE:
 			break;
 		case ENVIAR_CONTEXTO:
-			reciboContexto(contextoEje->buffer);
+			reciboContexto(contextoEje);
 			break;
 		case ENVIAR_INSTRUCCION:
 			recibir_instruccion_de_memoria(fd_memoria);
@@ -31,9 +31,9 @@ void cpu_escucha_memoria(){
 	}
 }
 
-void reciboContexto(t_buffer* buffer)
+void reciboContexto(t_paquete* contextoEje)
 {
-	t_contextoEjecucion* contexto = leer_contexto_de_memoria(buffer);
+	t_contextoEjecucion* contexto = leer_contexto_de_memoria(contextoEje);
 	inicializar_particion_de_memoria(contexto-> base, contexto->limite);
     ciclo_de_instruccion(contexto);
 }

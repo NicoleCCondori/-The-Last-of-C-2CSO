@@ -1,6 +1,5 @@
 #include <escuchar_kernel.h>
 
-
 void escuchar_kernel(){
     printf("Ejecuto escuchar_kernel.c \n");
 
@@ -25,6 +24,10 @@ void escuchar_kernel(){
 		    envio_datos_a_FS(paquete_kernel);
 			break;
 
+        case FINALIZAR_HILO:
+            finalizar_hilo(paquete_kernel);
+            break;
+
 		default:
 			log_warning(memoria_logger, "Operacion desconocida de KERNEL");
 			break;
@@ -47,23 +50,27 @@ void crear_proceso(t_paquete* paquete_kernel){
 }
 
 void asignar_particiones_fijas(t_asignar_memoria* datos_asignar_memoria){
-    int valor_a_enviar = -1;
+    uint32_t bit_confirmacion = -1;
     Particion* particion_asignada = evaluarParticion(datos_asignar_memoria->tam_proceso);
 
     if (particion_asignada != NULL) {
         particion_asignada->libre = false;
         particion_asignada->pid = datos_asignar_memoria->pid;
-
-	    valor_a_enviar = 1;
-        log_info(memoria_log_obligatorios, "Proceso creado: PID=%u, Base=%u, Limite=%u",
-         particion_asignada->pid, particion_asignada->base, particion_asignada->limite);
-        }
-    
-    send(fd_kernel, &valor_a_enviar, sizeof(int), 0);
+        //log_info(memoria_logger,"El pid a asiganar particiones fijas es: %u", datos_asignar_memoria->pid);
+	    bit_confirmacion = 1;
+        log_info(memoria_log_obligatorios, "## Proceso creado: PID=%u, Tamanio=%u",
+        particion_asignada->pid, particion_asignada->tamanio);  }      
+       
+     t_paquete* paquete_memoria = crear_paquete(CONFIRMAR_ESPACIO_PROCESO);
+     serializar_proceso_memoria(paquete_memoria, datos_asignar_memoria->pid, bit_confirmacion);
+     enviar_paquete(paquete_memoria, fd_kernel);
+     log_info(memoria_logger, "Ya se envio el paquete a kernel, con PID:%u",datos_asignar_memoria->pid );
+     eliminar_paquete(paquete_memoria);
+     log_info(memoria_logger, "Ya se elimino el paquete de kernel");
 }
 
 void asignar_particiones_dinamicas(t_asignar_memoria* datos_asignar_memoria){
-    int valor_a_enviar = -1;
+    uint32_t bit_confirmacion = -1;
     Particion* particion_asignada = evaluarParticion(datos_asignar_memoria->tam_proceso);
 
     if (particion_asignada != NULL) {
@@ -72,12 +79,18 @@ void asignar_particiones_dinamicas(t_asignar_memoria* datos_asignar_memoria){
 
         if (particion_asignada->tamanio > datos_asignar_memoria->tam_proceso) {
             dividir_particion(particion_asignada, datos_asignar_memoria->tam_proceso);
-            valor_a_enviar = 1;
-            log_info(memoria_log_obligatorios, "Proceso creado: PID=%u, Base=%u, Limite=%u",
-             particion_asignada->pid, particion_asignada->base, particion_asignada->limite);
+            bit_confirmacion = 1;
+            log_info(memoria_log_obligatorios, "## Proceso creado: PID=%u, Tamanio=%u",
+            particion_asignada->pid, particion_asignada->tamanio);
             }
-    
-    send(fd_kernel, &valor_a_enviar, sizeof(int), 0);
+    //log_info(memoria_logger,"El PID es %u",particion_asignada->pid);
+    t_paquete* paquete = crear_paquete(CONFIRMAR_ESPACIO_PROCESO);
+    serializar_proceso_memoria(paquete, datos_asignar_memoria->pid, bit_confirmacion);
+    printf("Paquete serializado: bit_confirmacion=%d, pid=%u, tamanio=%d\n", bit_confirmacion, datos_asignar_memoria->pid, paquete->buffer->size);
+     enviar_paquete(paquete, fd_kernel);
+     log_info(memoria_logger, "Ya se envio el paquete a kernel, con PID:%u",datos_asignar_memoria->pid );
+     eliminar_paquete(paquete);
+     log_info(memoria_logger, "Ya se elimino el paquete de kernel");
 }
 }
 
@@ -89,7 +102,6 @@ void dividir_particion(Particion* particion, uint32_t tamanio_proceso) {
     nueva_particion_libre->tamanio = espacio_restante;
     nueva_particion_libre->libre = true;
     nueva_particion_libre->pid = 0;
-    /*nueva_particion_libre = particion->direccion + tamanio_proceso;*/
 
     list_add(lista_particiones, nueva_particion_libre);
 }
@@ -164,8 +176,9 @@ void finalizar_proceso(t_paquete* paquete_kernel){
             if (strcmp(valores_config_memoria->esquema, "DINAMICAS")==0){
                 consolidar_particiones_libres(i);
             }
-            
-            log_info(memoria_logger, "## Proceso Destruido - PID: %u - Tamaño: %u", pid, particion->tamanio);
+
+            log_info(memoria_log_obligatorios, "## Proceso creado: PID=%u, Tamanio=%u",
+            particion->pid, particion->tamanio);
             break;
         }
     }
@@ -215,6 +228,7 @@ void consolidar_particiones_libres(int indice) {
 
 /* CREACION DE UN HILO - ASIGNO MEMORIA*/
 void crear_hilo(t_paquete* paquete_kernel){
+    int bit_confirmacion = -1;
     t_crear_hilo* datos_hilo = deserializar_crear_hilo(paquete_kernel);
 
     log_info(memoria_logger, "Estoy creando hilo:%u para PID:%u", datos_hilo->TID, datos_hilo->PID);
@@ -233,10 +247,14 @@ void crear_hilo(t_paquete* paquete_kernel){
     nuevo_contexto-> prioridad = datos_hilo->prioridad;
 
     list_add(lista_contextos, nuevo_contexto);
+	bit_confirmacion = 1;
+    log_info(memoria_log_obligatorios, "## Hilo creado: PID=%u, TID=%u",
+            nuevo_contexto->pid, nuevo_contexto->tid);
 
-	int valor_a_enviar = 1;
-	send(fd_kernel, &valor_a_enviar, sizeof(valor_a_enviar), 0);
-
+    t_paquete* paquete = crear_paquete(CONFIRMAR_CREACION_HILO);
+    serializar_int(paquete, bit_confirmacion);
+    enviar_paquete(paquete, fd_kernel);
+    eliminar_paquete(paquete);
     free(nuevo_contexto->instrucciones);
    // free(nuevo_contexto);
 }
@@ -244,7 +262,34 @@ void crear_hilo(t_paquete* paquete_kernel){
 /*Finalización de hilos
 Al momento de finalizar un hilo, el Kernel deberá informar a la Memoria la finalización del mismo, liberar su TCB asociado y deberá mover al estado READY a todos los hilos que se encontraban bloqueados por ese TID. De esta manera, se desbloquean aquellos hilos bloqueados por THREAD_JOIN o por mutex tomados por el hilo finalizado (en caso que hubiera).
 */
+void finalizar_hilo(t_paquete* paquete_kernel){
+    t_datos_esenciales* datos_finalizar_hilo = deserializar_finalizar_hilo(paquete_kernel);
 
+    uint32_t tid_a_eliminar = datos_finalizar_hilo->tid_inv;
+    uint32_t pid_a_eliminar = datos_finalizar_hilo->pid_inv;
+
+    // Recorrer la lista de contextos
+    for (int i = 0; i < list_size(lista_contextos); i++) {
+        ContextoEjecucion* contexto = list_get(lista_contextos, i);
+
+        if (contexto->tid == tid_a_eliminar && contexto->pid == pid_a_eliminar) {
+            // Eliminar el contexto de la lista
+            ContextoEjecucion* contexto_eliminado = list_remove(lista_contextos, i);
+            
+            // Liberar memoria asociada al contexto
+            free(contexto_eliminado);
+
+            log_info(memoria_logger,"Contexto con TID %u eliminado exitosamente.\n", tid_a_eliminar);
+            log_info(memoria_log_obligatorios, "## Hilo destruido: PID=%u, TID=%u",
+            datos_finalizar_hilo->pid_inv, datos_finalizar_hilo->tid_inv);
+            break; // Salimos del bucle, ya no necesitamos buscar más
+        }
+    }
+    // Si llegamos aquí y no encontramos el TID
+    log_error(memoria_logger,"No se encontro contexto con TID %u.\n", tid_a_eliminar);
+
+    free(datos_finalizar_hilo);
+}
 /*DUMP_MEMORY
 Memory Dump
 Memoria deberá solicitar al módulo FileSystem 
@@ -299,4 +344,3 @@ void envio_datos_a_FS(t_paquete* paquete_kernel){
 
     free(datos);
 }
-

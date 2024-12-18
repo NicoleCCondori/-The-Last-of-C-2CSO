@@ -54,7 +54,7 @@ void kernel_escucha_cpu_dispatch(){
 				uint32_t nuevo_tid = pcb_buscado->tid_contador++;
 				uint32_t* tid_copia = malloc(sizeof(uint32_t));
 				*tid_copia = nuevo_tid;
-				list_add(pcb_buscado->tid, tid_copia);
+				list_add(pcb_buscado->lista_tid, tid_copia);
 
 				//creo el nuevo tcb con el mismo pid
 				iniciar_hilo(nuevo_tid,tc_hilo->prioridadH,invocadores->pid_inv,tc_hilo->nombreArchT);

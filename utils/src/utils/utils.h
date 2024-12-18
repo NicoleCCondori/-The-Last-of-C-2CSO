@@ -26,6 +26,8 @@ typedef enum
 {
 	MENSAJE,
 	PAQUETE,
+	CONFIRMAR_ESPACIO_PROCESO,
+	CONFIRMAR_CREACION_HILO,
 	OBTENER_CONTEXTO,
 	ACTUALIZAR_CONTEXTO,
 	OBTENER_INSTRUCCION,
@@ -51,7 +53,8 @@ typedef enum
 	FINALIZAR_HILO,
 	FINALIZAR_PROCESO,
 	WRITE_MEM,
-	READ_MEM
+	READ_MEM,
+	ERROR
 }op_code;
 
 typedef enum{
@@ -89,7 +92,7 @@ typedef struct
 typedef struct 
 {
 	uint32_t pid; //Identificador del proceso
-	t_list* tid; //Lista de los identificadores de los hilos asociados al proceso
+	t_list* lista_tid; //Lista de los identificadores de los hilos asociados al proceso
 	t_list* mutex; //Lista de los mutex creados para el proceso a lo largo de la ejecución de sus hilos
 	uint32_t tid_contador;
 	//uint32_t pc; //Program Counter, indica la próxima instrucción a ejecutar
@@ -111,9 +114,16 @@ typedef struct
 	estado_proceso_hilo estadoHilo;
 } TCB;
 
+//semaforos
+// Inicialización del semáforo binario
+extern sem_t semaforo_binario;  // Declaración del semáforo binario
+
+//listas
+extern t_list* lista_tcb;
+
 PCB* buscar_proceso(t_list* lista, uint32_t pid);
 TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
-extern t_list* lista_tcb;
+
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);
 void handshakeClient(int fd_servidor, int32_t handshake);

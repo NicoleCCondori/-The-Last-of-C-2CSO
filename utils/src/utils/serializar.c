@@ -207,6 +207,10 @@ void enviar_paquete(t_paquete *paquete, int socket_cliente){
 
 t_paquete* recibir_paquete(int socket_cliente){
 	t_paquete *paquete = malloc(sizeof(t_paquete));
+     if (paquete == NULL) {
+        printf("Error al asignar memoria para el paquete\n");
+        return NULL;
+    }
 
 	paquete->codigo_operacion = recibir_operacion(socket_cliente);
 	if (paquete->codigo_operacion == -1)	{
@@ -435,7 +439,7 @@ void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, 
       
     if (paquete == NULL) {
         printf( "Error: paquete es NULL en serializar_obtener_contexto\n");
-        return;
+        return NULL;
     }
 
     paquete->buffer = malloc(sizeof(t_buffer));
@@ -623,4 +627,84 @@ void* serializar_obtener_contexto(t_paquete* paquete_obtener_contexto, uint32_t 
     agregar_buffer_Uint32(paquete_obtener_contexto->buffer,tidHilo);
     printf("entra aca\n");
     return NULL;
+}
+
+void serializar_int(t_paquete* paquete, int numero){
+    int tamanio_buffer = sizeof(int);
+    paquete->buffer->stream = realloc(paquete->buffer->stream, tamanio_buffer);
+    memcpy(paquete->buffer->stream, &numero, sizeof(int));
+    paquete->buffer->size = tamanio_buffer;
+}
+
+int deserializar_int(t_paquete* paquete){
+    int numero;
+    memcpy(&numero, paquete->buffer->stream, sizeof(int));
+    return numero;
+}
+
+void serializar_proceso_memoria(t_paquete* paquete, uint32_t pid, uint32_t bit_confirmacion) {
+    // Calcular el tamaño del buffer necesario para serializar los datos
+    int tamanio_buffer = sizeof(uint32_t) + sizeof(uint32_t);  // bit_confirmacion (uint32_t) y pid (uint32_t)
+
+    // Verificar si el buffer está inicializado. Si no, asignar memoria.
+    if (paquete->buffer->stream == NULL) {
+        paquete->buffer->stream = malloc(tamanio_buffer);
+        if (paquete->buffer->stream == NULL) {
+            // Error en la asignación de memoria
+            printf("Error al asignar memoria para el buffer\n");
+            return;
+        }
+    } else {
+        // Si el buffer ya existe, redimensionarlo
+        void* nuevo_stream = realloc(paquete->buffer->stream, tamanio_buffer);
+        if (nuevo_stream == NULL) {
+            // Error en realloc, no modificamos el buffer original
+            printf("Error al redimensionar el buffer con realloc\n");
+            return;
+        }
+        paquete->buffer->stream = nuevo_stream;
+    }
+
+    // Inicializar el desplazamiento dentro del buffer
+    int desplazamiento = 0;
+
+    // Copiar pid al buffer
+    memcpy(paquete->buffer->stream + desplazamiento, &pid, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Copiar bit_confirmacion al buffer
+    memcpy(paquete->buffer->stream + desplazamiento, &bit_confirmacion, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Actualizar el tamaño del buffer
+    paquete->buffer->size = tamanio_buffer;
+
+    // Mensaje de depuración con printf
+    printf("Paquete serializado: bit_confirmacion=%u, pid=%u, tamanio=%d\n",
+             bit_confirmacion, pid, tamanio_buffer);
+}
+
+
+t_asigno_memoria* deserializar_proceso_memoria(t_paquete* paquete) {
+    // Verificar que el tamaño del paquete recibido sea suficiente para contener la información
+   
+    // Asignar memoria para la estructura t_asigno_memoria
+    t_asigno_memoria* asigno_memoria = malloc(sizeof(t_asigno_memoria));
+    if (asigno_memoria == NULL) {
+        printf("Error al asignar memoria para t_asigno_memoria\n");
+        return NULL;
+    }
+
+    // Inicializar el desplazamiento para leer los datos del buffer
+    int desplazamiento = 0;
+
+    // Copiar el valor de bit_confirmacion desde el buffer al campo correspondiente en la estructura
+    memcpy(&(asigno_memoria->pid), paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Copiar el valor de pid desde el buffer al campo correspondiente en la estructura
+    memcpy(&(asigno_memoria->bit_confirmacion), paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+
+    // Devolver la estructura deserializada
+    return asigno_memoria;
 }

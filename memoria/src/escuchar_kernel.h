@@ -28,5 +28,5 @@ Particion* algoritmo_worst_fit(uint32_t tamanio_proceso);
 Particion* evaluarParticion(int tamanio);
 
 t_datos_esenciales* deserializar_datos_dump_memory(t_paquete* paq_dump_memory);
-
+void finalizar_hilo(t_paquete* paquete_kernel);
 #endif

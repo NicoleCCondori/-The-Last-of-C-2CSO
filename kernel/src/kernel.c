@@ -28,7 +28,10 @@ int main(int argc, char* argv[]) {
     cola_new = queue_create();
     cola_exec = queue_create();
     //cola_blocked = queue_create();
-
+    int prioridad = 0;
+    
+    crear_proceso(tamanio_proceso_main, archivo_pseudocodigo_main, prioridad);
+    
     planificador_largoPlazo();
     planificador_cortoPlazo();
     //iniciar_proceso(archivo_pseudocodigo,tamanio_proceso);
