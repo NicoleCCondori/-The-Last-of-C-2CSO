@@ -7,7 +7,7 @@ void escuchar_kernel(){
 		t_paquete* paquete_kernel = recibir_paquete(fd_kernel);
         if(!paquete_kernel){
             log_error(memoria_logger,"ERROR en recibir paquete linea 9 escucha memoria");
-            continue;
+            return;
         }
         op_code codigo_operacion = paquete_kernel->codigo_operacion;
         log_info(memoria_logger, "Me llega el siguiente op code %u", codigo_operacion);
@@ -38,7 +38,9 @@ void escuchar_kernel(){
 			log_warning(memoria_logger, "Operacion desconocida de KERNEL");
 			break;
 		}
-		eliminar_paquete(paquete_kernel);
+        if(paquete_kernel){
+          eliminar_paquete(paquete_kernel);  
+        }
 	}
 }
 
@@ -66,7 +68,10 @@ void asignar_particiones_fijas(t_asignar_memoria* datos_asignar_memoria){
         //log_info(memoria_logger,"El pid a asiganar particiones fijas es: %u", datos_asignar_memoria->pid);
 	    bit_confirmacion = 1;
         log_info(memoria_log_obligatorios, "## Proceso creado: PID=%u, Tamanio=%u",
-        particion_asignada->pid, particion_asignada->tamanio);  }      
+        particion_asignada->pid, particion_asignada->tamanio);  }
+        
+        log_info(memoria_logger, "## Proceso creado: base=%u, limite=%u",
+        particion_asignada->base, particion_asignada->limite);
        
      t_paquete* paquete_memoria = crear_paquete(CONFIRMAR_ESPACIO_PROCESO);
      serializar_proceso_memoria(paquete_memoria, datos_asignar_memoria->pid, bit_confirmacion);
@@ -104,13 +109,19 @@ void asignar_particiones_dinamicas(t_asignar_memoria* datos_asignar_memoria){
 void dividir_particion(Particion* particion, uint32_t tamanio_proceso) {
     uint32_t espacio_restante = particion->tamanio - tamanio_proceso;
     particion->tamanio = tamanio_proceso;
+    particion->libre = false;
+    particion->limite = particion->base + tamanio_proceso - 1;
 
     Particion* nueva_particion_libre = malloc(sizeof(Particion));
     nueva_particion_libre->tamanio = espacio_restante;
     nueva_particion_libre->libre = true;
     nueva_particion_libre->pid = 0;
+    nueva_particion_libre->base = particion->base + tamanio_proceso;
+    nueva_particion_libre->limite = nueva_particion_libre->base + espacio_restante - 1;
 
     list_add(lista_particiones, nueva_particion_libre);
+    log_info(memoria_logger, "Partición dividida: base=%u, limite=%u (original), base=%u, limite=%u (nueva)",
+             particion->base, particion->limite, nueva_particion_libre->base, nueva_particion_libre->limite);
 }
 
 Particion* evaluarParticion(int tamanio){
@@ -118,10 +129,15 @@ Particion* evaluarParticion(int tamanio){
 
     if (strcmp(valores_config_memoria->algoritmo_busqueda, "FIRST") == 0) {
         particion_asignada = algoritmo_first_fit(tamanio);
+        return particion_asignada;
+
     } else if (strcmp(valores_config_memoria->algoritmo_busqueda, "BEST") == 0) {
         particion_asignada = algoritmo_best_fit(tamanio);
+        return particion_asignada;
+        
     } else if (strcmp(valores_config_memoria->algoritmo_busqueda, "WORST") == 0) {
         particion_asignada = algoritmo_worst_fit(tamanio);
+        return particion_asignada;
     }
 
     return particion_asignada;
@@ -130,7 +146,9 @@ Particion* evaluarParticion(int tamanio){
 Particion* algoritmo_first_fit(uint32_t tamanio_proceso) {
     for (int i = 0; i < list_size(lista_particiones); i++) {
         Particion* particion = list_get(lista_particiones, i);
+        log_info(memoria_logger, "Partición %d - Libre: %d, Tamaño: %u\n,Base: %u\n,Limite: %u\n ", i, particion->libre, particion->tamanio, particion->base, particion->limite);
         if (particion->libre && particion->tamanio >= tamanio_proceso) {
+            log_info(memoria_logger, "Retorna Partición -> Base:%d y Limite:%d " ,particion->base,particion->limite);
             return particion;
         }
     }
@@ -244,7 +262,7 @@ void crear_hilo(t_paquete* paquete_kernel){
     nuevo_contexto->pid = datos_hilo->PID;
     nuevo_contexto->tid = datos_hilo->TID;
 
-    Particion* particion = buscar_particion_por_pid(datos_hilo->TID);
+    Particion* particion = buscar_particion_por_pid(datos_hilo->PID);
 
     nuevo_contexto->base = particion->base;
     nuevo_contexto->limite = particion->limite;

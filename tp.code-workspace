@@ -31,7 +31,8 @@
       "utility": "c",
       "string": "c",
       "functional": "c",
-      "cstdlib": "c"
+      "cstdlib": "c",
+      "random": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
   }

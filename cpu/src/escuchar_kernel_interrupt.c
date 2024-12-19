@@ -22,5 +22,6 @@ void escuchar_kernel_interrupt(){
 			log_warning(cpu_logger, "Operacion desconocida de KERNEL-Interrupt");
 			break;
 		}
+		
 	}
 }

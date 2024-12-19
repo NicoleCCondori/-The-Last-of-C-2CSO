@@ -3,9 +3,11 @@
 t_log* kernel_logger;
 t_log* kernel_logs_obligatorios;
 t_config_kernel* valores_config_kernel;
+
 int fd_cpu_dispatch;
 int fd_cpu_interrupt;
 int fd_memoria;
+
 char* archivo_pseudocodigo_main;
 int tamanio_proceso_main;
 
@@ -17,7 +19,6 @@ pthread_t hilo_memoria;
 
 t_queue* cola_new; //Tiene PCBs
 t_queue* cola_exec; //Tiene TCBs
-//t_queue* cola_blocked;
 
 t_list* lista_ready; //Tiene TCBs
 t_list* lista_blocked; //me va ayudar a buscar en toda la lista
@@ -28,10 +29,9 @@ t_list* lista_tcbs; //Va a estar compuesto por TCBs
 //semaforos
 sem_t sem_binario_memoria;
 sem_t sem_mutex_cola_ready;
+
 sem_t mutex;
 sem_t sem_plani_largo_plazo;
-
-
 sem_t TCBaPlanificar;
 
 uint32_t pid=0;
@@ -41,6 +41,7 @@ void inicializar_kernel(){
 
     sem_init(&mutex, 0, 1);
     sem_init(&sem_plani_largo_plazo, 0, 1);
+    sem_init(&TCBaPlanificar, 0, 0);
 
     kernel_logger = iniciar_logger(".//kernel.log", "log_KERNEL");
    
@@ -48,11 +49,15 @@ void inicializar_kernel(){
     
     configurar_kernel();
 
+    //Definimos las listas
     lista_procesos = list_create();
     lista_tcbs = list_create();
     lista_ready = list_create();
     lista_blocked = list_create();
     lista_exit = list_create();
+    //definimos las colas
+    cola_new = queue_create();
+    cola_exec = queue_create();
 
 }
 
@@ -70,9 +75,6 @@ void configurar_kernel() {
     valores_config_kernel->quantum = config_get_string_value (valores_config_kernel->config , "QUANTUM");
     valores_config_kernel->log_level = config_get_string_value(valores_config_kernel->config, "LOG_LEVEL");
 
-	//valores_config_kernel = config;
-
-	//free(config);
 }
 
 //Revisar mas adelante
@@ -130,7 +132,9 @@ int buscar_hilo_mayorNroPrioridad(){
 }
 
 TCB* buscar_hilo_menorNro_prioridad(){
+
     TCB* hiloMenorNroPrioridad = list_get(lista_ready,0);
+    
     for(int i=1; i< list_size(lista_ready); i++){
         TCB* hiloMuchoMenor = list_get(lista_ready,i);
         if(hiloMuchoMenor->prioridad < hiloMenorNroPrioridad->prioridad){ 
@@ -158,32 +162,10 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
     t_paquete* paquete_asignar_memoria = crear_paquete(ASIGNAR_MEMORIA);
     serializar_asignar_memoria(paquete_asignar_memoria, pid, tam_proceso);
     enviar_paquete(paquete_asignar_memoria, fd_memoria);
-    eliminar_paquete(paquete_asignar_memoria);
-
+    
     log_info(kernel_logger,"Enviamos a memoria pid y tam_proceso\n");
 
-    // Espera a que el semáforo binario sea liberado por el emisor
-    //sem_wait(&semaforo_binario);  // Bloquea hasta que el semáforo esté liberado
-    //log_info(kernel_logger,"despues del semaforo bin\n");
-	//recv(fd_memoria, &result, sizeof(int32_t), 0);
-    //int bytes_recibidos = recv(fd_memoria, &result, sizeof(int32_t), 0);
-
-    //if (bytes_recibidos > 0) {    
-    //    log_info(kernel_logger,"Recibio de memoria: %d\n",result);
-    //}
-    //else{ log_error(kernel_logger,"No recibio nada de memoria");}
-    //int result = recibir_mensaje(fd_memoria);
-    //result = 1;
-
-	//if (sem_wait(&semaforo_binario) == 0){ // 1 ok ; 0 es no ok
-
-    //destruir_buffer_paquete(paquete_asignar_memoria);
-/* No nos olvidamos de liberar la memoria que ya no usaremos
-    free(a_enviar);
-    free(paquete->buffer->stream);
-    free(paquete->buffer);
-    free(paquete);
-*/
+    eliminar_paquete(paquete_asignar_memoria);
 }
 
 //CREACION DE HILO
@@ -197,10 +179,11 @@ void crear_hilo(uint32_t pid_confirmado){
             log_info(kernel_logger, "No encontro el proceso_agregar_tidM\n");
         }
 
-        log_info(kernel_logger,"el tid es: %u",proceso_agregar_tidM->tid_contador);
+        log_info(kernel_logger,"El tid es: %u",proceso_agregar_tidM->tid_contador);
         
         uint32_t tid_main = proceso_agregar_tidM->tid_contador;
-        uint32_t* tid_copia = malloc(sizeof(uint32_t));
+        
+        uint32_t* tid_copia = malloc(sizeof(uint32_t));//se libera en finalizar el proceso junto con la lista tid
 	    *tid_copia = tid_main;
 
         if(proceso_agregar_tidM!= NULL){
@@ -209,33 +192,22 @@ void crear_hilo(uint32_t pid_confirmado){
         }
         //2) Sacamos el pcb de la cola NEW, queue_pop retorna un valor
         PCB* pcb_fuera_new = queue_pop(cola_new); 
-        if(pcb_fuera_new != NULL){
-           printf("El proceso que salió de la cola NEW para ir a READY es %d\n",pcb_fuera_new->pid);  
+        if(pcb_fuera_new != NULL){ 
+           log_info(kernel_logger,"El proceso que salió de la cola NEW para ir a READY es %d",pcb_fuera_new->pid);
         } 
         
         //CREACION DE HILO MAIN
         log_info(kernel_logger, "Envio datos tid %u, prioridad %u, pid %u, path",  pcb_fuera_new->tid_contador, pcb_fuera_new->prioridad_main,pcb_fuera_new->pid);
         TCB* hilo_main = iniciar_hilo(pcb_fuera_new->tid_contador, pcb_fuera_new->prioridad_main,pcb_fuera_new->pid, pcb_fuera_new->path_main);
 
-        //informar a memoria
-        printf("Enviamos el hilo a memoria\n");
+        //informar a memoria el HILO A CREAR
+        log_info(kernel_logger,"Enviamos el hilo a memoria");
         list_add(lista_tcbs, hilo_main);//Meterlo en la lista de TCBs general
         enviar_a_memoria(fd_memoria,hilo_main);
-        //
-        //sem_wait(&semaforo_binario);
-
-        //Agregar el TCB tmb en la lista_ready va a ayudar para los algoritmos de corto plazo
-        //Pensar en la idea de usar semáforos
-        //list_add(lista_ready,hilo_main);
-        //sem_post(&TCBaPlanificar);
-        //planificador_corto_plazo(hilo_main);
-        //planificador_corto_plazo();
-        //mandar_hilo_a_cola_ready(hilo_main);
-        //queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
+        //ESPERAMOS QUE MEMORIA NOS CONFIEME SI PUDO CREAR EL HILO
         
         free(proceso_agregar_tidM);
         //free(pcb_fuera_new);
-        //free(tid_copia);
 }
 
 void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
@@ -389,6 +361,7 @@ void* finalizar_proceso(PCB* pcb_afuera)
 
     return NULL;
 }
+
 char* informar_a_memoria_fin_proceso(int fd_memoria,uint32_t pid){
     t_paquete* paquete_memoria_fp = crear_paquete(FINALIZAR_PROCESO);
     agregar_buffer_Uint32(paquete_memoria_fp->buffer, pid);
@@ -398,6 +371,7 @@ char* informar_a_memoria_fin_proceso(int fd_memoria,uint32_t pid){
     char* mensaje = recibir_mensajeV2(fd_memoria);
     return mensaje;
 }
+
 //FINALIZACION DE HILO
 void finalizar_hilo(TCB* hilo)
 {
@@ -480,4 +454,34 @@ void desbloquear_hilos_por_tid(TCB* hilo){
             i--; //se decrementa ya que elimine un hilo de la lista
         }           
     }
+}
+
+
+void liberar_recursos_kernel(){
+    //liberar los logs y config
+    finalizar_modulo(kernel_logger, kernel_logs_obligatorios,valores_config_kernel->config);
+    free(valores_config_kernel);
+
+    //finalizar las conexiones
+    if (fd_memoria >= 0) close(fd_memoria);
+    if (fd_cpu_dispatch >= 0) close(fd_cpu_dispatch);
+    if (fd_cpu_interrupt>= 0) close(fd_cpu_interrupt);
+    
+    //liberar semaforos
+    sem_destroy(&mutex);
+    sem_destroy(&sem_plani_largo_plazo);
+    sem_destroy(&TCBaPlanificar);
+
+    //destruir listas
+    /*list_destroy_and_destroy_elements(lista_blocked);
+    list_destroy_and_destroy_elements(lista_exit);
+    list_destroy_and_destroy_elements(lista_procesos);
+    list_destroy_and_destroy_elements(lista_ready);
+    list_destroy_and_destroy_elements(lista_tcbs);
+    */
+    //destruir cola
+    /*queue_destroy_and_destroy_elements(cola_exec);
+    queue_destroy_and_destroy_elements(cola_new);
+    */
+    log_info(kernel_logger,"Todos los recursos de kernel han sido liberados");
 }

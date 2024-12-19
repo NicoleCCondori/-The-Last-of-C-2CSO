@@ -242,6 +242,7 @@ void kernel_escucha_cpu_dispatch(){
 				log_warning(kernel_logger, "Operacion desconocida de CPU-Dispatch\n");
 				break;
 		}
+		eliminar_paquete(datos_de_cpu);
 	
 	}
 	//close(fd_cpu_dispatch); //liberar_conexion(fd_cpu_dispatch);

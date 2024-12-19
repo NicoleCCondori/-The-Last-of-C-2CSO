@@ -1,7 +1,7 @@
 #ifndef CPU_ESCUCHA_MEMORIA_H_
 #define CPU_ESCUCHA_MEMORIA_H_
 
-#include <utils/serializar.h>
+#include <c_conexiones.h>
 
 
 void cpu_escucha_memoria();

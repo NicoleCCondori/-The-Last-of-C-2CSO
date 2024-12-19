@@ -69,7 +69,7 @@ extern int tamanio_memoria;
 extern t_list* lista_particiones;
 extern t_list* lista_contextos;
 
-void inicializar_memoria();
+int inicializar_memoria();
 void configurar_memoria();
 void configurar_particiones();
 
@@ -80,4 +80,6 @@ void conectar_kernel();
 void memoria_escucha_FS();
 void escuchar_cpu();
 void escuchar_kernel();
+
+void liberar_recursos();
 #endif

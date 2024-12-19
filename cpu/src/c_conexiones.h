@@ -77,29 +77,28 @@ void configurar_cpu();
 void conectar_kernel_dispatch();
 void conectar_kernel_interrupt();
 void conectar_memoria();
+void empezar_ciclo_de_instruccion(t_contextoEjecucion* contexto);
+
+void* ciclo_de_instruccion(void* arg);
 
 void cpu_escucha_memoria();
 void escuchar_kernel_dispatch();
 void escuchar_kernel_interrupt();
 
 //CICLO DE INSTRUCCIONES
-void ciclo_de_instruccion(t_contextoEjecucion* contexto);
-void fetch(uint32_t tidHilo, uint32_t pc);
-t_instruccion* decode(char* instruccion);
+
 void execute(t_instruccion* instruccion, RegistrosCPU* registros,uint32_t *pc, uint32_t tid);
 void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch);
 
 //INTERRUPCIONES
-void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucion* contexto);
 void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion);
 
 
 //PETICIONES A MEMORIA
 void inicializar_particion_de_memoria(uint32_t base, uint32_t limite);
-//int enviar_pc_a_memoria(int fd_memoria,uint32_t PC,uint32_t TID);
 void actualizar_contexto_de_ejecucion(int fd_memoria,PCB* PCB);
 uint32_t MMU(uint32_t direccion_logica);
-int enviar_pc_a_memoria(uint32_t PC,uint32_t TID);
+int enviar_pc_a_memoria(uint32_t PC,uint32_t TID, uint32_t PID);
 
 //PETICIONES A KERNEL
 void recibir_respuesta_kernel(int fd_kernel_interrupt);

@@ -10,11 +10,6 @@ void kernel_escucha_memoria(){
 		log_info(kernel_logger, "op code paquete: %u",  paquete_kernel->codigo_operacion);
 		switch (paquete_kernel->codigo_operacion)
 		{
-			case MENSAJE:
-				break;
-			case PAQUETE:
-				log_info(kernel_logger,"enum paquete");
-				break;
 			case CONFIRMAR_ESPACIO_PROCESO:
 				t_asigno_memoria* datos_proceso_memoria = deserializar_proceso_memoria(paquete_kernel);
 			
@@ -22,6 +17,7 @@ void kernel_escucha_memoria(){
 
 				if(datos_proceso_memoria==NULL){
 					log_error(kernel_logger,"ERROR al deserializar el paquete");
+					
 					break;
 				}
 
@@ -35,11 +31,9 @@ void kernel_escucha_memoria(){
 				} else {
 					log_warning(kernel_logger,"No hay espacio en memoria\n");
 					sem_post(&sem_plani_largo_plazo);
-					//sem_wait(&sem_binario_memoria);
 					//Se mantiene en el estado NEW
 				}
 				log_info(kernel_logger,"estoy entrando aca depues de que mamoria me da un ok de contexto");
-				eliminar_paquete(paquete_kernel);
 				// Señalar al receptor que los datos están disponibles
 				sem_post(&semaforo_binario);  // Libera el semáforo binario
 				break;
@@ -58,14 +52,13 @@ void kernel_escucha_memoria(){
 					if(datos_hilo_memoria->bit_confirmacion == 1){
 						log_info(kernel_logger,"El pid es: %u y el tid es: %u", datos_hilo_memoria->pid, datos_hilo_memoria->tid);
 						confirmacion_crear_hilo(datos_hilo_memoria->pid, datos_hilo_memoria->tid);
-						sem_post(&TCBaPlanificar);
+						
         				//planificador_corto_plazo(hilo_main);
+						sem_post(&TCBaPlanificar);
 						planificador_corto_plazo();
 					}else{
 						log_warning(kernel_logger,"No se pudo crear el hilo\n");
 					}
-					//sem_post(&sem_binario_memoria);
-					eliminar_paquete(paquete_kernel);
 					
 				break;
 			case -1:
@@ -75,5 +68,6 @@ void kernel_escucha_memoria(){
 				log_warning(kernel_logger, "Operacion desconocida de MEMORIA");
 				break;
 		}
+		eliminar_paquete(paquete_kernel);
 	}
 }

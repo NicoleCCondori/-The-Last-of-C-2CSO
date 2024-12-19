@@ -41,14 +41,6 @@ void agregar_buffer_Uint32(t_buffer* buffer, uint32_t entero){
     buffer->offset += sizeof(uint32_t);
 }
 
-/*void agregar_buffer_Uint8(t_buffer* buffer, uint8_t entero)
-{
-    buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint8_t));
-    buffer->size += sizeof(uint8_t);
-    memcpy(buffer->stream + buffer->offset, &entero, sizeof(uint8_t));
-    buffer->offset += sizeof(uint8_t);
-}*/
-
 void agregar_buffer_string(t_buffer* buffer, char* args){
     uint32_t tamanio = strlen(args) +1;
     agregar_buffer_Uint32(buffer, tamanio);
@@ -64,14 +56,21 @@ void serializar_enviar_contexto_cpu(t_paquete* paquete, t_contextoEjecucion* con
         printf("Error: paquete o contexto son NULL en serializar_enviar_contexto\n");
         return;
     }
-
-    // Calcular el tamaño total necesario para los datos serializados
-    size_t size_total = sizeof(uint32_t)   // TID
-                        + sizeof(int32_t)       // PC
+/*
+    size_t size_total = sizeof(uint32_t) *2  // TID
+                        + sizeof(uint32_t)       // PC
                         + sizeof(uint32_t) * 2 // base y limite
                         + sizeof(RegistrosCPU); // RegistrosCPU
+                        */
+                        size_t size_total = sizeof(uint32_t)   // TID
+                            + sizeof(uint32_t) // PC
+                            + sizeof(uint32_t) // base
+                            + sizeof(uint32_t) // limite
+                            + sizeof(uint32_t) // pid
+                            + sizeof(RegistrosCPU); // RegistrosCPU
 
-    // Asignar memoria para el buffer del paquete
+
+
     paquete->buffer = malloc(sizeof(t_buffer));
     if (paquete->buffer == NULL) {
         printf("Error: No se pudo asignar memoria para el buffer del paquete\n");
@@ -95,7 +94,7 @@ void serializar_enviar_contexto_cpu(t_paquete* paquete, t_contextoEjecucion* con
     stream += sizeof(uint32_t);
 
     // Serializar PC
-    memcpy(stream, &(contexto->PC), sizeof(int32_t));
+    memcpy(stream, &(contexto->PC), sizeof(uint32_t));
     stream += sizeof(int32_t);
 
     // Serializar base
@@ -106,8 +105,17 @@ void serializar_enviar_contexto_cpu(t_paquete* paquete, t_contextoEjecucion* con
     memcpy(stream, &(contexto->limite), sizeof(uint32_t));
     stream += sizeof(uint32_t);
 
+    memcpy(stream, &(contexto->pid), sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
     // Serializar RegistrosCPU (aquí suponemos que la estructura RegistrosCPU se serializa directamente)
-    memcpy(stream, contexto->RegistrosCPU, sizeof(RegistrosCPU));
+    /*memcpy(stream, contexto->RegistrosCPU, sizeof(RegistrosCPU));
+    stream += sizeof(RegistrosCPU);*/
+        if (contexto->RegistrosCPU != NULL) {
+        memcpy(stream, contexto->RegistrosCPU, sizeof(RegistrosCPU));
+    } else {
+        memset(stream, 0, sizeof(RegistrosCPU)); // Evitar datos basura
+    }
     stream += sizeof(RegistrosCPU);
 }
 char* deserializar_enviar_instruccion(t_paquete* paquete){
@@ -133,7 +141,7 @@ char* deserializar_enviar_instruccion(t_paquete* paquete){
 
     memcpy(instruccion, stream, longitud_instruccion);
 
-    printf("Instrucción deserializada correctamente: %s", instruccion);
+    printf("Instrucción deserializada correctamente: %s \n", instruccion);
 
     return instruccion;
 }
@@ -167,7 +175,7 @@ void serializar_enviar_instruccion(t_paquete* paquete_enviar_instruccion, char* 
     // Copiar la instrucción en sí
     memcpy(stream, instruccion, longitud_instruccion);
 
-    printf("Instrucción serializada correctamente: %s", instruccion);
+    printf("Instrucción serializada correctamente: %s \n", instruccion);
 }
 
 
@@ -204,54 +212,31 @@ t_contextoEjecucion* deserializar_enviar_contexto_cpu(t_paquete* paquete) {
     // Deserializar limite
     memcpy(&(contexto->limite), stream, sizeof(uint32_t));
     stream += sizeof(uint32_t);
+    
+    memcpy(&(contexto->pid), stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
 
     // Deserializar RegistrosCPU (suponiendo que es una estructura)
-    contexto->RegistrosCPU = malloc(sizeof(RegistrosCPU));
+        contexto->RegistrosCPU = malloc(sizeof(RegistrosCPU));
+    if (contexto->RegistrosCPU == NULL) {
+        printf("Error: No se pudo asignar memoria para RegistrosCPU\n");
+        free(contexto);
+        return NULL;
+    }
+    memcpy(contexto->RegistrosCPU, stream, sizeof(RegistrosCPU));
+    stream += sizeof(RegistrosCPU);
+    /*contexto->RegistrosCPU = malloc(sizeof(RegistrosCPU));
     if (contexto->RegistrosCPU == NULL) {
         printf("Error: No se pudo asignar memoria para RegistrosCPU\n");
         free(contexto); // Liberamos el contexto previamente asignado
         return NULL;
     }
     memcpy(contexto->RegistrosCPU, stream, sizeof(RegistrosCPU));
-    stream += sizeof(RegistrosCPU);
+    stream += sizeof(RegistrosCPU);*/
 
     return contexto;
 }
-/*
-t_contextoEjecucion* leer_contexto_de_memoria(t_buffer* buffer){
 
-    t_contextoEjecucion* contexto = malloc(sizeof(t_contextoEjecucion));
-    void* stream=buffer->stream;
-    contexto->RegistrosCPU = malloc(sizeof(RegistrosCPU));
-
-    memcpy(&contexto->RegistrosCPU->AX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->BX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->CX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->DX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->EX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->FX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->GX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->RegistrosCPU->HX,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->PC,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->base,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->limite,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-    memcpy(&contexto->TID,stream,sizeof(uint32_t));
-    stream+=sizeof(uint32_t);
-
-    return contexto;
-}
-*/
 uint32_t leer_buffer_int(t_buffer* buffer)
 {
     int entero;
@@ -316,7 +301,7 @@ void enviar_paquete(t_paquete *paquete, int socket_cliente){
     if (resultado == -1) {
         printf("Error al enviar el paquete:");
         free(a_enviar);
-        return -1;  // Error
+        return;  // Error
     }
 
 	free(a_enviar);
@@ -422,14 +407,32 @@ t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete){
     return enviar_contexto;
 }
 
-t_obtener_instruccion* deserializar_obtener_instruccion(t_paquete* paquete){
+t_obtener_instruccion* deserializar_obtener_instruccion(t_paquete* paquete) {
+    // Reservar memoria para la estructura de salida
     t_obtener_instruccion* enviar_contexto = malloc(sizeof(t_obtener_instruccion));
+    if (enviar_contexto == NULL) {
+        printf("Error: No se pudo asignar memoria para deserializar el paquete\n");
+        return NULL;
+    }
 
-    enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
-    enviar_contexto->PC = leer_buffer_Uint32(paquete->buffer);
-    
+    // Definir el offset para leer los valores del buffer
+    size_t offset = 0;
+
+    // Leer el valor de PC desde el buffer usando memcpy
+    memcpy(&enviar_contexto->PC, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);  // Aumentamos el offset por el tamaño de uint32_t
+
+    // Leer el valor de TID desde el buffer usando memcpy
+    memcpy(&enviar_contexto->TID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);  // Aumentamos el offset por el tamaño de uint32_t
+
+    // Leer el valor de PID desde el buffer usando memcpy
+    memcpy(&enviar_contexto->PID, paquete->buffer->stream + offset, sizeof(uint32_t));
+
     return enviar_contexto;
 }
+
+
 
 t_actualizar_contexto* deserializar_actualizar_contexto(t_paquete* paquete){
     t_actualizar_contexto* enviar_contexto = malloc(sizeof(t_actualizar_contexto));
@@ -494,6 +497,43 @@ void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, 
     memcpy(stream, &tid, sizeof(uint32_t));   // Copiar TID
 }
 
+void serializar_obtener_instruccion(t_paquete* paquete, uint32_t pc, uint32_t tid, uint32_t pid)
+{
+    if (paquete == NULL) {
+        printf("Error: paquete es NULL en serializar_obtener_instruccion\n");
+        return;
+    }
+
+    // Asignar memoria para el buffer
+    paquete->buffer = malloc(sizeof(t_buffer));
+    if (paquete->buffer == NULL) {
+        printf("Error: No se pudo asignar memoria para el buffer\n");
+        return;
+    }
+
+    // Asignar memoria para el stream dentro del buffer
+    paquete->buffer->size = 3 * sizeof(uint32_t);  // Espacio para PC, TID, PID
+    paquete->buffer->stream = malloc(paquete->buffer->size);
+    if (paquete->buffer->stream == NULL) {
+        printf("Error: No se pudo asignar memoria para el stream\n");
+        free(paquete->buffer);  // Liberar el buffer si falla la asignación del stream
+        return;
+    }
+
+    // Usamos desplazamiento para saber en qué parte del buffer estamos
+    size_t offset = 0;
+
+    // Copiar los valores en el buffer usando el desplazamiento
+    memcpy(paquete->buffer->stream + offset, &pc, sizeof(uint32_t));  // Copiar PC
+    offset += sizeof(uint32_t);
+
+    memcpy(paquete->buffer->stream + offset, &tid, sizeof(uint32_t)); // Copiar TID
+    offset += sizeof(uint32_t);
+
+    memcpy(paquete->buffer->stream + offset, &pid, sizeof(uint32_t)); // Copiar PID
+}
+
+
  void* serializar_asignar_memoria(t_paquete* paquete, uint32_t pid, int tam_proceso){
       
     if (paquete == NULL) {
@@ -510,6 +550,8 @@ void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, 
     memcpy(stream, &pid, sizeof(uint32_t));
     stream += sizeof(uint32_t);
     memcpy(stream, &tam_proceso, sizeof(int));
+
+    return NULL;
 }
 
 t_asignar_memoria* deserializar_asignar_memoria(t_paquete* paquete){

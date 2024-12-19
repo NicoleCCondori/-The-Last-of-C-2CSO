@@ -9,6 +9,7 @@ typedef struct {
 	uint32_t PC;
     uint32_t base;
     uint32_t limite;
+    uint32_t pid;
 } t_contextoEjecucion;
 
 t_paquete* crear_paquete(op_code codigo_op);
@@ -44,8 +45,9 @@ typedef struct {
 } t_enviar_contexto;
 
 typedef struct {
-    uint32_t TID;
     uint32_t PC;
+    uint32_t TID;
+    uint32_t PID;
 } t_obtener_instruccion;
 
 typedef struct{
@@ -179,4 +181,6 @@ t_asigno_memoria* deserializar_proceso_memoria(t_paquete* paquete);
 void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion,uint32_t pid,uint32_t tid);
 t_creacion_hilo*  deserializar_creacion_hilo_memoria(t_paquete* paquete_kernel_hilo);
 char* deserializar_enviar_instruccion(t_paquete* paquete);
+void serializar_obtener_instruccion(t_paquete* paquete, uint32_t pc, uint32_t tid, uint32_t pid);
+
 #endif

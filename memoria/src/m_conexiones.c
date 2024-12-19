@@ -33,7 +33,7 @@ int tamanio_memoria;
 t_list* lista_particiones;
 t_list* lista_contextos;
 
-void inicializar_memoria(){
+int inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");
     memoria_log_obligatorios = iniciar_logger(".//memoria_logs_olbigatorios.log","logs_obligatorios_memoria");
 
@@ -43,16 +43,17 @@ void inicializar_memoria(){
 	memoria = malloc(tamanio_memoria);
     if (!memoria) {
         log_error(memoria_logger, "Error al asignar memoria principal");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     lista_contextos = list_create();
     if (!lista_contextos) {
         log_error(memoria_logger, "Error al crear la lista de contextos de ejecución");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     configurar_particiones();
+    return 0;
 }
 
 void configurar_memoria(){
@@ -85,7 +86,7 @@ void configurar_particiones() {
                 continue;
             }
             nueva_particion->base = inicio;
-            nueva_particion->limite = atoi(*particion) - 1;
+            nueva_particion->limite = inicio + atoi(*particion) - 1;
             nueva_particion->tamanio = atoi(*particion);
             nueva_particion->libre = true;
             list_add(lista_particiones, nueva_particion);
@@ -150,4 +151,26 @@ void conectar_kernel(){
 		pthread_create(&hilo_kernel,NULL,(void*)escuchar_kernel,NULL);
 		pthread_detach(hilo_kernel);
 	}
+}
+
+void liberar_recursos(){
+    finalizar_modulo(memoria_logger,memoria_log_obligatorios,valores_config_memoria->config);
+    
+    //finalizar las conexiones
+    if (fd_memoria >= 0) close(fd_memoria);
+    if (fd_FS >= 0) close(fd_FS);
+    if (fd_kernel >= 0) close(fd_kernel);
+    if (fd_cpu >= 0) close(fd_cpu);
+    
+    if (valores_config_memoria) free(valores_config_memoria);
+    if (memoria) free(memoria);
+    if (lista_particiones) list_destroy_and_destroy_elements(lista_particiones, free);
+    if (lista_contextos) list_destroy_and_destroy_elements(lista_contextos, free);
+
+    sem_destroy(&semaforo_binario);
+    pthread_mutex_destroy(&mutex_lista_particiones);
+    pthread_mutex_destroy(&mutex_memoria);
+    pthread_mutex_destroy(&mutex_contextos);
+
+    log_info(memoria_logger, "Todos los recursos han sido liberados correctamente.");
 }

@@ -9,7 +9,11 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    inicializar_memoria();
+    if (inicializar_memoria() != 0) {
+        log_error(memoria_logger, "Fallo al inicializar memoria");
+        liberar_recursos();
+        return -1;
+    }
 
     pthread_mutex_init(&mutex_lista_particiones, NULL);
     pthread_mutex_init(&mutex_memoria, NULL);
@@ -19,35 +23,10 @@ int main(int argc, char* argv[]) {
     log_info(memoria_logger, "MEMORIA lista para recibir clientes");
 
     conectar_con_FS();
-    
     conectar_cpu();
-
     conectar_kernel();
 
-    
-
-    //liberar los logs y config
-
-    finalizar_modulo(memoria_logger,memoria_log_obligatorios,valores_config_memoria->config);
-    
-    //para evitar SF
-    if (valores_config_memoria) free(valores_config_memoria);
-    if (memoria) free(memoria);
-    if (lista_particiones) {
-        list_destroy_and_destroy_elements(lista_particiones, free);
-    }
-    if (lista_contextos) {
-        list_destroy_and_destroy_elements(lista_contextos, free);
-    }
-
-    //finalizar las conexiones
-    close(fd_memoria);
-    close(fd_FS);
-    close(fd_kernel);
-    close(fd_cpu);
-    
-    list_destroy_and_destroy_elements(lista_particiones, free);
-    free(memoria);
+    liberar_recursos();
 
     return 0;
 }

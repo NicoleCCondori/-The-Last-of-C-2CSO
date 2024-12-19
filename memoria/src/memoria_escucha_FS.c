@@ -2,7 +2,6 @@
 
 // no era cliente?
 void memoria_escucha_FS(){
-    //atender los msjs de FS , otra funcion?
 
     bool control_key = 1;
     while (control_key){
