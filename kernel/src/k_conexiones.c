@@ -150,11 +150,12 @@ void enviar_a_memoria(int fd_memoria,TCB* hilo){
     crear_hilo->prioridad= hilo->prioridad;
     crear_hilo->path = strdup(hilo->path);
     serializar_hilo_ready(paquete_hilo, crear_hilo);*/
-    
+    log_info(kernel_logger,"el pid a enviar a memoria es: %u , el tid: %u y prioridad: %d ",hilo->pid,hilo->tid,hilo->prioridad);
     serializar_hilo_ready(paquete_hilo, hilo->pid, hilo->tid, hilo->prioridad, hilo->path);
-    
     enviar_paquete(paquete_hilo, fd_memoria);
+    log_info(kernel_logger, "se envio el paquete");
     eliminar_paquete(paquete_hilo);
+    log_info(kernel_logger, "se elimina el paquete");
 }
 
 //Mandamos mensaje a memoria para saber si hay espacio disponible
@@ -215,8 +216,8 @@ void crear_hilo(uint32_t pid_confirmado){
        }
         //2do) Sacamos el pcb de la cola NEW
         //los queue_pop retornan un valor
-        PCB* pcb_fuera_new = malloc(sizeof(PCB));
-        pcb_fuera_new = queue_pop(cola_new); 
+        //PCB* pcb_fuera_new = malloc(sizeof(PCB));
+        PCB* pcb_fuera_new = queue_pop(cola_new); 
         if(pcb_fuera_new != NULL){
            printf("El proceso que salió de la cola NEW para ir a READY es %d\n",pcb_fuera_new->pid);  
         } 
@@ -229,11 +230,11 @@ void crear_hilo(uint32_t pid_confirmado){
 
         enviar_a_memoria(fd_memoria,hilo_main);
         //
-        sem_wait(&semaforo_binario);
+        //sem_wait(&semaforo_binario);
         //int result;
 	    //recv(fd_memoria, &result, sizeof(int32_t), 0);
         //if (result == 1){
-            log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
+        // log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
         //}
 
         //Meterlo en la lista de TCBs general
@@ -241,7 +242,7 @@ void crear_hilo(uint32_t pid_confirmado){
 
         //Agregar el TCB tmb en la lista_ready va a ayudar para los algoritmos de corto plazo
         //Pensar en la idea de usar semáforos
-        list_add(lista_ready,hilo_main);
+        //list_add(lista_ready,hilo_main);
         //sem_post(&TCBaPlanificar);
         //planificador_corto_plazo(hilo_main);
         //planificador_corto_plazo();
@@ -250,9 +251,16 @@ void crear_hilo(uint32_t pid_confirmado){
 
         
         free(proceso_agregar_tidM);
-        free(pcb_fuera_new);
+        //free(pcb_fuera_new);
+        //free(tid_copia);
 }
-
+void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
+    TCB* hilo_pasar_a_ready = buscar_tcbs(lista_tcbs,tid_hilo,pid_hilo);
+    if(hilo_pasar_a_ready == NULL ){
+            log_info(kernel_logger, "No encontro el hilo_pasar_a_ready\n");
+    }
+    list_add(lista_ready,hilo_pasar_a_ready);
+}
 //INICIAR_HILO
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
     
@@ -299,9 +307,9 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     
     pid++;
     pcb->pid = pid;
-    pcb->lista_tid = list_create();
+    pcb->lista_tid = list_create(); //LIBERAR MEMORI
     pcb->tid_contador = 0;
-    pcb->mutex = list_create();
+    pcb->mutex = list_create(); //LIBERAR MEMORIA
     //pcb->pc = 0;
     pcb->tam_proceso = tamanio_proceso;
     pcb->estado = NEW;
@@ -323,7 +331,8 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
   
     //liberar pcb_new
     //free(pcb_new);
-
+    //free(pcb->path_main);
+    //free(pcb);
     //liberar hilo_main
  }
 

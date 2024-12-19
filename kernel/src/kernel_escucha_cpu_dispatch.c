@@ -72,7 +72,7 @@ void kernel_escucha_cpu_dispatch(){
 				TCB* tcb_a_bloquear = buscar_tcbs(lista_tcbs,invocadores->tid_inv ,invocadores->pid_inv);
 				TCB* tcb_buscado = buscar_tcbs(lista_tcbs, tid_join,invocadores->pid_inv);
 				if(tcb_buscado == NULL || tcb_buscado->estadoHilo == EXIT){
-					printf("No se encontro o ya FINALIZO el TID: %u del PID: %u \n", tid_join,invocadores->pid_inv);
+					log_info(kernel_logger,"No se encontro o ya FINALIZO el TID: %u del PID: %u \n", tid_join,invocadores->pid_inv);
 					tcb_a_bloquear->estadoHilo = READY;
 					list_add(lista_ready,tcb_a_bloquear);
 				}else{
@@ -90,7 +90,7 @@ void kernel_escucha_cpu_dispatch(){
 				uint32_t tid_cancel = deserializar_thread_join_y_cancel(datos_de_cpu);
 				TCB* tcb_a_exit = buscar_tcbs(lista_tcbs, tid_cancel,invocadores->pid_inv);
 				if(tcb_a_exit == NULL || tcb_a_exit->estadoHilo == EXIT){
-					printf("No se encontro o ya FINALIZO el TID: %u del PID: %u (thread_cancel)\n", tid_cancel,invocadores->pid_inv);
+					log_info(kernel_logger,"No se encontro o ya FINALIZO el TID: %u del PID: %u (thread_cancel)\n", tid_cancel,invocadores->pid_inv);
 					//sigue con su ejecución
 				} else{
 					finalizar_hilo(tcb_a_exit);
@@ -110,7 +110,7 @@ void kernel_escucha_cpu_dispatch(){
 				char* recurso_create = deserializar_mutex(datos_de_cpu);
 				t_mutex* creado = malloc(sizeof(t_mutex));
 				if(creado == NULL){
-					printf("Error al crear el mutex\n");
+					log_error(kernel_logger,"Error al crear el mutex\n");
 				}
 				creado->recurso = recurso_create;
 				creado->tid = -1;  //Acá todavia no se le asigna ningún hilo
@@ -121,7 +121,7 @@ void kernel_escucha_cpu_dispatch(){
 				
 				PCB* pcb_buscadoRC = buscar_proceso(lista_procesos, invocadores->pid_inv);
 				if(pcb_buscadoRC == NULL){
-					printf("No se encontro el PID: %u", invocadores->pid_inv);
+					log_error(kernel_logger,"No se encontro el PID: %u", invocadores->pid_inv);
 				}
 				list_add(pcb_buscadoRC->mutex, creado); //las estructura t_mutex lo agregamos en la lista mutex de cada pcb
 				break;
@@ -136,12 +136,12 @@ void kernel_escucha_cpu_dispatch(){
 				//tmb el tcb para despues ingresarlo a la lista de bloqueados
 				TCB* hilo_block_mutex = buscar_tcbs(lista_tcbs, invocadores->tid_inv, invocadores->pid_inv);
 				if(hilo_block_mutex == NULL){
-					printf("No se encontro el TID: %u del PID:%u\n", invocadores->tid_inv,invocadores->pid_inv);
+					log_error(kernel_logger,"No se encontro el TID: %u del PID:%u\n", invocadores->tid_inv,invocadores->pid_inv);
 				}
 				//1RO debe existir el mutex solicitado
 				t_mutex* lockeado = buscar_mutex(pcb_buscadoRL->mutex, recurso_lock);
 				if(lockeado == NULL){
-					printf("NO EXISTE EL MUTEX\n");
+					log_error(kernel_logger,"NO EXISTE EL MUTEX\n");
 				}
 				// está asignado?
 				if(lockeado->tid == -1){ //2do si no esta tomado -> se lo asigno a dicho hilo
@@ -162,12 +162,12 @@ void kernel_escucha_cpu_dispatch(){
 				char* recurso_unlock = deserializar_mutex(datos_de_cpu);
 				PCB* pcb_buscadoRU = buscar_proceso(lista_procesos, invocadores->pid_inv);
 				if(pcb_buscadoRU == NULL){
-					printf("No se encontro el PID: %u \n", invocadores->pid_inv);
+					log_error(kernel_logger,"No se encontro el PID: %u \n", invocadores->pid_inv);
 				}
 				//1RO verifico si existe el mutex solicitado
 				t_mutex* unlock = buscar_mutex(pcb_buscadoRU->mutex, recurso_unlock);
 				if(unlock == NULL){
-					printf("NO EXISTE EL MUTEX\n");
+					log_error(kernel_logger,"NO EXISTE EL MUTEX\n");
 				}
 				if(unlock->tid == invocadores->tid_inv){
 
@@ -181,7 +181,7 @@ void kernel_escucha_cpu_dispatch(){
 							unlock->tid = hilo_a_ready->tid;
 							list_add(lista_ready, hilo_a_ready);
 						}else{
-							printf("No se encontro el TID: %u del PID:%u\n", tid_cola,invocadores->pid_inv);
+							log_error(kernel_logger,"No se encontro el TID: %u del PID:%u\n", tid_cola,invocadores->pid_inv);
 						}
 					}else{
 						//digo que el mutex ya no tiene un hilo asignado
@@ -203,7 +203,7 @@ void kernel_escucha_cpu_dispatch(){
 				char* resultado = recibir_mensajeV2(fd_memoria);
 				if(strcmp(resultado, "OK")== 0){
 					tcb_bloc_dump->estadoHilo=READY;
-					printf("SE DESBLOQUEO el hilo de dump memory\n");
+					log_info(kernel_logger,"SE DESBLOQUEO el hilo de dump memory\n");
 					list_add(lista_ready,tcb_bloc_dump);
 				}else{
 					finalizar_hilo(tcb_bloc_dump);

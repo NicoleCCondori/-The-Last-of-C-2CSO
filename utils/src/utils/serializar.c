@@ -402,7 +402,7 @@ void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, 
     memcpy(stream, &tid, sizeof(uint32_t));   // Copiar TID
     stream += sizeof(uint32_t);
 
-    memcpy(stream, &path_length, sizeof(size_t));   // Copiar TID
+    memcpy(stream, &prioridad, sizeof(size_t));   // Copiar TID
     stream += sizeof(int);
 
     // Serializar la longitud de la cadena 'path'
@@ -707,4 +707,75 @@ t_asigno_memoria* deserializar_proceso_memoria(t_paquete* paquete) {
 
     // Devolver la estructura deserializada
     return asigno_memoria;
+}
+
+void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion,uint32_t pid,uint32_t tid){
+    int tamanio_buffer = sizeof(uint32_t)*3;  // bit_confirmacion (uint32_t) y pid (uint32_t)
+
+    // Verificar si el buffer está inicializado. Si no, asignar memoria.
+    if (paquete->buffer->stream == NULL) {
+        paquete->buffer->stream = malloc(tamanio_buffer);
+        if (paquete->buffer->stream == NULL) {
+            // Error en la asignación de memoria
+            printf("Error al asignar memoria para el buffer\n");
+            return;
+        }
+    } else {
+        // Si el buffer ya existe, redimensionarlo
+        void* nuevo_stream = realloc(paquete->buffer->stream, tamanio_buffer);
+        if (nuevo_stream == NULL) {
+            // Error en realloc, no modificamos el buffer original
+            printf("Error al redimensionar el buffer con realloc\n");
+            return;
+        }
+        paquete->buffer->stream = nuevo_stream;
+    }
+
+    // Inicializar el desplazamiento dentro del buffer
+    int desplazamiento = 0;
+
+    // Copiar pid al buffer
+    memcpy(paquete->buffer->stream + desplazamiento, &pid, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+     memcpy(paquete->buffer->stream + desplazamiento, &tid, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Copiar bit_confirmacion al buffer
+    memcpy(paquete->buffer->stream + desplazamiento, &bit_confirmacion, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Actualizar el tamaño del buffer
+    paquete->buffer->size = tamanio_buffer;
+
+    // Mensaje de depuración con printf
+    printf("Paquete serializado: bit_confirmacion=%u, pid=%u,tid=%u, tamanio=%d\n",
+             bit_confirmacion, pid, tid, tamanio_buffer);
+}
+
+t_creacion_hilo*  deserializar_creacion_hilo_memoria(t_paquete* paquete){
+     // Verificar que el tamaño del paquete recibido sea suficiente para contener la información
+   
+    // Asignar memoria para la estructura t_asigno_memoria
+    t_creacion_hilo* creacion_hilo = malloc(sizeof(t_creacion_hilo));
+    if (creacion_hilo == NULL) {
+        printf("Error al asignar memoria para t_creacion_hilo\n");
+        return NULL;
+    }
+
+    // Inicializar el desplazamiento para leer los datos del buffer
+    int desplazamiento = 0;
+
+    // Copiar el valor de bit_confirmacion desde el buffer al campo correspondiente en la estructura
+    memcpy(&(creacion_hilo->pid), paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    memcpy(&(creacion_hilo->tid), paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Copiar el valor de pid desde el buffer al campo correspondiente en la estructura
+    memcpy(&(creacion_hilo->bit_confirmacion), paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+
+    // Devolver la estructura deserializada
+    return creacion_hilo;
 }

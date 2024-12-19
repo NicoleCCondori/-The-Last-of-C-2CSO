@@ -5,12 +5,9 @@ void kernel_escucha_memoria(){
     //atender los msjs de memoria
     bool control_key = 1;
     while (control_key){
-		/*op_code cod_op = recibir_operacion(fd_memoria);
-		log_info(kernel_logger, "primer op code: %u",  cod_op);*/
 
 		t_paquete* paquete_kernel = recibir_paquete(fd_memoria);
 		log_info(kernel_logger, "op code paquete: %u",  paquete_kernel->codigo_operacion);
-
 		switch (paquete_kernel->codigo_operacion)
 		{
 			case MENSAJE:
@@ -19,24 +16,9 @@ void kernel_escucha_memoria(){
 				log_info(kernel_logger,"enum paquete");
 				break;
 			case CONFIRMAR_ESPACIO_PROCESO:
-				//t_paquete* paquete_kernel = recibir_paquete(fd_memoria);
-
-				if (paquete_kernel == NULL || paquete_kernel->buffer->size < sizeof(t_asigno_memoria)) {
-				log_error(kernel_logger, "ERROR: El tamaño del paquete recibido es insuficiente o el paquete es nulo");
-				break;
-				}
-
-				printf("Tamaño del paquete recibido: %d\n", paquete_kernel->buffer->size);
-				printf("Contenido del buffer recibido: ");
-				for (int i = 0; i < paquete_kernel->buffer->size; i++) {
-					printf("%02x ", paquete_kernel->buffer->stream);
-				}
-				printf("\n");
-
 				t_asigno_memoria* datos_proceso_memoria = deserializar_proceso_memoria(paquete_kernel);
 			
 				log_info(kernel_logger, "Contenido del bit de confirmacion: %u",  datos_proceso_memoria->bit_confirmacion);
-
 
 				if(datos_proceso_memoria==NULL){
 					log_error(kernel_logger,"ERROR al deserializar el paquete");
@@ -49,13 +31,9 @@ void kernel_escucha_memoria(){
 					crear_hilo(datos_proceso_memoria->pid);
 					sem_post(&sem_plani_largo_plazo);
 
-					sem_post(&TCBaPlanificar);
-        			//planificador_corto_plazo(hilo_main);
-					planificador_corto_plazo();
-					//mandar_hilo_a_cola_ready(hilo_main);
-					//queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
+				
 				} else {
-					printf("No hay espacio en memoria\n");
+					log_warning(kernel_logger,"No hay espacio en memoria\n");
 					sem_post(&sem_plani_largo_plazo);
 					//sem_wait(&sem_binario_memoria);
 					//Se mantiene en el estado NEW
@@ -67,9 +45,29 @@ void kernel_escucha_memoria(){
 				break;
 			
 			case CONFIRMAR_CREACION_HILO:
-					log_info(kernel_logger, "ok de creo el hilo");
-					sem_post(&sem_binario_memoria);
-					printf("No se pudo crear el hilo\n");
+					log_info(kernel_logger, "ok se creo el hilo");
+
+					t_creacion_hilo* datos_hilo_memoria = deserializar_creacion_hilo_memoria(paquete_kernel);
+					log_info(kernel_logger, "Contenido del bit de confirmacion: %u",  datos_proceso_memoria->bit_confirmacion);
+
+
+					if(datos_hilo_memoria==NULL){
+						log_error(kernel_logger,"ERROR al deserializar el paquete creacion del hilo");
+						break;
+					}
+
+					if(datos_hilo_memoria->bit_confirmacion == 1){
+						log_info(kernel_logger,"El pid es: %u y el tid es: %u", datos_hilo_memoria->pid, datos_hilo_memoria->tid);
+						confirmacion_crear_hilo(datos_hilo_memoria->pid, datos_hilo_memoria->tid);
+						sem_post(&TCBaPlanificar);
+        				//planificador_corto_plazo(hilo_main);
+						planificador_corto_plazo();
+					}else{
+						log_warning(kernel_logger,"No se pudo crear el hilo\n");
+					}
+					//sem_post(&sem_binario_memoria);
+					eliminar_paquete(paquete_kernel);
+					
 				break;
 			case -1:
 				log_error(kernel_logger, "Desconexion de MEMORIA");

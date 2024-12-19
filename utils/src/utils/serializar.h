@@ -37,6 +37,7 @@ typedef struct {
     char* path;
 } t_crear_hilo;
 
+
 typedef struct {
     uint32_t PID;
     uint32_t TID;
@@ -136,6 +137,12 @@ typedef struct{
     uint32_t bit_confirmacion;
 }t_asigno_memoria;
 
+typedef struct{
+    uint32_t pid;
+    uint32_t tid;
+    uint32_t bit_confirmacion;
+}t_creacion_hilo;
+
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
 void serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
 void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, int prioridad, const char* path);
@@ -168,4 +175,7 @@ int deserializar_int(t_paquete* paquete);
 void serializar_int(t_paquete* paquete, int numero);
 void serializar_proceso_memoria(t_paquete* paquete, uint32_t pid, uint32_t bit_confirmacion);
 t_asigno_memoria* deserializar_proceso_memoria(t_paquete* paquete);
+
+void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion,uint32_t pid,uint32_t tid);
+t_creacion_hilo*  deserializar_creacion_hilo_memoria(t_paquete* paquete_kernel_hilo);
 #endif

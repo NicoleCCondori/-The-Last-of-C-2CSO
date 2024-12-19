@@ -95,6 +95,8 @@ void crear_hilo(uint32_t pid_confirmado);
 
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path);
 
+void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo);
+
 void destruir_pcb(void* elemento);
 
 void enviar_a_memoria(int fd_memoria,TCB* hilo_main);

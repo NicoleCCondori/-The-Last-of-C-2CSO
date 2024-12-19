@@ -5,7 +5,13 @@ void escuchar_kernel(){
 
     while (1){
 		t_paquete* paquete_kernel = recibir_paquete(fd_kernel);
+        if(!paquete_kernel){
+            log_error(memoria_logger,"ERROR en recibir paquete linea 9 escucha memoria");
+            continue;
+        }
         op_code codigo_operacion = paquete_kernel->codigo_operacion;
+        log_info(memoria_logger, "Me llega el siguiente op code %u", codigo_operacion);
+
 		switch (codigo_operacion)
 		{
 		case ASIGNAR_MEMORIA:
@@ -47,6 +53,7 @@ void crear_proceso(t_paquete* paquete_kernel){
         log_info(memoria_logger, "Asignando memoria con particiones dinamicas");
         asignar_particiones_dinamicas(datos_asignar_memoria);
     }
+    free(datos_asignar_memoria);
 }
 
 void asignar_particiones_fijas(t_asignar_memoria* datos_asignar_memoria){
@@ -228,7 +235,7 @@ void consolidar_particiones_libres(int indice) {
 
 /* CREACION DE UN HILO - ASIGNO MEMORIA*/
 void crear_hilo(t_paquete* paquete_kernel){
-    int bit_confirmacion = -1;
+    uint32_t bit_confirmacion = -1;
     t_crear_hilo* datos_hilo = deserializar_crear_hilo(paquete_kernel);
 
     log_info(memoria_logger, "Estoy creando hilo:%u para PID:%u", datos_hilo->TID, datos_hilo->PID);
@@ -252,16 +259,16 @@ void crear_hilo(t_paquete* paquete_kernel){
             nuevo_contexto->pid, nuevo_contexto->tid);
 
     t_paquete* paquete = crear_paquete(CONFIRMAR_CREACION_HILO);
-    serializar_int(paquete, bit_confirmacion);
+    serializar_hilo_memoria(paquete, bit_confirmacion, nuevo_contexto->pid, nuevo_contexto->tid);
     enviar_paquete(paquete, fd_kernel);
+    log_info(memoria_logger, "Se envio el paquete a Kernel");
     eliminar_paquete(paquete);
-    free(nuevo_contexto->instrucciones);
-   // free(nuevo_contexto);
+    log_info(memoria_logger,"Se elimino el paquete a Kernel");
+    free(datos_hilo->path);  // Liberar la cadena 'path'
+    free(datos_hilo);        // Liberar la estructura
 }
 
-/*Finalización de hilos
-Al momento de finalizar un hilo, el Kernel deberá informar a la Memoria la finalización del mismo, liberar su TCB asociado y deberá mover al estado READY a todos los hilos que se encontraban bloqueados por ese TID. De esta manera, se desbloquean aquellos hilos bloqueados por THREAD_JOIN o por mutex tomados por el hilo finalizado (en caso que hubiera).
-*/
+/*Finalización de hilos*/
 void finalizar_hilo(t_paquete* paquete_kernel){
     t_datos_esenciales* datos_finalizar_hilo = deserializar_finalizar_hilo(paquete_kernel);
 
