@@ -131,11 +131,13 @@ void obtener_instruccion(t_paquete* paquete_cpu) {
     t_obtener_instruccion* datos_instruccion = deserializar_obtener_instruccion(paquete_cpu);
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
 
-    ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_instruccion->TID);
+    ContextoEjecucion* contexto = buscar_contexto_por_tid(datos_instruccion->TID);//y pid tambien deberia agregar
     if (!contexto) {
         log_error(memoria_logger, "Hilo no encontrado para obtener instrucción");
         return;
     }
+
+    log_info(memoria_logger, "Me llega para buscar tid:%u, pc:%u", datos_instruccion->TID, datos_instruccion->TID); //ME DEBERIA PASAR TAMBIEN EL PID
 
     char* instruccion = obtener_instruccion_por_pc(contexto->pc, contexto->instrucciones);
     if (!instruccion) {
@@ -148,6 +150,7 @@ void obtener_instruccion(t_paquete* paquete_cpu) {
     t_paquete* paquete_instruccion = crear_paquete(ENVIAR_INSTRUCCION);
     serializar_enviar_instruccion(paquete_instruccion, instruccion);
     enviar_paquete(paquete_instruccion, fd_cpu);
+    log_info(memoria_logger, "Ya envio la instruccion a cpu");
     eliminar_paquete(paquete_instruccion);
     free(instruccion);
 }

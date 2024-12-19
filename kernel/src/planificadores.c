@@ -29,26 +29,22 @@ void planificador_corto_plazo(/*TCB* hilo*/){
         if(strcmp(valores_config_kernel->algoritmo_planificacion,"FIFO")==0){
             printf("Planificacion fifo\n");
             
-            /*sem_wait(&sem_mutex_cola_ready);
-            list_add(lista_ready, hilo);
-            sem_post(&sem_mutex_cola_ready);*/
-            //debemos sacar el primer elemento de la lista
-            sem_wait(&sem_mutex_cola_ready);
+           // sem_wait(&sem_mutex_cola_ready); LO COMENTO PORQUE NO SE INICIALIZA EN NIGNUN LADO - REVISAR
             TCB* hilo_exec = list_remove(lista_ready,0);
-            sem_post(&sem_mutex_cola_ready);
-            //CAmbiar el estado del hilo
-            hilo_exec->estadoHilo = EXEC;
-            //LO agrego en la cola_exec
-            queue_push(cola_exec, hilo_exec);
+            log_info(kernel_logger, "saco el primer elemento de la lista");
+            // sem_post(&sem_mutex_cola_ready);LO COMENTO PORQUE NO SE INICIALIZA EN NIGNUN LADO - REVISAR
 
-            //mandar a cpu tid y pid
-            t_paquete* hilo_cpu = crear_paquete(RECIBIR_TID);
-            log_info(kernel_logger,"El pid <%d> y tid <%d>", hilo_exec->pid, hilo_exec->tid);
-            
+            hilo_exec->estadoHilo = EXEC;//Cambio el hilo a estado execute
+            log_info(kernel_logger, "Cambiar el estado del hilo");
+            queue_push(cola_exec, hilo_exec);//Lo agrego en la cola_exec
+
+            t_paquete* hilo_cpu = crear_paquete(RECIBIR_TID);//mandar a cpu tid y pid
             serializar_hilo_cpu(hilo_cpu, hilo_exec->pid, hilo_exec->tid);
-
+            log_info(kernel_logger, "Envio paquete a cpu");
             enviar_paquete(hilo_cpu, fd_cpu_dispatch);
             eliminar_paquete(hilo_cpu);
+
+            log_info(kernel_logger,"Envio a cpu el pid <%d> y tid <%d>", hilo_exec->pid, hilo_exec->tid); 
         }
 
         if(strcmp(valores_config_kernel->algoritmo_planificacion,"PRIORIDADES")==0){

@@ -88,16 +88,14 @@ void conectar_memoria(){
 }
 
 void ciclo_de_instruccion(t_contextoEjecucion* contexto){
-    //Obtenemos la instruccion de memoria y la llamamos instruccion actual
-    
-    fetch(contexto->TID , contexto->PC); 
-    
-    //INSTRUCCION ACTUAL ES LA INSTRUCCION QUE RECIBIMOS DE MEMORIA, LA CUAL DECODIFICADA Y GUARDA EN UNA NUEVA VARIABLE
-    
-    t_instruccion* instruccionDecodificada = decode(instruccionActual); 
+
+    log_info(cpu_logger, "Fetch");
+    fetch(contexto->TID , contexto->PC); //Obtenemos la instruccion de memoria y la llamamos instruccion actual
+
+    sem_wait(&sem_instruccion);
+    t_instruccion* instruccionDecodificada = decode(instruccionActual); //INSTRUCCION ACTUAL ES LA INSTRUCCION QUE RECIBIMOS DE MEMORIA, LA CUAL DECODIFICADA Y GUARDA EN UNA NUEVA VARIABLE
     
     //Revisa si es syscall,de serlo envia la syscall a kernel, en caso de no serlo ejecuta segun sus operandos
-    
     execute(instruccionDecodificada, contexto->RegistrosCPU, &contexto->PC, contexto->TID);
     check_interrupt(fd_kernel_interrupt,fd_memoria, contexto);
 
@@ -156,51 +154,14 @@ t_instruccion* decode(char* instruccion){
     return instruccionDecodificada;
 }
 
-char* recibir_instruccion_de_memoria() {
-    // Recibir el paquete desde memoria
-    t_paquete* paquete = recibir_paquete(fd_memoria);
-    
-    if (paquete == NULL) {
-        log_error(cpu_logger, "Error al recibir paquete instruccion desde memoria");
-        return NULL;
-    }
-
-    // Leer la instruccion del buffer del paquete
-    char* instruccion = leer_buffer_string(paquete->buffer);
-    
-    if (instruccion == NULL) {
-        log_error(cpu_logger, "Error al leer la instruccion del buffer");
-        free(paquete);
-        return NULL;
-    }
-
-    // Loggear la instruccion recibida
-    log_info(cpu_logger, "Instruccion recibida desde memoria: %s", instruccion);
-
-    // Liberar el paquete (ya que ya se obtuvo la instruccion)
-    free(paquete->buffer->stream);
-    free(paquete->buffer);
-    free(paquete);
-    
-    return instruccion;
-}
-
 void fetch(uint32_t tidHilo, uint32_t pc){
 
-    // int fd_memoria   uint32_t tid,uint32_t* PC
     log_info(cpu_logger,"## TID: %d - FETCH - Program Cunter: %d",tidHilo,pc);
     if (enviar_pc_a_memoria(pc, tidHilo)==-1)
     {
         log_error(cpu_logger,"ERROR al enviar PC a MEMORIA");
         exit(EXIT_FAILURE);
     }
-    // Busca la nueva inscruccion
-    instruccionActual = recibir_instruccion_de_memoria(fd_memoria);
-    if(instruccionActual==NULL){
-        log_error(cpu_logger,"No se pudo recibir la instruccion desde memoria");
-        exit(EXIT_FAILURE);
-    }
-    log_info(cpu_logger,"Instruccion recibida: %s",instruccionActual);
 }
 
 int enviar_pc_a_memoria(uint32_t PC,uint32_t TID){
@@ -211,6 +172,12 @@ int enviar_pc_a_memoria(uint32_t PC,uint32_t TID){
     eliminar_paquete(paquete);
 
     return 0;
+}
+
+void inicializar_particion_de_memoria(uint32_t base, uint32_t limite){
+    parteActual.base=base;
+    parteActual.limite=limite;
+    log_info(cpu_logger,"Particion de memoria inicializada: Base=%d , Limite=%d",base,limite);
 }
 
 void execute(t_instruccion* instruccion, RegistrosCPU* registros, uint32_t* pc,uint32_t tidHilo){
@@ -734,11 +701,6 @@ void recibir_respuesta_kernel(int fd_kernel_interrupt){
 }
 void destruir_semaforo_syscall(){
     sem_destroy(&sem_syscall);
-}
-void inicializar_particion_de_memoria(uint32_t base, uint32_t limite){
-    parteActual.base=base;
-    parteActual.limite=limite;
-    log_info(cpu_logger,"Particion de memoria inicializada: Base=%d , Limite=%d",base,limite);
 }
 
 //Creo una función que envie el mensaje

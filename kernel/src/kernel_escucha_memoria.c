@@ -29,7 +29,7 @@ void kernel_escucha_memoria(){
 					
 					log_info(kernel_logger,"El pid es -> %u", datos_proceso_memoria->pid);
 					crear_hilo(datos_proceso_memoria->pid);
-					sem_post(&sem_plani_largo_plazo);
+					//sem_post(&sem_plani_largo_plazo);
 
 				
 				} else {
@@ -49,7 +49,6 @@ void kernel_escucha_memoria(){
 
 					t_creacion_hilo* datos_hilo_memoria = deserializar_creacion_hilo_memoria(paquete_kernel);
 					log_info(kernel_logger, "Contenido del bit de confirmacion: %u",  datos_proceso_memoria->bit_confirmacion);
-
 
 					if(datos_hilo_memoria==NULL){
 						log_error(kernel_logger,"ERROR al deserializar el paquete creacion del hilo");

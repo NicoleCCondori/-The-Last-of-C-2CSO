@@ -10,6 +10,7 @@ extern uint32_t TidHilo;
 //semaforos
 extern sem_t sem_syscall;
 extern pthread_mutex_t mutex_contextos2;
+extern sem_t sem_instruccion;
 
 extern char* instruccionActual;
 //char* operacionAux;
@@ -99,7 +100,6 @@ void inicializar_particion_de_memoria(uint32_t base, uint32_t limite);
 void actualizar_contexto_de_ejecucion(int fd_memoria,PCB* PCB);
 uint32_t MMU(uint32_t direccion_logica);
 int enviar_pc_a_memoria(uint32_t PC,uint32_t TID);
-char* recibir_instruccion_de_memoria();
 
 //PETICIONES A KERNEL
 void recibir_respuesta_kernel(int fd_kernel_interrupt);

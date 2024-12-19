@@ -4,6 +4,7 @@
 
 int main(int argc, char* argv[]) {
 
+    sem_init(&sem_instruccion, 0, 0);
     sem_init(&sem_syscall,0,0);
     pthread_mutex_init(&mutex_contextos2, NULL);
 

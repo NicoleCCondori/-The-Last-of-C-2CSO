@@ -143,13 +143,7 @@ TCB* buscar_hilo_menorNro_prioridad(){
 //Mandamos hilo a memoria
 void enviar_a_memoria(int fd_memoria,TCB* hilo){
     t_paquete* paquete_hilo = crear_paquete(HILO_READY);
-/*
-    t_crear_hilo* crear_hilo = malloc(sizeof(t_crear_hilo));
-    crear_hilo->PID = hilo->pid;
-    crear_hilo->TID = hilo->tid;
-    crear_hilo->prioridad= hilo->prioridad;
-    crear_hilo->path = strdup(hilo->path);
-    serializar_hilo_ready(paquete_hilo, crear_hilo);*/
+    
     log_info(kernel_logger,"el pid a enviar a memoria es: %u , el tid: %u y prioridad: %d ",hilo->pid,hilo->tid,hilo->prioridad);
     serializar_hilo_ready(paquete_hilo, hilo->pid, hilo->tid, hilo->prioridad, hilo->path);
     enviar_paquete(paquete_hilo, fd_memoria);
@@ -194,51 +188,41 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
 
 //CREACION DE HILO
 void crear_hilo(uint32_t pid_confirmado){
-    printf("Hay espacio en memoria\n");//debemos crear el espacio de memoria para el proceso?      
-        //Si hay Espacio se crea el hilo main
-        //crea el hilo tid 0
-
-        //Agregar el tid_main a la lista de hilos del proceso (pcb->tid)
-        //1ro) Debemos identificar el pcb en la lista de procesos
-        //PCB* proceso_agregar_tidM = malloc(sizeof(PCB));
+        printf("Hay espacio en memoria\n");//Si hay Espacio se crea el hilo main con tid 0
+        //Agregar el tid_main a la lista de hilos del proceso (pcb->tid). 1) Debemos identificar el pcb en la lista de procesos
         log_info(kernel_logger,"El pid es: %u",pid_confirmado);
-        PCB* proceso_agregar_tidM = buscar_proceso(lista_procesos, pid_confirmado);//puede que necesitemos hacer un malloc
+
+        PCB* proceso_agregar_tidM = buscar_proceso(lista_procesos, pid_confirmado);
         if(proceso_agregar_tidM == NULL ){
             log_info(kernel_logger, "No encontro el proceso_agregar_tidM\n");
         }
-        
+
         log_info(kernel_logger,"el tid es: %u",proceso_agregar_tidM->tid_contador);
+        
         uint32_t tid_main = proceso_agregar_tidM->tid_contador;
         uint32_t* tid_copia = malloc(sizeof(uint32_t));
 	    *tid_copia = tid_main;
+
         if(proceso_agregar_tidM!= NULL){
-            list_add(proceso_agregar_tidM->lista_tid, tid_copia);  // Agrega el hilo main a la lista de hilos del proceso
-       }
-        //2do) Sacamos el pcb de la cola NEW
-        //los queue_pop retornan un valor
-        //PCB* pcb_fuera_new = malloc(sizeof(PCB));
+            list_add(proceso_agregar_tidM->lista_tid, tid_copia);
+            log_info(kernel_logger, "Agrego el hilo main a la lista de hilos del proceso"); // Agrega el hilo main a la lista de hilos del proceso
+        }
+        //2) Sacamos el pcb de la cola NEW, queue_pop retorna un valor
         PCB* pcb_fuera_new = queue_pop(cola_new); 
         if(pcb_fuera_new != NULL){
            printf("El proceso que salió de la cola NEW para ir a READY es %d\n",pcb_fuera_new->pid);  
         } 
         
         //CREACION DE HILO MAIN
+        log_info(kernel_logger, "Envio datos tid %u, prioridad %u, pid %u, path",  pcb_fuera_new->tid_contador, pcb_fuera_new->prioridad_main,pcb_fuera_new->pid);
         TCB* hilo_main = iniciar_hilo(pcb_fuera_new->tid_contador, pcb_fuera_new->prioridad_main,pcb_fuera_new->pid, pcb_fuera_new->path_main);
 
         //informar a memoria
         printf("Enviamos el hilo a memoria\n");
-
+        list_add(lista_tcbs, hilo_main);//Meterlo en la lista de TCBs general
         enviar_a_memoria(fd_memoria,hilo_main);
         //
         //sem_wait(&semaforo_binario);
-        //int result;
-	    //recv(fd_memoria, &result, sizeof(int32_t), 0);
-        //if (result == 1){
-        // log_info(kernel_logger,"Memoria creo con exito el hilo: <%d>\n",hilo_main->tid);
-        //}
-
-        //Meterlo en la lista de TCBs general
-        list_add(lista_tcbs, hilo_main);
 
         //Agregar el TCB tmb en la lista_ready va a ayudar para los algoritmos de corto plazo
         //Pensar en la idea de usar semáforos
@@ -248,18 +232,28 @@ void crear_hilo(uint32_t pid_confirmado){
         //planificador_corto_plazo();
         //mandar_hilo_a_cola_ready(hilo_main);
         //queue_push(cola_ready,hilo_main); //consulta ¿pasamos a ready el tcb o pcb?
-
         
         free(proceso_agregar_tidM);
         //free(pcb_fuera_new);
         //free(tid_copia);
 }
+
 void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
-    TCB* hilo_pasar_a_ready = buscar_tcbs(lista_tcbs,tid_hilo,pid_hilo);
+    TCB* hilo_pasar_a_ready = buscar_tcbs(lista_tcbs, tid_hilo, pid_hilo);
     if(hilo_pasar_a_ready == NULL ){
-            log_info(kernel_logger, "No encontro el hilo_pasar_a_ready\n");
-    }
-    list_add(lista_ready,hilo_pasar_a_ready);
+            log_info(kernel_logger, "No se puede agregar un hilo nulo a lista_ready");
+            return;
+    } else {
+        log_info(kernel_logger, "Encontro el hilo_pasar_a_ready\n");
+        if (lista_ready == NULL) {
+            log_error(kernel_logger, "La lista lista_ready no está inicializada");
+            return;
+        }
+        log_info(kernel_logger, "Puntero lista_ready: %p", lista_ready);
+        log_info(kernel_logger, "Puntero hilo_pasar_a_ready: %p", hilo_pasar_a_ready);
+
+        list_add(lista_ready, hilo_pasar_a_ready);
+        log_info(kernel_logger, "Agrego hilo a la lista ready");}
 }
 //INICIAR_HILO
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){

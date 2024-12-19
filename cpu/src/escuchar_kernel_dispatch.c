@@ -19,10 +19,6 @@ void escuchar_kernel_dispatch(){
 
         op_code cod_op = paquete_kernel->codigo_operacion;
         log_info(cpu_logger,"Codigo de operacion: %d", cod_op);
-		
-        /*
-        op_code cod_op = recibir_operacion(fd_kernel_dispatch);
-        log_info(cpu_logger,"recibiendo paquete de kernel: %d\n",cod_op);*/
         
 		switch (cod_op)
 		{
@@ -30,10 +26,7 @@ void escuchar_kernel_dispatch(){
                 break;
 
             case RECIBIR_TID:
-            log_info(cpu_logger,"recibiendo paquete de kernel TID!!!\n");
-                
-                //deserializo llamando a la función "deserializar_enviar_contexto"
-              //  t_paquete* paquete_aux = recibir_paquete(fd_kernel_dispatch);   
+                log_info(cpu_logger,"recibiendo paquete de kernel TID!!!\n");
                 pthread_mutex_lock(&mutex_contextos2);
                 t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_kernel);
                 pthread_mutex_unlock(&mutex_contextos2);

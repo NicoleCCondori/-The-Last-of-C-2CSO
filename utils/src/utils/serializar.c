@@ -59,9 +59,121 @@ void agregar_buffer_string(t_buffer* buffer, char* args){
     buffer->size += tamanio;
 }
 
+void serializar_enviar_contexto_cpu(t_paquete* paquete, t_contextoEjecucion* contexto){
+    if (paquete == NULL || contexto == NULL) {
+        printf("Error: paquete o contexto son NULL en serializar_enviar_contexto\n");
+        return;
+    }
+
+    // Calcular el tamaño total necesario para los datos serializados
+    size_t size_total = sizeof(uint32_t)   // TID
+                        + sizeof(int32_t)       // PC
+                        + sizeof(uint32_t) * 2 // base y limite
+                        + sizeof(RegistrosCPU); // RegistrosCPU
+
+    // Asignar memoria para el buffer del paquete
+    paquete->buffer = malloc(sizeof(t_buffer));
+    if (paquete->buffer == NULL) {
+        printf("Error: No se pudo asignar memoria para el buffer del paquete\n");
+        return;
+    }
+    
+    paquete->buffer->size = size_total;
+    paquete->buffer->offset = 0;
+    paquete->buffer->stream = malloc(size_total);
+    if (paquete->buffer->stream == NULL) {
+        printf("Error: No se pudo asignar memoria para el stream del buffer\n");
+        free(paquete->buffer);
+        return;
+    }
+
+    // Puntero para escribir en el buffer
+    void* stream = paquete->buffer->stream;
+
+    // Serializar TID
+    memcpy(stream, &(contexto->TID), sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
+    // Serializar PC
+    memcpy(stream, &(contexto->PC), sizeof(int32_t));
+    stream += sizeof(int32_t);
+
+    // Serializar base
+    memcpy(stream, &(contexto->base), sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
+    // Serializar limite
+    memcpy(stream, &(contexto->limite), sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
+    // Serializar RegistrosCPU (aquí suponemos que la estructura RegistrosCPU se serializa directamente)
+    memcpy(stream, contexto->RegistrosCPU, sizeof(RegistrosCPU));
+    stream += sizeof(RegistrosCPU);
+}
+char* deserializar_enviar_instruccion(t_paquete* paquete){
+    if (paquete == NULL || paquete->buffer == NULL || paquete->buffer->stream == NULL) {
+        printf("Error: el paquete o su buffer son nulos.");
+        return NULL;
+    }
+
+    void* stream = paquete->buffer->stream;
+
+    // Leer la longitud de la instrucción
+    uint32_t longitud_instruccion;
+    memcpy(&longitud_instruccion, stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
+
+    // Leer la instrucción
+    char* instruccion = malloc(longitud_instruccion);
+    if (instruccion == NULL) {
+        printf("Error: no se pudo asignar memoria para la instrucción.");
+        return NULL;
+    }
+
+    memcpy(instruccion, stream, longitud_instruccion);
+
+    printf("Instrucción deserializada correctamente: %s", instruccion);
+
+    return instruccion;
+}
+
+void serializar_enviar_instruccion(t_paquete* paquete_enviar_instruccion, char* instruccion) {
+    if (paquete_enviar_instruccion == NULL || instruccion == NULL) {
+        printf("Error: el paquete o la instrucción son nulos");
+        return;
+    }
+
+    // Longitud de la instrucción
+    uint32_t longitud_instruccion = strlen(instruccion) + 1; // Incluye el terminador nulo
+
+    // Tamaño del nuevo buffer
+    paquete_enviar_instruccion->buffer->size = sizeof(uint32_t) + longitud_instruccion;
+
+    // Reservar memoria para el buffer
+    paquete_enviar_instruccion->buffer->stream = malloc(paquete_enviar_instruccion->buffer->size);
+    if (paquete_enviar_instruccion->buffer->stream == NULL) {
+        printf("Error: no se pudo asignar memoria para el buffer.");
+        return;
+    }
+
+    // Serializar los datos
+    void* stream = paquete_enviar_instruccion->buffer->stream;
+
+    // Copiar la longitud de la instrucción
+    memcpy(stream, &longitud_instruccion, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
+    // Copiar la instrucción en sí
+    memcpy(stream, instruccion, longitud_instruccion);
+
+    printf("Instrucción serializada correctamente: %s", instruccion);
+}
+
+
 //PARA DESERIALIZAR
 
-t_contextoEjecucion* leer_contexto_de_memoria(t_paquete* paquete) {
+t_contextoEjecucion* deserializar_enviar_contexto_cpu(t_paquete* paquete) {
     if (paquete == NULL || paquete->buffer == NULL || paquete->buffer->stream == NULL) {
         printf("Error: El paquete o el buffer son NULL en deserializar_contexto_ejecucion\n");
         return NULL;
@@ -200,7 +312,12 @@ void enviar_paquete(t_paquete *paquete, int socket_cliente){
 	int bytes_totales = paquete->buffer->size + 2 * sizeof(int);
 	void *a_enviar = serializar_paquete(paquete, bytes_totales);
 
-	send(socket_cliente, a_enviar, bytes_totales, 0);
+    int resultado = send(socket_cliente, a_enviar, bytes_totales, 0);
+    if (resultado == -1) {
+        printf("Error al enviar el paquete:");
+        free(a_enviar);
+        return -1;  // Error
+    }
 
 	free(a_enviar);
 }
@@ -318,68 +435,10 @@ t_actualizar_contexto* deserializar_actualizar_contexto(t_paquete* paquete){
     t_actualizar_contexto* enviar_contexto = malloc(sizeof(t_actualizar_contexto));
 
     enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
-    enviar_contexto->contexto_ejecucion = leer_contexto_de_memoria(paquete);
+    enviar_contexto->contexto_ejecucion = deserializar_enviar_contexto_cpu(paquete);
     
     return enviar_contexto;
 }
-
-void serializar_enviar_contexto_cpu(t_paquete* paquete, t_contextoEjecucion* contexto){
-    if (paquete == NULL || contexto == NULL) {
-        printf("Error: paquete o contexto son NULL en serializar_enviar_contexto\n");
-        return;
-    }
-
-    // Calcular el tamaño total necesario para los datos serializados
-    size_t size_total = sizeof(uint32_t)   // TID
-                        + sizeof(int32_t)       // PC
-                        + sizeof(uint32_t) * 2 // base y limite
-                        + sizeof(RegistrosCPU); // RegistrosCPU
-
-    // Asignar memoria para el buffer del paquete
-    paquete->buffer = malloc(sizeof(t_buffer));
-    if (paquete->buffer == NULL) {
-        printf("Error: No se pudo asignar memoria para el buffer del paquete\n");
-        return;
-    }
-    
-    paquete->buffer->size = size_total;
-    paquete->buffer->offset = 0;
-    paquete->buffer->stream = malloc(size_total);
-    if (paquete->buffer->stream == NULL) {
-        printf("Error: No se pudo asignar memoria para el stream del buffer\n");
-        free(paquete->buffer);
-        return;
-    }
-
-    // Puntero para escribir en el buffer
-    void* stream = paquete->buffer->stream;
-
-    // Serializar TID
-    memcpy(stream, &(contexto->TID), sizeof(uint32_t));
-    stream += sizeof(uint32_t);
-
-    // Serializar PC
-    memcpy(stream, &(contexto->PC), sizeof(int32_t));
-    stream += sizeof(int32_t);
-
-    // Serializar base
-    memcpy(stream, &(contexto->base), sizeof(uint32_t));
-    stream += sizeof(uint32_t);
-
-    // Serializar limite
-    memcpy(stream, &(contexto->limite), sizeof(uint32_t));
-    stream += sizeof(uint32_t);
-
-    // Serializar RegistrosCPU (aquí suponemos que la estructura RegistrosCPU se serializa directamente)
-    memcpy(stream, contexto->RegistrosCPU, sizeof(RegistrosCPU));
-    stream += sizeof(RegistrosCPU);
-}
-
-void serializar_enviar_instruccion(t_paquete* paquete_enviar_instruccion, char* instruccion){
-    agregar_buffer_string(paquete_enviar_instruccion->buffer, instruccion);
-}
-
-
 
 void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, int prioridad, const char* path) {
     // Calcular el tamaño total necesario para los datos serializados

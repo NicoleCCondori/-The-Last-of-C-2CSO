@@ -18,7 +18,7 @@ void destruir_buffer_paquete(t_paquete* paquete);
 void agregar_buffer_Uint32(t_buffer* buffer, uint32_t entero);
 void agregar_buffer_Uint8(t_buffer* buffer, uint8_t entero);
 void agregar_buffer_string(t_buffer* buffer, char *args);
-t_contextoEjecucion* leer_contexto_de_memoria(t_paquete* paquete);
+t_contextoEjecucion* deserializar_enviar_contexto_cpu(t_paquete* paquete);
 
 uint32_t leer_buffer_Uint32(t_buffer* buffer);
 uint8_t leer_buffer_Uint8(t_buffer* buffer);
@@ -178,4 +178,5 @@ t_asigno_memoria* deserializar_proceso_memoria(t_paquete* paquete);
 
 void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion,uint32_t pid,uint32_t tid);
 t_creacion_hilo*  deserializar_creacion_hilo_memoria(t_paquete* paquete_kernel_hilo);
+char* deserializar_enviar_instruccion(t_paquete* paquete);
 #endif

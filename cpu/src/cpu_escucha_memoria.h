@@ -5,7 +5,7 @@
 
 
 void cpu_escucha_memoria();
-void reciboContexto(t_paquete* contextoEje);
-char* recibir_instruccion_de_memoria(int fd_memoria);
+void reciboContexto(t_paquete* paquete);
+void recibir_instruccion_de_memoria(t_paquete* paquete);
 
 #endif
