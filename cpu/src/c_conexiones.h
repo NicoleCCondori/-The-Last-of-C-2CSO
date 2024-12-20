@@ -7,6 +7,7 @@
 extern uint32_t PidHilo;
 extern uint32_t TidHilo;
 extern int control_key;
+extern int control_key_interrupt;
 
 //semaforos
 extern sem_t sem_syscall;
@@ -14,6 +15,7 @@ extern sem_t sem_syscallKernel;
 extern pthread_mutex_t mutex_contextos2;
 extern sem_t sem_instruccion;
 extern sem_t sem_contexto;
+
 
 
 extern char* instruccionActual;
@@ -102,7 +104,7 @@ void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion
 //PETICIONES A MEMORIA
 void inicializar_particion_de_memoria(uint32_t base, uint32_t limite);
 void actualizar_contexto_de_ejecucion(int fd_memoria,PCB* PCB);
-uint32_t MMU(uint32_t direccion_logica);
+uint32_t MMU(uint32_t direccion_logica,t_contextoEjecucion* contexto);
 int enviar_pc_a_memoria(uint32_t PC,uint32_t TID, uint32_t PID);
 
 //PETICIONES A KERNEL
@@ -145,12 +147,10 @@ void sub_registro(char* destino, char* origen,RegistrosCPU* registros);
 void sum_registro(char* destino, char* origen,RegistrosCPU* registros);
 
 void escribir_en_memoria(int fd_memoria, uint32_t  direccion_fisica, uint32_t dato,uint32_t tid);
-
-void write_mem(char* registro_direccion, char* registro_datos,RegistrosCPU* registros,uint32_t tid);
-
+void write_mem(char* registro_direccion, char* registro_datos, t_contextoEjecucion* contexto);
 uint32_t leer_desde_memoria(int fd_memoria,uint32_t direccion_fisica,uint32_t tid);
 
-void read_mem(char* datos, char* direccion,RegistrosCPU* registros,uint32_t tid);
+void read_mem(char* datos, char* direccion,t_contextoEjecucion* contexto);
 
 void set_registro(char* registro,char* valor,RegistrosCPU* registros);
 

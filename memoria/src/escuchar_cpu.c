@@ -14,37 +14,36 @@ void escuchar_cpu()
 
         switch (codigo_operacion)
         {
-        case OBTENER_CONTEXTO:
-            devolver_contexto_ejecucion(paquete_cpu);
-            break;
+            case OBTENER_CONTEXTO:
+                devolver_contexto_ejecucion(paquete_cpu);
+                break;
 
-        case ACTUALIZAR_CONTEXTO:
-            actualizar_contexto_de_ejecucion(paquete_cpu);
-            break;
+            case ACTUALIZAR_CONTEXTO:
+                actualizar_contexto_de_ejecucion(paquete_cpu);
+                break;
 
-        case OBTENER_INSTRUCCION:
-            obtener_instruccion(paquete_cpu);
-            break;
+            case OBTENER_INSTRUCCION:
+                obtener_instruccion(paquete_cpu);
+                break;
 
-        case WRITE_MEM:
-            write_mem(paquete_cpu);
-            break;
+            case WRITE_MEM:
+                write_mem(paquete_cpu);
+                break;
 
-        case READ_MEM:
-            read_mem(paquete_cpu);
-            break;
+            case READ_MEM:
+                read_mem(paquete_cpu);
+                break;
 
-        default:
-            log_warning(memoria_logger, "Operacion desconocida de CPU");
-            break;
-        }
+            default:
+                log_warning(memoria_logger, "Operacion desconocida de CPU");
+                break;
+            }
         eliminar_paquete(paquete_cpu);
     }
 }
 
 ContextoEjecucion *buscar_contexto_por_tid(uint32_t tid_buscado, uint32_t pid)
 {
-
     pthread_mutex_lock(&mutex_contextos);
     for (int i = 0; i < list_size(lista_contextos); i++)
     {
@@ -277,43 +276,50 @@ char *obtener_instruccion_por_pc(uint32_t pc, char *path)
 
 void write_mem(t_paquete *paquete_cpu)
 {
+    int bit_confirmacion = 1;
     t_datos_write_mem *datos_write_mem = deserializar_write_mem(paquete_cpu);
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
 
     if (datos_write_mem->dir_fis + sizeof(uint32_t) >= tamanio_memoria)
     {
         log_error(memoria_logger, "ERROR en ESCRITURA para dirección %u", datos_write_mem->dir_fis);
+        bit_confirmacion = -1;
         return;
     }
     pthread_mutex_lock(&mutex_memoria);
     memcpy((char *)memoria + datos_write_mem->dir_fis, &datos_write_mem->valor, sizeof(uint32_t));
-
-    uint32_t respuesta_ok = 1;
-    send(fd_cpu, &respuesta_ok, sizeof(respuesta_ok), 0);
-
     log_info(memoria_log_obligatorios, "## Escritura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio a escribir: <%u>\n", datos_write_mem->pidHilo, datos_write_mem->tidHilo, datos_write_mem->dir_fis, sizeof(datos_write_mem->valor));
-
     pthread_mutex_unlock(&mutex_memoria);
+
+    t_paquete* paquete = crear_paquete(CONFIRMAR_WRITE_MEM);
+    serializar_int(paquete, bit_confirmacion);
+    enviar_paquete(paquete, fd_cpu);
+    eliminar_paquete(paquete);
+    log_info(memoria_logger, "Ya se envio el paquete a cpu");  
 }
 
 void read_mem(t_paquete *paquete_cpu)
 {
     t_datos_read_mem *datos_read_mem = deserializar_read_mem(paquete_cpu);
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
-
-    pthread_mutex_lock(&mutex_memoria);
+    uint32_t valor;
+    
     if (datos_read_mem->dir_fis + sizeof(uint32_t) < tamanio_memoria)
-    {
-        uint32_t valor;
+    {   pthread_mutex_lock(&mutex_memoria);
         memcpy(&valor, (char *)memoria + datos_read_mem->dir_fis, sizeof(uint32_t));
-        send(fd_cpu, &valor, sizeof(valor), 0);
-
+        pthread_mutex_unlock(&mutex_memoria);
         log_info(memoria_log_obligatorios, "## Lectura - (PID:TID) - (<%u>:<%u>) - Direccion Fisica:%u - Tamanio leido: <%u>\n", datos_read_mem->pidHilo, datos_read_mem->tidHilo, datos_read_mem->dir_fis, sizeof(valor));
     }
     else
     {
         log_error(memoria_logger, "ERROR en LECTURA");
+        pthread_mutex_unlock(&mutex_memoria);
         return;
     }
-    pthread_mutex_unlock(&mutex_memoria);
+
+    t_paquete* paquete = crear_paquete(ENVIAR_READ_MEM);
+    serializar_int(paquete, valor);
+    enviar_paquete(paquete, fd_cpu);
+    eliminar_paquete(paquete);
+    log_info(memoria_logger, "Ya se envio el paquete a cpu");  
 }

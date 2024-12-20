@@ -20,9 +20,15 @@ void destruir_buffer_paquete(t_paquete* paquete){
 }
 
 void eliminar_paquete(t_paquete* paquete){
-	free(paquete->buffer->stream);
-	free(paquete->buffer);
-	free(paquete);
+    if(paquete!=NULL){
+        if(paquete->buffer!=NULL){
+            if(paquete->buffer->stream!=NULL){
+                free(paquete->buffer->stream);
+            }
+            	free(paquete->buffer);
+        }
+        	free(paquete);
+    }
 }
 
 
@@ -315,7 +321,7 @@ t_paquete* recibir_paquete(int socket_cliente){
     }
 
 	paquete->codigo_operacion = recibir_operacion(socket_cliente);
-	if (paquete->codigo_operacion == -1)	{
+	if (paquete->codigo_operacion == -1){
 		free(paquete);
 		return NULL;
 	}
@@ -325,6 +331,11 @@ t_paquete* recibir_paquete(int socket_cliente){
 
 	// Crear y asignar el buffer
 	paquete->buffer = malloc(sizeof(t_buffer));
+    if(paquete->buffer==NULL){
+        free(buffer_stream);
+        free(paquete);
+        return NULL;
+    }
 	paquete->buffer->size = buffer_size;
 	paquete->buffer->stream = buffer_stream;
 
@@ -850,7 +861,7 @@ t_asigno_memoria* deserializar_proceso_memoria(t_paquete* paquete) {
     // Devolver la estructura deserializada
     return asigno_memoria;
 }
-
+/*
 void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion,uint32_t pid,uint32_t tid){
     int tamanio_buffer = sizeof(uint32_t)*3;  // bit_confirmacion (uint32_t) y pid (uint32_t)
 
@@ -893,8 +904,55 @@ void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion,uint3
     // Mensaje de depuración con printf
     printf("Paquete serializado: bit_confirmacion=%u, pid=%u,tid=%u, tamanio=%d\n",
              bit_confirmacion, pid, tid, tamanio_buffer);
-}
+}*/
+void serializar_hilo_memoria(t_paquete* paquete, uint32_t bit_confirmacion, uint32_t pid, uint32_t tid) {
+    if (paquete == NULL) {
+        printf("Error: El paquete es NULL\n");
+        return;
+    }
 
+    // Verificar si el buffer está inicializado
+    if (paquete->buffer == NULL) {
+        paquete->buffer = malloc(sizeof(t_buffer));
+        if (paquete->buffer == NULL) {
+            printf("Error al asignar memoria para el buffer\n");
+            return;
+        }
+        paquete->buffer->stream = NULL;
+        paquete->buffer->size = 0;
+    }
+
+    // Calcular el tamaño necesario para el buffer
+    int tamanio_buffer = sizeof(uint32_t) * 3; // bit_confirmacion, pid y tid
+
+    // Asignar memoria para el stream
+    paquete->buffer->stream = realloc(paquete->buffer->stream, tamanio_buffer);
+    if (paquete->buffer->stream == NULL) {
+        printf("Error al asignar memoria para el stream del buffer\n");
+        free(paquete->buffer);
+        paquete->buffer = NULL;
+        return;
+    }
+
+    // Serializar los datos en el buffer
+    int desplazamiento = 0;
+    memcpy(paquete->buffer->stream + desplazamiento, &pid, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    memcpy(paquete->buffer->stream + desplazamiento, &tid, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    memcpy(paquete->buffer->stream + desplazamiento, &bit_confirmacion, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    // Actualizar el tamaño del buffer
+    paquete->buffer->size = tamanio_buffer;
+
+    // Mensaje de depuración
+    printf("Paquete serializado: bit_confirmacion=%u, pid=%u, tid=%u, tamanio=%d\n",
+           bit_confirmacion, pid, tid, tamanio_buffer);
+}
+/*
 t_creacion_hilo*  deserializar_creacion_hilo_memoria(t_paquete* paquete){
      // Verificar que el tamaño del paquete recibido sea suficiente para contener la información
    
@@ -920,4 +978,36 @@ t_creacion_hilo*  deserializar_creacion_hilo_memoria(t_paquete* paquete){
 
     // Devolver la estructura deserializada
     return creacion_hilo;
+}*/
+t_creacion_hilo* deserializar_creacion_hilo_memoria(t_paquete* paquete) {
+    if (paquete == NULL || paquete->buffer == NULL || paquete->buffer->stream == NULL) {
+        printf("Error: Paquete o su buffer son NULL\n");
+        return NULL;
+    }
+
+    // Validar que el tamaño del buffer sea suficiente
+    int tamanio_esperado = sizeof(uint32_t) * 3;
+    if (paquete->buffer->size < tamanio_esperado) {
+        printf("Error: Tamaño del buffer insuficiente. Esperado: %d, Recibido: %d\n", tamanio_esperado, paquete->buffer->size);
+        return NULL;
+    }
+
+    // Reservar memoria para la estructura
+    t_creacion_hilo* hilo = malloc(sizeof(t_creacion_hilo));
+    if (hilo == NULL) {
+        printf("Error al asignar memoria para la estructura t_creacion_hilo\n");
+        return NULL;
+    }
+
+    // Extraer los datos del buffer
+    int desplazamiento = 0;
+    memcpy(&hilo->pid, paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    memcpy(&hilo->tid, paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);
+
+    memcpy(&hilo->bit_confirmacion, paquete->buffer->stream + desplazamiento, sizeof(uint32_t));
+
+    return hilo;
 }

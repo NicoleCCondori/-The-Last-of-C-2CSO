@@ -47,6 +47,7 @@ extern t_list* lista_exit;
 extern t_list* lista_procesos;
 extern t_list* lista_tcbs;
 
+
 //semaforos
 extern sem_t mutex;
 extern sem_t sem_plani_largo_plazo;
@@ -105,6 +106,8 @@ void desbloquear_hilos_por_tid(TCB* hilo);
 TCB* buscar_hilo_menorNro_prioridad();
 
 int buscar_hilo_mayorNroPrioridad();
+
+TCB* buscar_tcbs(uint32_t tid, uint32_t pid);
 
 //liberar recursos
 void liberar_recursos_kernel();

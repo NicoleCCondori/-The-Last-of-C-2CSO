@@ -24,7 +24,7 @@ t_list* lista_ready; //Tiene TCBs
 t_list* lista_blocked; //me va ayudar a buscar en toda la lista
 t_list* lista_exit; //Es mejor que tenga los TCBs sirve para los thread_join
 t_list* lista_procesos; //VA a estar compuesto por PCBs
-t_list* lista_tcbs; //Va a estar compuesto por TCBs
+
 
 //semaforos
 sem_t sem_binario_memoria;
@@ -91,7 +91,7 @@ void conectar_cpu_dispatch(){
 void conectar_cpu_interrupt(){
     //Cliente KERNEL a CPU-interrupt
 	fd_cpu_interrupt = crear_conexion(valores_config_kernel->ip_cpu, valores_config_kernel->puerto_cpu_interrupt, "CPU - Interrupt",kernel_logger);
-	handshakeClient(fd_cpu_interrupt,2);
+	handshakeClient(fd_cpu_interrupt,4);
     
     //hilo para conectarse con cpu - Interrupt / atender
     pthread_create(&hilo_cpu_interrupt, NULL, (void*)kernel_escucha_cpu_interrupt,NULL);
@@ -107,6 +107,7 @@ void conectar_memoria(){
     pthread_create(&hilo_memoria, NULL, (void*)kernel_escucha_memoria,NULL);
     pthread_detach(hilo_memoria);
 }
+
 void planificador_cortoPlazo(){
     pthread_t hilo_planificador_corto_plazo;
     pthread_create (&hilo_planificador_corto_plazo, NULL, (void*)planificador_corto_plazo, NULL);
@@ -120,9 +121,14 @@ void planificador_largoPlazo(){
 }
 
 int buscar_hilo_mayorNroPrioridad(){
+    sem_wait(&mutex);
     TCB* hiloMayorNroPrioridad = list_get(lista_ready,0);
+    sem_post(&mutex);
     for(int i=1; i< list_size(lista_ready); i++){
+        sem_wait(&mutex);
         TCB* hiloMuchoMay = list_get(lista_ready,i);
+        sem_post(&mutex);
+
         if(hiloMuchoMay->prioridad > hiloMayorNroPrioridad->prioridad){ //comparo con enteros
             hiloMayorNroPrioridad = hiloMuchoMay;
         }
@@ -131,29 +137,57 @@ int buscar_hilo_mayorNroPrioridad(){
     return mayorNroPrioridad;
 }
 
-TCB* buscar_hilo_menorNro_prioridad(){
-
+/*TCB* buscar_hilo_menorNro_prioridad(){
+    sem_wait(&mutex);
     TCB* hiloMenorNroPrioridad = list_get(lista_ready,0);
-    
+    sem_post(&mutex);
+
     for(int i=1; i< list_size(lista_ready); i++){
+        sem_wait(&mutex);
         TCB* hiloMuchoMenor = list_get(lista_ready,i);
+        sem_post(&mutex);
         if(hiloMuchoMenor->prioridad < hiloMenorNroPrioridad->prioridad){ 
             hiloMenorNroPrioridad = hiloMuchoMenor;
         }
     }
+    
+    return hiloMenorNroPrioridad;
+}*/
+TCB* buscar_hilo_menorNro_prioridad() {
+    sem_wait(&mutex);
+    if (list_size(lista_ready) == 0) {
+        sem_post(&mutex);
+        return NULL; // Si la lista está vacía, retorna NULL
+    }
+
+    TCB* hiloMenorNroPrioridad = list_get(lista_ready, 0);
+    int indexMenorPrioridad = 0;
+    sem_post(&mutex);
+
+    for (int i = 1; i < list_size(lista_ready); i++) {
+        sem_wait(&mutex);
+        TCB* hiloActual = list_get(lista_ready, i);
+        sem_post(&mutex);
+        if (hiloActual->prioridad < hiloMenorNroPrioridad->prioridad) {
+            hiloMenorNroPrioridad = hiloActual;
+            indexMenorPrioridad = i;
+        }
+    }
+
+    sem_wait(&mutex);
+    list_remove(lista_ready, indexMenorPrioridad); // Elimina el hilo de la lista y ajusta los índices
+    sem_post(&mutex);
+
     return hiloMenorNroPrioridad;
 }
 
 //Mandamos hilo a memoria
 void enviar_a_memoria(int fd_memoria,TCB* hilo){
     t_paquete* paquete_hilo = crear_paquete(HILO_READY);
-    
-    log_info(kernel_logger,"el pid a enviar a memoria es: %u , el tid: %u y prioridad: %d ",hilo->pid,hilo->tid,hilo->prioridad);
     serializar_hilo_ready(paquete_hilo, hilo->pid, hilo->tid, hilo->prioridad, hilo->path);
     enviar_paquete(paquete_hilo, fd_memoria);
-    log_info(kernel_logger, "se envio el paquete");
+    log_info(kernel_logger, "se envio el paquete a memoria por HILO_READY");
     eliminar_paquete(paquete_hilo);
-    log_info(kernel_logger, "se elimina el paquete");
 }
 
 //Mandamos mensaje a memoria para saber si hay espacio disponible
@@ -163,7 +197,7 @@ void asignar_espacio_memoria(uint32_t pid, int tam_proceso, int prioridad, char*
     serializar_asignar_memoria(paquete_asignar_memoria, pid, tam_proceso);
     enviar_paquete(paquete_asignar_memoria, fd_memoria);
     
-    log_info(kernel_logger,"Enviamos a memoria pid y tam_proceso\n");
+    log_info(kernel_logger,"Enviamos a memoria pid y tam_proceso por medio de ASIGNAR_MEMORIA\n");
 
     eliminar_paquete(paquete_asignar_memoria);
 }
@@ -189,7 +223,9 @@ void crear_hilo(uint32_t pid_confirmado){
 	    *tid_copia = tid_main;
 
         if(proceso_agregar_tidM!= NULL){
+            sem_wait(&mutex);
             list_add(proceso_agregar_tidM->lista_tid, tid_copia);
+            sem_post(&mutex);
             log_info(kernel_logger, "Agrego el hilo main a la lista de hilos del proceso"); // Agrega el hilo main a la lista de hilos del proceso
         }
         //2) Sacamos el pcb de la cola NEW, queue_pop retorna un valor
@@ -203,18 +239,24 @@ void crear_hilo(uint32_t pid_confirmado){
         TCB* hilo_main = iniciar_hilo(pcb_fuera_new->tid_contador, pcb_fuera_new->prioridad_main,pcb_fuera_new->pid, pcb_fuera_new->path_main);
 
         //informar a memoria el HILO A CREAR
-        log_info(kernel_logger,"Enviamos el hilo a memoria");
+        sem_post(&mutex);
         list_add(lista_tcbs, hilo_main);//Meterlo en la lista de TCBs general
+        sem_post(&mutex);
+
+        log_info(kernel_logger,"ESTOY AGREGANDO ESTE HILO A LA LISTA TCBs con pid %u y tid %u", hilo_main->pid,hilo_main->tid);
 
         enviar_a_memoria(fd_memoria,hilo_main);
         //ESPERAMOS QUE MEMORIA NOS CONFIEME SI PUDO CREAR EL HILO
-        log_info(kernel_logger,"ESTOY AGREGANDO ESTE HILO A LA LISTA TCB con pid %u", hilo_main->pid);
-        //free(proceso_agregar_tidM);
-        //free(pcb_fuera_new);
+        log_info(kernel_logger,"Enviamos el hilo a memoria");
+    
 }
 
 void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
-    TCB* hilo_pasar_a_ready = buscar_tcbs(lista_tcbs, tid_hilo, pid_hilo);
+    log_info(kernel_logger, "Entro en funcion confirmacion_crear_hilo");
+   // sem_wait(&mutex);
+    TCB* hilo_pasar_a_ready = buscar_tcbs(tid_hilo, pid_hilo);
+  //  sem_post(&mutex);
+    
     if(hilo_pasar_a_ready == NULL ){
             log_info(kernel_logger, "No se puede agregar un hilo nulo a lista_ready");
             return;
@@ -227,7 +269,9 @@ void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
         log_info(kernel_logger, "Puntero lista_ready: %p", lista_ready);
         log_info(kernel_logger, "Puntero hilo_pasar_a_ready: %p", hilo_pasar_a_ready);
 
+        sem_wait(&mutex);
         list_add(lista_ready, hilo_pasar_a_ready);
+        sem_post(&mutex);
         log_info(kernel_logger, "Se agrego el hilo a la LISTA READY\n");}
 }
 //INICIAR_HILO
@@ -251,17 +295,21 @@ TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
 
 //INICIAR_PROCESO
 void iniciar_proceso(){
-    PCB* proceso_new = queue_peek(cola_new);
+    log_info(kernel_logger,"entro en la funcion iniciar proceso");
+
+    PCB* proceso_new = malloc(sizeof(PCB));//liberar
+
+    if (cola_new != NULL && !queue_is_empty(cola_new)) {
+        proceso_new = queue_peek(cola_new);
+    }
+    else {log_info(kernel_logger, "Cola new esta vacia o es igual a NULL ");}
 
     if (proceso_new != NULL) {
-        //mandamos mensaje a memoria para saber si hay espacio,
-        log_info(kernel_logger,"El pid es: %u",proceso_new->pid);
-        
+        // Aquí puedes trabajar con proceso_new de forma segura
+        log_info(kernel_logger, "Proceso encontrado en cola NEW: PID %d", proceso_new->pid);
         asignar_espacio_memoria(proceso_new->pid, proceso_new->tam_proceso, proceso_new->prioridad_main, proceso_new->path_main);
-        
     } else {
-        printf("La cola esta vacia.\n");
-
+        log_error(kernel_logger, "Error al obtener proceso de cola NEW");
     }
 }
 
@@ -325,6 +373,7 @@ void* finalizar_proceso(PCB* pcb_afuera)
             free(tid);
         }*/
         //1ro) Veo en la lista de tcbs -->los que tengan el mismo pid los paso al estado EXIT
+        sem_wait(&mutex);
         for(int i=0; i<list_size(lista_tcbs);i++){
             TCB* tcb_en_lista = (TCB*)list_get(lista_tcbs,i);
             if(tcb_en_lista->pid == pcb_afuera->pid){
@@ -332,6 +381,7 @@ void* finalizar_proceso(PCB* pcb_afuera)
                 //en esta misma funcion ya destruye el tid que esta en la lista de tids del pcb
             }
         }
+        sem_post(&mutex);
         //2do) destruyo la lista de tids(enteros) que tiene el pcb -> por las dudas jsjs
         list_destroy(pcb_afuera->lista_tid); 
         //list_destroy_and_destroy_elements(pcb_afuera->tid,free);
@@ -379,7 +429,9 @@ void finalizar_hilo(TCB* hilo)
     log_info(kernel_logs_obligatorios, "Fin de Hilo: ## (<PID>:%u <TID>:%u ) Finaliza el hilo", hilo->pid, hilo->tid);
     //1ro) Ingreso el hilo a la lista de exit
     hilo->estadoHilo = EXIT;
+    sem_wait(&mutex);
     list_add(lista_exit, hilo);
+    sem_post(&mutex);
     
     //2do) lo saco de la lista de tcbs
     
@@ -411,8 +463,9 @@ void finalizar_hilo(TCB* hilo)
 
                 sgte_hilo->estadoHilo = READY;
                 mutex_pos->tid = sgte_hilo->tid;
-
+                sem_wait(&mutex);
                 list_add(lista_ready, sgte_hilo);
+                sem_post(&mutex);
             } else {
                 //Si no hay hilos bloqueados, asignar el tid como vacio
                 mutex_pos->tid = -1;
@@ -448,11 +501,15 @@ void informar_a_memoria_fin_hilo(int fd_memoria, TCB* hilo){
 
 void desbloquear_hilos_por_tid(TCB* hilo){
     for(int i=0; i<list_size(lista_blocked); i++){
+        //semaforo
         TCB* hilo_bloqueado = list_get(lista_blocked,i);
         if(hilo_bloqueado->pid==hilo->pid && hilo_bloqueado->tid_que_lo_bloqueo==hilo->tid){
             hilo_bloqueado->estadoHilo = READY;
             hilo_bloqueado->tid_que_lo_bloqueo = -1;
+            sem_wait(&mutex);
             list_add(lista_ready,hilo_bloqueado);
+            sem_post(&mutex);
+            
             //lo debo sacar de la lista de blqueados
             list_remove(lista_blocked, i);
             i--; //se decrementa ya que elimine un hilo de la lista
@@ -488,4 +545,28 @@ void liberar_recursos_kernel(){
     queue_destroy_and_destroy_elements(cola_new);
     */
     log_info(kernel_logger,"Todos los recursos de kernel han sido liberados");
+}
+
+
+TCB* buscar_tcbs(uint32_t tid, uint32_t pid) {
+    // Log de inicio de la búsqueda
+    printf("Iniciando búsqueda del TCB con PID: %u y TID: %u\n", pid, tid);
+    
+    for (int i = 0; i < list_size(lista_tcbs); i++) {
+        TCB* tcb_actual = list_get(lista_tcbs, i);
+        
+        // Log del TCB actual que estamos revisando
+        printf("Revisando TCB en la posición %d: PID = %u, TID = %u\n", i, tcb_actual->pid, tcb_actual->tid);
+
+        // Comparamos los PID y TID
+        if (tcb_actual->pid == pid && tcb_actual->tid == tid) {
+            // Log si encontramos el TCB
+            printf("¡TCB encontrado! PID = %u, TID = %u\n", tcb_actual->pid, tcb_actual->tid);
+            return tcb_actual;
+        }
+    }
+    
+    // Log si no encontramos el TCB
+    printf("No se encontró ningún TCB con PID = %u y TID = %u", pid, tid);
+    return NULL;
 }

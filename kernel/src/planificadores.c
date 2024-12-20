@@ -1,15 +1,13 @@
 #include <planificadores.h>
 
 
-//semaforos
-
 
 void planificador_de_largo_plazo()
 {   
     while(1){
         //obtener de la cola de new el proceso
         sem_wait(&sem_plani_largo_plazo);
-
+        log_info(kernel_logger,"entro al plani de largo plazo");
         //mandar a la cola de ready
         iniciar_proceso();
         
@@ -51,8 +49,10 @@ void planificador_corto_plazo(/*TCB* hilo*/){
             printf("Planificación prioridades\n");
             //La máxima prioridad es el 0
             //1ro saber cuál es la mayor prioridad ---> Menor numero entero --> En sí sería la de MAXIMA PRIORIDAD
-            TCB* hiloMayorPrioridad = buscar_hilo_menorNro_prioridad(); //Acá esta el hilo de mayor prioridad
-            
+            TCB* hiloMayorPrioridad = buscar_hilo_menorNro_prioridad(); //busca el hilo de mayor prioridad y lo elimina de la lista de ready
+            if(hiloMayorPrioridad==NULL){
+                log_info(kernel_logger,"No se encontro un tcb a la lista_ready");
+            }
             //Ahora el hiloMayorPrioridad es el hilo que tiene como prioridad el numero entero más chico
             //CAmbiar el estado del hilo
             hiloMayorPrioridad->estadoHilo = EXEC;
@@ -76,24 +76,42 @@ void planificador_corto_plazo(/*TCB* hilo*/){
 
             //1)SE crea una cola por cada nivel de prioridad que exista 
 
-            t_queue* cola_prioridad[mayorNroPrioridad+1];
+sigo pero me tuve que mutear
+            //void crear_colas() {
 
-            for(int i=0; i <= mayorNroPrioridad; i++){
-                if(cola_prioridad[i] == NULL){
-                    log_info(kernel_logger,"Se crea la cola: %d", i);
-                    cola_prioridad[i] = queue_create();
+                // Asignamos memoria para el array de colas si es NULL
+                if (cola_prioridad == NULL) {
+                    cola_prioridad = malloc((mayorNroPrioridad + 1) * sizeof(t_queue*));
                 }
-            }
 
+                for (int i = 0; i <= mayorNroPrioridad; i++) {
+                    if (cola_prioridad[i] == NULL) {
+                        log_info(kernel_logger, "Se crea la cola: %d", i);
+                        cola_prioridad[i] = queue_create(); // Crear la cola si no existe
+                    }
+                }
+            //}
+
+            //enconla el hilo en la cola de prioridad correspondiente
+            sem_wait(&mutex);
             for(int i=0; i< list_size(lista_ready); i++){
                 TCB* hilo = list_get(lista_ready, i);
                 if(hilo->prioridad <= mayorNroPrioridad){
                     queue_push(cola_prioridad[hilo->prioridad], hilo);
+                    list_remove(lista_ready, i);
+                    i--; // Ajustar el índice después de eliminar un elemento
+                }else{
+                    log_error(kernel_logger,"la prioridad del hilo es mayor que el mayorNroPrioridad");
                 }
-                //ejecutar roundrobin para cada cola, hacer funcion aparte ( cola);
             }
+            sem_post(&mutex);
+            
+            //Buscamos la cola de mayor prioridad a ejecutar con rr
+            t_queue* colaMayorPrioridad = buscarColaMayorPrioridad(t_queue* cola_prioridad[]) //prioridad ==O o el mas chiquito
 
-            void planificar_por_rr(t_queue* colaMayorPrioridad)
+            planificar_RR(colaMayorPrioridad);
+
+            void planificar_RR(t_queue* colaMayorPrioridad)0
             {
                 TCB *hilo = malloc(sizeof(t_pcb));
                 while (1)
@@ -105,8 +123,20 @@ void planificador_corto_plazo(/*TCB* hilo*/){
                     enviar_a_cpu_cde(proceso->cde);
 
                     inicio_quantum(QUANTUM);
+                    //busco en la lista de tcb
+
+                    //busco el hilo siguiente de la lista de ready 
+
+                    //comparo las prioridades del hilo que me pasan por interrupt y de la lista de ready
+
+                    //si tienen la misma prioridad, entoces sigue el que estaba en la lista de ready
+                    //si no hay otro sigue mismo ejecuntado
+
+                    //si tienen distinta prioridad
+                        //si el sigu
                 }
             }
+
             // QUANTUM
 
             void inicio_quantum(int quantum)
@@ -120,7 +150,7 @@ void planificador_corto_plazo(/*TCB* hilo*/){
             void *hilo_quantum()
             {
                 sleep_ms(quantum_usable);
-                enviar_op_code(socket_cpu_interrupt, PROCESO_INTERRUMPIDO_QUANTUM);
+                enviar_op_code(socket_cpu_interrupt, INTERRUMPIR);
             }
 
         }*/

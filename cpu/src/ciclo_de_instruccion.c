@@ -20,8 +20,12 @@ void* ciclo_de_instruccion(void* arg){
         log_info(cpu_logger, "Datos actuales pc %u, tid %u, pid %u", contexto->PC, contexto->TID, contexto->pid);
 
         free(instruccionDecodificada);
+        
+        if(control_key_interrupt==1){
 
-        check_interrupt(fd_kernel_interrupt,fd_memoria, contexto);
+            check_interrupt(contexto);
+            control_key_interrupt=0;
+        }
 
         if (control_key == 0) {
             log_info(cpu_logger, "Ciclo de instrucción detenido por syscall.");
@@ -164,14 +168,14 @@ void execute(t_instruccion* instruccion, t_contextoEjecucion* contexto){
         }
     }
     else if(strcmp(instruccion->operacion,"WRITE_MEM")==0){
-        write_mem(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU ,contexto->TID);
+        write_mem(instruccion->operando1,instruccion->operando2,contexto);
         log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
          if(strcmp(instruccion->operando2,"PC")!=0){
             contexto->PC++;
         }
     }
     else if(strcmp(instruccion->operacion,"READ_MEM")==0){
-        read_mem(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU,contexto->TID);
+        read_mem(instruccion->operando1,instruccion->operando2,contexto);
         log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
         if(strcmp(instruccion->operando2,"PC")!=0){
             contexto->PC++;
@@ -184,23 +188,17 @@ void execute(t_instruccion* instruccion, t_contextoEjecucion* contexto){
     
 }
 
-void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucion* contexto) {
-    int interrup_signal;  // Variable para almacenar la senial de interrupcion
+void check_interrupt(t_contextoEjecucion* contexto) {
 
-    // Leer si hay interrupcion desde el CPU
-    int bytes_recibidos=recv(fd_kernel_interrupt,&interrup_signal,sizeof(int),MSG_DONTWAIT);//evitar bloqueo si es que no hay una interrupcion
-    if (bytes_recibidos>0)
-    {
         log_info(cpu_logger,"Interrupcion detectada desde el kernel");
         actualizar_contexto(fd_memoria,contexto);
-
-        int respuesta=1;
-        if (send(fd_kernel_interrupt,&respuesta,sizeof(int),0)==-1)
-        {
-            log_error(cpu_logger,"Error al enviar la confimaracion al Kernel");
-
-        }else{
-            log_info(cpu_logger,"Confirmacion de interrupcion");
-        }
-    }
+        t_paquete* paquete=crear_paquete(CONFIRMAR_INTERRUPCION);
+        log_info(cpu_logger,"Serializo PID: %u Y TID: %U ",contexto->pid,contexto->TID);
+        serializar_hilo_cpu(paquete,contexto->pid,contexto->TID);
+        log_info(cpu_logger,"ENVIANDO PAQUETE");
+        enviar_paquete(paquete,fd_kernel_interrupt);
+        log_info(cpu_logger,"PAQUETE ENVIADO");
+        eliminar_paquete(paquete);
+        log_info(cpu_logger,"Se elimino el paquete");
 }
+

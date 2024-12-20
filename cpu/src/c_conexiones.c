@@ -31,6 +31,7 @@ sem_t sem_instruccion;
 sem_t sem_contexto;
 
 int control_key;
+int control_key_interrupt;
 
 void inicializar_cpu(){
     cpu_logger = iniciar_logger(".//cpu.log", "log_CPU");
@@ -141,17 +142,17 @@ void set_registro(char* registro,char* valor, RegistrosCPU* registros){
 
 }
 
-void read_mem(char* datos, char* direccion, RegistrosCPU* registros,uint32_t tidHilo){
-    uint32_t* reg_datos = obtenerRegistro(datos,registros);
-    uint32_t* reg_direccion = obtenerRegistro(direccion,registros);
+void read_mem(char* datos, char* direccion, t_contextoEjecucion* contexto){
+    uint32_t* reg_datos = obtenerRegistro(datos,contexto->RegistrosCPU);
+    uint32_t* reg_direccion = obtenerRegistro(direccion,contexto->RegistrosCPU);
     
     if(!reg_datos || !reg_direccion){
          log_error(cpu_logger,"Error: Registros no validados para lectura");
         return;
     }
 
-    uint32_t direccion_fisica = MMU(*reg_direccion);
-    *reg_datos = leer_desde_memoria(fd_memoria, direccion_fisica,tidHilo); 
+    uint32_t direccion_fisica = MMU(*reg_direccion, contexto);
+    *reg_datos = leer_desde_memoria(fd_memoria, direccion_fisica,contexto->TID); 
     
 }
 
@@ -175,15 +176,15 @@ uint32_t leer_desde_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t 
     return dato;
 }
 
-void write_mem(char* registro_direccion, char* registro_datos, RegistrosCPU* registros,uint32_t tidHilo){
-    uint32_t* reg_direccion = obtenerRegistro(registro_direccion,registros);
-    uint32_t* reg_datos = obtenerRegistro(registro_datos,registros);
+void write_mem(char* registro_direccion, char* registro_datos, t_contextoEjecucion* contexto){
+    uint32_t* reg_direccion = obtenerRegistro(registro_direccion,contexto->RegistrosCPU);
+    uint32_t* reg_datos = obtenerRegistro(registro_datos,contexto->RegistrosCPU);
      if(!reg_direccion || !reg_datos){
         log_error(cpu_logger,"Error: Registros no validados para escritura");
         return;
     }
-        uint32_t direccion_fisica=MMU(*reg_direccion);
-        escribir_en_memoria(fd_memoria,direccion_fisica,*reg_datos,tidHilo);
+        uint32_t direccion_fisica=MMU(*reg_direccion,contexto);
+        escribir_en_memoria(fd_memoria,direccion_fisica,*reg_datos,contexto->TID);
 }
 
 void escribir_en_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t dato, uint32_t tidHilo){
@@ -259,11 +260,13 @@ uint32_t* obtenerRegistro(char* registro, RegistrosCPU* registros){
 
 }
 
-uint32_t MMU(uint32_t direccion_logica){
+uint32_t MMU(uint32_t direccion_logica,t_contextoEjecucion* contexto){
     uint32_t direccion_fisica=parteActual.base+ direccion_logica;
 
     if( direccion_fisica < parteActual.base || direccion_fisica > (parteActual.base + parteActual.limite)){
         log_error(cpu_logger,"Segmentation Fault: Direccion %d fuera de los limites",direccion_logica);
+        actualizar_contexto(fd_memoria,contexto);
+        enviar_a_kernel_PROCESS_EXIT(fd_kernel_dispatch,contexto->pid,contexto->TID);        
         //notificar a kernel;
         exit(EXIT_FAILURE);
     }

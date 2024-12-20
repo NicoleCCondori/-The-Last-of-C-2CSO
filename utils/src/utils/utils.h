@@ -55,7 +55,12 @@ typedef enum
 	WRITE_MEM,
 	READ_MEM,
 	CONFIRMAR_CONTEXTO_ACTUALIZADO,
-	ERROR
+	CONFIRMAR_DUMP_MEMORY,
+	INTERRUPCION,
+	ERROR,
+	CONFIRMAR_WRITE_MEM,
+	ENVIAR_READ_MEM,
+	CONFIRMAR_INTERRUPCION
 }op_code;
 
 typedef enum{
@@ -120,10 +125,10 @@ typedef struct
 extern sem_t semaforo_binario;  // Declaración del semáforo binario
 
 //listas
-extern t_list* lista_tcb;
+/*extern t_list* lista_tcbs;*/
 
 PCB* buscar_proceso(t_list* lista_procesos, uint32_t pid);
-TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
+/*TCB* buscar_tcbs(uint32_t tid,uint32_t pid);*/
 
 //Funciones para cliente
 int crear_conexion(char* ip, char* puerto,char* name_server,t_log *logger);

@@ -166,8 +166,7 @@ void liberar_recursos(){
     if (memoria) free(memoria);
     if (lista_particiones) list_destroy_and_destroy_elements(lista_particiones, free);
     if (lista_contextos) list_destroy_and_destroy_elements(lista_contextos, free);
-
-    sem_destroy(&semaforo_binario);
+    
     pthread_mutex_destroy(&mutex_lista_particiones);
     pthread_mutex_destroy(&mutex_memoria);
     pthread_mutex_destroy(&mutex_contextos);

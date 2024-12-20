@@ -26,6 +26,7 @@ void escuchar_kernel_dispatch(){
                 break;
 
             case RECIBIR_TID:
+            
                 log_info(cpu_logger,"recibiendo paquete de kernel TID!!!\n");
                 pthread_mutex_lock(&mutex_contextos2);
                 t_enviar_contexto* contexto = deserializar_enviar_contexto(paquete_kernel);

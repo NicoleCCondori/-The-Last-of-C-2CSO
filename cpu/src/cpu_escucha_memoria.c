@@ -5,11 +5,6 @@ void cpu_escucha_memoria(){
     
     while (1)
 	{
-		if (fd_memoria <= 0) {
-			log_error(cpu_logger, "El descriptor de memoria es inválido.");
-			return;
-		}
-
 		t_paquete* paquete_cpu_memoria = recibir_paquete(fd_memoria);
 		if (paquete_cpu_memoria == NULL) {
     		log_error(cpu_logger, "No se recibió un paquete desde Memoria o hubo un error.");
@@ -40,24 +35,32 @@ void cpu_escucha_memoria(){
 				log_info(cpu_logger,"AHORA CPU DEBE ENVIAR EL PAQUETE THREAD_CREATED A KERNEL\n");
 				
 				log_info(cpu_logger,"El valor del semaforo antes del post");
-				mostrar_valor_semaforo(&sem_syscall);
 				sem_post(&sem_syscall);
 				log_info(cpu_logger,"El valor del semaforo despues de hacer el post");
-				mostrar_valor_semaforo(&sem_syscall);
 
 			}else{
 				log_warning(cpu_logger,"No llego el OK (actualizar_contexto)\n");
 			}
 			break;	
-			
+		
+		case CONFIRMAR_WRITE_MEM:
+			log_info(cpu_logger,"Confirmacion write mem");
+			break;
+		
+		case ENVIAR_READ_MEM:
+			log_info(cpu_logger,"Me llega la lectura de memoria");
+			break;
+		
 		case -1:
 			log_error(cpu_logger, "Desconexion de MEMORIA");
 			return;
+		
 		default:
 			log_warning(cpu_logger, "Operacion desconocida de MEMORIA");
 			break;
 		}
-		eliminar_paquete(paquete_cpu_memoria);
+
+		if(paquete_cpu_memoria) {eliminar_paquete(paquete_cpu_memoria);};
 	}
 }
 
@@ -74,7 +77,7 @@ void reciboContexto(t_paquete* contextoEje)
 void recibir_instruccion_de_memoria(t_paquete* paquete) {    
     if (paquete == NULL) {
         log_error(cpu_logger, "Error al recibir paquete instruccion desde memoria");
-        return NULL;
+        exit(EXIT_FAILURE);
     } else {
 		log_info(cpu_logger, "Recibi paquete instruccion desde memoria");
 	}

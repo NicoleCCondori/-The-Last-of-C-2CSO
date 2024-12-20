@@ -2,12 +2,7 @@
 
 
 int main(int argc, char* argv[]) {
-    
-    // Inicializar semáforo binario a 0 (espera inicial)
-    if (sem_init(&semaforo_binario, 0, 0) != 0) {
-        perror("Error al inicializar el semáforo binario");
-        return -1;
-    }
+
 
     if (inicializar_memoria() != 0) {
         log_error(memoria_logger, "Fallo al inicializar memoria");

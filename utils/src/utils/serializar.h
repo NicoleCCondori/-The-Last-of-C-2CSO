@@ -115,7 +115,7 @@ typedef struct{
 typedef struct{
     char* recurso;//recurso
     uint32_t tid;
-    t_queue* bloqueados_mutex; // va a tener los hilos que realizaron el mutex_lock y no pueden usar el recurso
+    t_queue* bloqueados_mutex; // va a tener los hilos,es decir solo el uint32_t tid que realizaron el mutex_lock y no pueden usar el recurso
     //sem_t contador;
 }t_mutex;
 

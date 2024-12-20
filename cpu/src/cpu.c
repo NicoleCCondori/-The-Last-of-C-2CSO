@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
     sem_destroy(&sem_syscall);
     pthread_mutex_destroy(&mutex_contextos2);
     sem_destroy(&sem_syscallKernel);
+    sem_destroy(&sem_contexto);
 
     //liberar los logs config y semaforos
     finalizar_modulo(cpu_logger,cpu_logs_obligatorios,valores_config_cpu->config);

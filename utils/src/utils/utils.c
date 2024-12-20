@@ -1,7 +1,7 @@
 #include <utils/utils.h>
 
 
-t_list* lista_tcb;
+t_list* lista_tcbs; //Va a estar compuesto por TCBs
 
 // Inicialización del semáforo binario
 sem_t semaforo_binario;  // Declaración del semáforo binario
@@ -20,7 +20,7 @@ PCB* buscar_proceso(t_list* lista_procesos, uint32_t pid) {
         printf("Revisando proceso con PID: %u\n", proceso_actual->pid); // Log adicional
 		 
         if (proceso_actual->pid == pid) {
-			printf("Se encontro un pid igual!! pid:%u coincide con el pid_actual: %u", pid, proceso_actual->pid);
+			printf("Se encontro un pid igual!! pid:%u coincide con el pid_actual: %u \n", pid, proceso_actual->pid);
             return proceso_actual;
         }else{
 			printf("No coincide el pid del proceso_actual: %u con el pid pasado por parametro :%u \n",proceso_actual->pid, pid);
@@ -29,17 +29,30 @@ PCB* buscar_proceso(t_list* lista_procesos, uint32_t pid) {
 
     return NULL;
 }
+/*
+TCB* buscar_tcbs(uint32_t tid, uint32_t pid) {
+    // Log de inicio de la búsqueda
+    printf("Iniciando búsqueda del TCB con PID: %u y TID: %u\n", pid, tid);
+    
+    for (int i = 0; i < list_size(lista_tcbs); i++) {
+        TCB* tcb_actual = list_get(lista_tcbs, i);
+        
+        // Log del TCB actual que estamos revisando
+        printf("Revisando TCB en la posición %d: PID = %u, TID = %u\n", i, tcb_actual->pid, tcb_actual->tid);
 
-TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid){
-	for(int i=0; i<list_size(lista);i++)
-	{
-		TCB* tcb_actual = list_get(lista, i);
-		if (tcb_actual->pid == pid && tcb_actual->tid == tid){
-			return tcb_actual;
+        // Comparamos los PID y TID
+        if (tcb_actual->pid == pid && tcb_actual->tid == tid) {
+            // Log si encontramos el TCB
+            printf("¡TCB encontrado! PID = %u, TID = %u\n", tcb_actual->pid, tcb_actual->tid);
+            return tcb_actual;
         }
-	}
-	return NULL;
-}
+    }
+    
+    // Log si no encontramos el TCB
+    printf("No se encontró ningún TCB con PID = %u y TID = %u", pid, tid);
+    return NULL;
+}*/
+
 
 //establece una conexión TCP con un servidor dado su dirección IP y puerto
 int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
@@ -186,18 +199,21 @@ void handshakeServer(int fd_client)
 	recv(fd_client, &handshake, sizeof(int32_t), MSG_WAITALL);
 	switch (handshake)
 	{
-	case 1: // CPU
-		send(fd_client, &resultOk, sizeof(int32_t), 0);
-		break;
-	case 2: // Kernel
-		send(fd_client, &resultOk, sizeof(int32_t), 0);
-		break;
-	case 3: // Memoria
-		send(fd_client, &resultOk, sizeof(int32_t), 0);
-		break;
-	default: // ERROR
-		send(fd_client, &resultError, sizeof(int32_t), 0);
-		break;
+		case 1: // CPU
+			send(fd_client, &resultOk, sizeof(int32_t), 0);
+			break;
+		case 2: // Kernel dispatch
+			send(fd_client, &resultOk, sizeof(int32_t), 0);
+			break;
+		case 3: // Memoria
+			send(fd_client, &resultOk, sizeof(int32_t), 0);
+			break;
+		case 4://kernel_interrupt
+			send(fd_client,&resultOk, sizeof(int32_t), 0);
+			break;
+		default: // ERROR
+			send(fd_client, &resultError, sizeof(int32_t), 0);
+			break;
 	}
 }
 

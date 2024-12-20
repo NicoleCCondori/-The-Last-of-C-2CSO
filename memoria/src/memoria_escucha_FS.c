@@ -11,6 +11,7 @@ void memoria_escucha_FS(){
 
 		case PAQUETE:
 			break;
+			
 		case -1:
 			log_error(memoria_logger, "Desconexion de FILESYSTEM");
 			exit(EXIT_FAILURE);
