@@ -78,27 +78,47 @@ typedef struct {
 }t_datos_esenciales;
 
 typedef struct{
+    uint32_t PID;
+    uint32_t TID;
     char* nomArchP;
-    int tamProceso;
-    int prioridadHM;
+    uint32_t tamProceso;
+    uint32_t prioridadHM;
 }t_process_create;
+
 typedef struct{
+    uint32_t PID;
+    uint32_t TID;
     char* nombreArchT;
     uint32_t prioridadH;
 }t_thread_create;
-/*typedef struct{
+
+typedef struct{
+    uint32_t PID;
+    uint32_t TID;
     int tiempo;
 }t_IO;
 
 typedef struct{
-    int tid;
-}t_thread_join_y_cancel;*/
+    uint32_t PID;
+    uint32_t TID;
+    uint32_t tid; //victima a bloquear
+}t_thread_join_y_cancel;
+
+
+typedef struct{
+    uint32_t PID;
+    uint32_t TID;
+    char* recurso;
+}t_mutex_todos;
+
+//Estructura para despues que ingresemos a tipo de mutex
 typedef struct{
     char* recurso;//recurso
     uint32_t tid;
     t_queue* bloqueados_mutex; // va a tener los hilos que realizaron el mutex_lock y no pueden usar el recurso
     //sem_t contador;
 }t_mutex;
+
 //=====================================
 
 t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete);
@@ -145,6 +165,8 @@ typedef struct{
     uint32_t bit_confirmacion;
 }t_creacion_hilo;
 
+
+
 void agregar_buffer_registrosCPU(t_buffer* buffer, RegistrosCPU* registro);
 void serializar_hilo_cpu(t_paquete* hilo_cpu, uint32_t pid, uint32_t tid);
 void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, int prioridad, const char* path);
@@ -156,10 +178,10 @@ RegistrosCPU* leer_buffer_registro(t_buffer* buffer);
 t_datos_esenciales* deserializar_datos_esenciales(t_paquete* paquete);
 t_crear_archivo_memoria* deserializar_crear_archivo_memoria(t_paquete* paquete);
 t_process_create* deserializar_process_create(t_paquete* paquete);
-int deserializar_IO(t_paquete* paquete);
+t_IO* deserializar_IO(t_paquete* paquete);
 t_thread_create* deserializar_thread_create(t_paquete* paquete);
-uint32_t deserializar_thread_join_y_cancel(t_paquete* paquete);
-void* deserializar_mutex(t_paquete* paquete);
+t_thread_join_y_cancel* deserializar_thread_join_y_cancel(t_paquete* paquete);
+t_mutex_todos* deserializar_mutex(t_paquete* paquete);
 
 //==========================================================
 void serializar_finalizar_hilo(t_paquete* paquete_memoria, uint32_t pid, uint32_t tid);

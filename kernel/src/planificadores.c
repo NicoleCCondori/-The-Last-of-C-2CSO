@@ -69,15 +69,18 @@ void planificador_corto_plazo(/*TCB* hilo*/){
 
         /*if(strcmp(valores_config_kernel->algoritmo_planificacion,"CMN")==0){
 
-            printf("Planificacion CMN\n");
+            log_info(kernel_logger,"Planificacion CMN\n");
 
             int mayorNroPrioridad = buscar_hilo_mayorNroPrioridad(); //devuelve el numero mas grande, menor prioridad 
+            log_info(kernel_logger,"El numero de colas creadas son: %d", mayorNroPrioridad);
+
             //1)SE crea una cola por cada nivel de prioridad que exista 
 
             t_queue* cola_prioridad[mayorNroPrioridad+1];
 
             for(int i=0; i <= mayorNroPrioridad; i++){
                 if(cola_prioridad[i] == NULL){
+                    log_info(kernel_logger,"Se crea la cola: %d", i);
                     cola_prioridad[i] = queue_create();
                 }
             }
@@ -88,6 +91,36 @@ void planificador_corto_plazo(/*TCB* hilo*/){
                     queue_push(cola_prioridad[hilo->prioridad], hilo);
                 }
                 //ejecutar roundrobin para cada cola, hacer funcion aparte ( cola);
+            }
+
+            void planificar_por_rr(t_queue* colaMayorPrioridad)
+            {
+                TCB *hilo = malloc(sizeof(t_pcb));
+                while (1)
+                {
+                    sem_wait(b_exec_libre);
+                    proceso = transicion_ready_exec();
+                    log_info(logger, "PID: <%d> - Estado Anterior: <READY> - Estado Actual: <EXECUTE>", proceso->cde->pid);
+                    proceso->estado = EXEC;
+                    enviar_a_cpu_cde(proceso->cde);
+
+                    inicio_quantum(QUANTUM);
+                }
+            }
+            // QUANTUM
+
+            void inicio_quantum(int quantum)
+            {
+                quantum_usable = quantum;
+                pthread_create(&hiloQuantum, NULL, hilo_quantum, NULL);
+                pthread_join(hiloQuantum, NULL);
+                //pthread_detach(&hiloQuantum);
+            }
+
+            void *hilo_quantum()
+            {
+                sleep_ms(quantum_usable);
+                enviar_op_code(socket_cpu_interrupt, PROCESO_INTERRUMPIDO_QUANTUM);
             }
 
         }*/

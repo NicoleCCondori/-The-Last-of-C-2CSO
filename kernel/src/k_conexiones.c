@@ -173,8 +173,10 @@ void crear_hilo(uint32_t pid_confirmado){
         printf("Hay espacio en memoria\n");//Si hay Espacio se crea el hilo main con tid 0
         //Agregar el tid_main a la lista de hilos del proceso (pcb->tid). 1) Debemos identificar el pcb en la lista de procesos
         log_info(kernel_logger,"El pid es: %u",pid_confirmado);
-
+        sem_wait(&mutex);
         PCB* proceso_agregar_tidM = buscar_proceso(lista_procesos, pid_confirmado);
+        sem_post(&mutex);
+
         if(proceso_agregar_tidM == NULL ){
             log_info(kernel_logger, "No encontro el proceso_agregar_tidM\n");
         }
@@ -203,10 +205,11 @@ void crear_hilo(uint32_t pid_confirmado){
         //informar a memoria el HILO A CREAR
         log_info(kernel_logger,"Enviamos el hilo a memoria");
         list_add(lista_tcbs, hilo_main);//Meterlo en la lista de TCBs general
+
         enviar_a_memoria(fd_memoria,hilo_main);
         //ESPERAMOS QUE MEMORIA NOS CONFIEME SI PUDO CREAR EL HILO
-        
-        free(proceso_agregar_tidM);
+        log_info(kernel_logger,"ESTOY AGREGANDO ESTE HILO A LA LISTA TCB con pid %u", hilo_main->pid);
+        //free(proceso_agregar_tidM);
         //free(pcb_fuera_new);
 }
 
@@ -216,7 +219,7 @@ void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
             log_info(kernel_logger, "No se puede agregar un hilo nulo a lista_ready");
             return;
     } else {
-        log_info(kernel_logger, "Encontro el hilo_pasar_a_ready\n");
+        log_info(kernel_logger, "Encontro el hilo_pasar_a_ready  pid:%u tid:%u\n", pid_hilo,tid_hilo);
         if (lista_ready == NULL) {
             log_error(kernel_logger, "La lista lista_ready no está inicializada");
             return;
@@ -225,7 +228,7 @@ void confirmacion_crear_hilo(uint32_t pid_hilo,uint32_t tid_hilo){
         log_info(kernel_logger, "Puntero hilo_pasar_a_ready: %p", hilo_pasar_a_ready);
 
         list_add(lista_ready, hilo_pasar_a_ready);
-        log_info(kernel_logger, "Agrego hilo a la lista ready");}
+        log_info(kernel_logger, "Se agrego el hilo a la LISTA READY\n");}
 }
 //INICIAR_HILO
 TCB* iniciar_hilo(uint32_t tid, int prioridad, uint32_t pid,char* path){
@@ -289,18 +292,16 @@ void crear_proceso(int tamanio_proceso,char* path, int prioridad_main)
     //agregar proceso a cola de NEW 
     queue_push(cola_new, pcb);
     //agregar a la lista de procesos al proceso
-    list_add(lista_procesos, pcb);
-    
-
-    //iniciar_proceso();
-    
-  
-    //liberar pcb_new
-    //free(pcb_new);
-    //free(pcb->path_main);
-    //free(pcb);
-    //liberar hilo_main
- }
+    sem_wait(&mutex);
+    if (list_add(lista_procesos, pcb) != 0) {
+    // Manejo de error 
+        log_error(kernel_logger,"No se pudo agregar pcb a la lista de procesos");
+        sem_post(&mutex);
+    }else{
+        log_info(kernel_logger,"SE AGREGO UN PCB A LA LISTA DE PROCESOS --- PID:%u TID:%u \n",pcb->pid, pcb->tid_contador);
+        sem_post(&mutex);
+    }
+}
 
 void destruir_pcb(void* elemento) {
     PCB* pcb = (PCB*)elemento; // Convertir void* a PCB*
@@ -390,7 +391,10 @@ void finalizar_hilo(TCB* hilo)
     //list_remove_element(lista_tcbs,(void*)hilo);  CREO QUE ES MEJOR CONSERVARLO PARA SABER EL ESTADO
 
     //3ro) lo saco de la lista tid de su pcb -> debo buscar en la lista de procesos con el pid
+    sem_wait(&mutex);
     PCB* tid_a_retirar = buscar_proceso(lista_procesos, hilo->pid);
+    sem_post(&mutex);
+
     if(tid_a_retirar == NULL){
 		printf("No se encontro el PID: %d", hilo->pid);
         return;

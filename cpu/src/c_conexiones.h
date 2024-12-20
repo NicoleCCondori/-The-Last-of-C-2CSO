@@ -6,11 +6,15 @@
 //tip y pid del proceso que se esta ejecutando
 extern uint32_t PidHilo;
 extern uint32_t TidHilo;
+extern int control_key;
 
 //semaforos
 extern sem_t sem_syscall;
+extern sem_t sem_syscallKernel;
 extern pthread_mutex_t mutex_contextos2;
 extern sem_t sem_instruccion;
+extern sem_t sem_contexto;
+
 
 extern char* instruccionActual;
 //char* operacionAux;
@@ -30,6 +34,7 @@ typedef struct {
     char* operacion;  // Nombre de la instruccion (SET, SUM, SUB, etc.)
     char* operando1;  // Primer operando
     char* operando2;  // Segundo operando
+    char* operando3;
     bool es_syscall;  // Indica si es una syscall o no
 
     // Campos adicionales para syscalls
@@ -87,8 +92,8 @@ void escuchar_kernel_interrupt();
 
 //CICLO DE INSTRUCCIONES
 
-void execute(t_instruccion* instruccion, RegistrosCPU* registros,uint32_t *pc, uint32_t tid);
-void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch);
+//void execute(t_instruccion* instruccion, RegistrosCPU* registros);
+//void execute_syscall(t_instruccion* instruccion, int fd_kernel_dispatch);
 
 //INTERRUPCIONES
 void actualizar_contexto(int fd_memoria, t_contextoEjecucion* contexto_ejecucion);
@@ -103,7 +108,6 @@ int enviar_pc_a_memoria(uint32_t PC,uint32_t TID, uint32_t PID);
 //PETICIONES A KERNEL
 void recibir_respuesta_kernel(int fd_kernel_interrupt);
 //void enviar_syscall_a_kernel(t_paquete* paquete,int fd_kernel_dispatch);
-
 void enviar_a_kernel_PROCESS_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t TID, char* archivo,uint32_t tamanio,uint32_t prioridad);
 void enviar_a_kernel_IO(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,int tiempo);
 void enviar_a_kernel_THREAD_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* archivo,uint32_t prioridad);
@@ -117,11 +121,11 @@ void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TI
 void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TID);
 
 void serializar_datos_esenciales(t_paquete* paquete,uint32_t PID, uint32_t TID);
-void serializar_process_create(t_paquete* paquete_process_create, char* archivo,uint32_t tamanio,uint32_t prioridad);
-void serializar_IO(t_paquete* paquete_IO, int tiempo);
-void serializar_thread_create(t_paquete* paquete_thread_create,char* archivo, uint32_t prioridad);
-void serializar_thread_join_y_cancel(t_paquete* paquete_thread_join_y_cancel,uint32_t tid);
-void serializar_mutex(t_paquete* paquete_mutex,char* recurso);
+void serializar_process_create(t_paquete* paquete_process_create, uint32_t PID, uint32_t TID, char* archivo,uint32_t tamanio,uint32_t prioridad);
+void serializar_IO(t_paquete* paquete_IO,uint32_t pid, uint32_t tid, int tiempo);
+void serializar_thread_create(t_paquete* paquete_thread_create,uint32_t PID,uint32_t TID,char* archivo, uint32_t prioridad);
+void serializar_thread_join_y_cancel(t_paquete* paquete_thread_join_y_cancel,uint32_t PID,uint32_t TID,uint32_t tid);
+void serializar_mutex(t_paquete* paquete_mutex,uint32_t PID,uint32_t TID,char* recurso);
 
 
 //SEREALIZACION

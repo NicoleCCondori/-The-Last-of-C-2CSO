@@ -1,28 +1,33 @@
 #include <ciclo_de_instruccion.h>
 
+
 void* ciclo_de_instruccion(void* arg){
-
-    t_contextoEjecucion* contexto = (t_contextoEjecucion*)arg;
-    log_info(cpu_logger, "Fetch");
-    log_info(cpu_logger, "El pid:%u  ,el tid:%u y el pc es:%u ",contexto->pid, contexto->TID, contexto->PC);
-    fetch(contexto->PC, contexto->TID, contexto->pid); //Obtenemos la instruccion de memoria y la llamamos instruccion actual
+    //sem_wait(&sem_syscallKernel);
     
-    sem_wait(&sem_instruccion);
+    while(control_key == 1 ){ 
+        t_contextoEjecucion* contexto = (t_contextoEjecucion*)arg;
+        log_info(cpu_logger, "Fetch");
+        log_info(cpu_logger, "El pid:%u  ,el tid:%u y el pc es:%u ",contexto->pid, contexto->TID, contexto->PC);
+        fetch(contexto->PC, contexto->TID, contexto->pid); //Obtenemos la instruccion de memoria y la llamamos instruccion actual
+        
+        sem_wait(&sem_instruccion);
 
-    t_instruccion* instruccionDecodificada = decode(/*instruccionActual*/); //INSTRUCCION ACTUAL ES LA INSTRUCCION QUE RECIBIMOS DE MEMORIA, LA CUAL DECODIFICADA Y GUARDA EN UNA NUEVA VARIABLE
-    
-    //Revisa si es syscall,de serlo envia la syscall a kernel, en caso de no serlo ejecuta segun sus operandos
-    execute(instruccionDecodificada, contexto->RegistrosCPU, &contexto->PC, contexto->TID);
+        t_instruccion* instruccionDecodificada = decode(/*instruccionActual*/); //INSTRUCCION ACTUAL ES LA INSTRUCCION QUE RECIBIMOS DE MEMORIA, LA CUAL DECODIFICADA Y GUARDA EN UNA NUEVA VARIABLE
+        
+        //Revisa si es syscall,de serlo envia la syscall a kernel, en caso de no serlo ejecuta segun sus operandos
+        execute(instruccionDecodificada, contexto);
 
-    log_info(cpu_logger, "Envio ahora pc %u, tid %u, pid %u", contexto->PC, contexto->TID, contexto->pid);
-    
-    enviar_pc_a_memoria(contexto->PC, contexto->TID, contexto->pid);
+        log_info(cpu_logger, "Datos actuales pc %u, tid %u, pid %u", contexto->PC, contexto->TID, contexto->pid);
 
-    free(instruccionDecodificada);
+        free(instruccionDecodificada);
 
-    check_interrupt(fd_kernel_interrupt,fd_memoria, contexto);
-    
+        check_interrupt(fd_kernel_interrupt,fd_memoria, contexto);
 
+        if (control_key == 0) {
+            log_info(cpu_logger, "Ciclo de instrucción detenido por syscall.");
+            break;
+        }
+    }
 }
 
 void fetch(uint32_t pc, uint32_t tidHilo, uint32_t pid){
@@ -56,6 +61,9 @@ t_instruccion* decode(/*char* instruccion*/){
 
     token = strtok(NULL, " ");
     instruccionDecodificada->operando2 = token ? strdup(token) : strdup("");
+    
+    token = strtok(NULL, " ");
+    instruccionDecodificada->operando3 = token ? strdup(token) : strdup("");
     //inicializo variables
     instruccionDecodificada->es_syscall=false;
     instruccionDecodificada->archivo=NULL;
@@ -67,15 +75,18 @@ t_instruccion* decode(/*char* instruccion*/){
     instruccionDecodificada->PID = PidHilo;
     instruccionDecodificada->TID = TidHilo;
 
-    if(strcmp(instruccionDecodificada->operacion,"PROCESS_CREATE")==0 ||
-    strcmp(    instruccionDecodificada->operacion,"TRHEAD_CREATE")==0)
+    if(strcmp(instruccionDecodificada->operacion,"THREAD_CREATE")==0)
     {
             instruccionDecodificada->es_syscall = true;
-            instruccionDecodificada->archivo = strtok(NULL," ");
-            instruccionDecodificada->tamanio = atoi(strtok(NULL," "));
-            instruccionDecodificada->prioridad = atoi(strtok(NULL," "));
+            instruccionDecodificada->archivo = instruccionDecodificada->operando1;
+            instruccionDecodificada->prioridad = atoi(instruccionDecodificada->operando2);
     }
-
+    else if(strcmp(instruccionDecodificada->operacion,"PROCESS_CREATE")==0){
+        instruccionDecodificada->es_syscall=true;
+        instruccionDecodificada->archivo=instruccionDecodificada->operando1;
+        instruccionDecodificada->tamanio=atoi(instruccionDecodificada->operando2);
+        instruccionDecodificada->prioridad=atoi(instruccionDecodificada->operando3);
+    }
     else if(strcmp(instruccionDecodificada->operacion,"IO")==0)
     {
         instruccionDecodificada->es_syscall = true;
@@ -86,7 +97,7 @@ t_instruccion* decode(/*char* instruccion*/){
     strcmp(instruccionDecodificada->operacion,"MUTEX_LOCK")==0 ||
     strcmp(instruccionDecodificada->operacion,"MUTEX_UNLOCK")==0){
         instruccionDecodificada->es_syscall = true;
-        instruccionDecodificada->recurso = strtok(NULL," ");
+        instruccionDecodificada->recurso = instruccionDecodificada->operando1;
     }
 
     else if(strcmp(instruccionDecodificada->operacion,"THREAD_JOIN")==0 ||
@@ -100,77 +111,77 @@ t_instruccion* decode(/*char* instruccion*/){
     return instruccionDecodificada;
 }
 
-void execute(t_instruccion* instruccion, RegistrosCPU* registros, uint32_t* pc,uint32_t tidHilo){
+void execute(t_instruccion* instruccion, t_contextoEjecucion* contexto){
     if(instruccion->es_syscall){
         log_info(cpu_logger,"Ejecutando syscall: %s",instruccion->operacion);
+        contexto->PC++;
+        actualizar_contexto(fd_memoria,contexto);
+        sem_wait(&sem_syscall);
+        log_info(cpu_logger,"Valor semaforo en execute syscall");
+        mostrar_valor_semaforo(&sem_syscall);
         execute_syscall(instruccion,fd_kernel_dispatch);
-        (*pc)++;
-       
+
+        control_key = 0;
+        return;
     }
     if(strcmp(instruccion->operacion,"SET")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
-        set_registro(instruccion->operando1, instruccion->operando2, registros);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
+        set_registro(instruccion->operando1, instruccion->operando2, contexto->RegistrosCPU);
         if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
+            contexto->PC++;
         }
-
     }
     else if(strcmp(instruccion->operacion,"SUM")==0){
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUM - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
 
-        sum_registro(instruccion->operando1,instruccion->operando2,registros);
+        sum_registro(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU);
          if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
+            contexto->PC++;
         }
     }
     else if (strcmp(instruccion->operacion,"SUB")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
-        sub_registro(instruccion->operando1,instruccion->operando2,registros);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: SUB - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
+        sub_registro(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU);
          if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
+            contexto->PC++;
         }
     }
     else if(strcmp(instruccion->operacion,"JNZ")==0)
     {
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: JNZ - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
 
-        jnz_registro(instruccion->operando1,instruccion->operando2,registros,pc);
-         if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
-        }
+        jnz_registro(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU,contexto->PC);
+
     }
     else if(strcmp(instruccion->operacion,"LOG")==0)
     {
-        log_registro(instruccion->operando1,registros);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> ",tidHilo,instruccion->operando1);
+        log_registro(instruccion->operando1,contexto->RegistrosCPU);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: LOG - <%s> ",contexto->TID,instruccion->operando1);
          if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
+            contexto->PC++;
         }
     }
     else if(strcmp(instruccion->operacion,"WRITE_MEM")==0){
-        write_mem(instruccion->operando1,instruccion->operando2,registros,tidHilo);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
+        write_mem(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU ,contexto->TID);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: WRITE_MEM - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
          if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
+            contexto->PC++;
         }
     }
     else if(strcmp(instruccion->operacion,"READ_MEM")==0){
-        read_mem(instruccion->operando1,instruccion->operando2,registros,tidHilo);
-        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",tidHilo,instruccion->operando1,instruccion->operando2);
+        read_mem(instruccion->operando1,instruccion->operando2,contexto->RegistrosCPU,contexto->TID);
+        log_info(cpu_logger,"## TID <%d> - Ejecutando: READ_MEM - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
         if(strcmp(instruccion->operando2,"PC")!=0){
-            (*pc)++;
+            contexto->PC++;
         }
     }
-
     else{
         log_error(cpu_logger,"INSTRUCCION DESCONOCIDA %s",instruccion->operacion);
         return;
     }
-    if(strcmp(instruccion->operacion,"JNZ")!=0){
-        (*pc)++;
-    }
+    
 }
 
 void check_interrupt(int fd_kernel_interrupt, int fd_memoria, t_contextoEjecucion* contexto) {

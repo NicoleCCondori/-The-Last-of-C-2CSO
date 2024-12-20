@@ -5,8 +5,10 @@
 int main(int argc, char* argv[]) {
 
     sem_init(&sem_instruccion, 0, 0);
-
     sem_init(&sem_syscall,0,0);
+    sem_init(&sem_syscallKernel,0,0);
+    sem_init(&sem_contexto,0,0);
+
     pthread_mutex_init(&mutex_contextos2, NULL);
 
     inicializar_cpu();
@@ -19,6 +21,7 @@ int main(int argc, char* argv[]) {
     sem_destroy(&sem_instruccion);
     sem_destroy(&sem_syscall);
     pthread_mutex_destroy(&mutex_contextos2);
+    sem_destroy(&sem_syscallKernel);
 
     //liberar los logs config y semaforos
     finalizar_modulo(cpu_logger,cpu_logs_obligatorios,valores_config_cpu->config);

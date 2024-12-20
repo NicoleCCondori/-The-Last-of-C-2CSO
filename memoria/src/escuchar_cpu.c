@@ -9,6 +9,7 @@ void escuchar_cpu()
     {
         t_paquete* paquete_cpu = recibir_paquete(fd_cpu);
         op_code codigo_operacion = paquete_cpu->codigo_operacion;
+        
         log_info(memoria_logger, "Codigo de operacion: %d", codigo_operacion);
 
         switch (codigo_operacion)
@@ -119,23 +120,30 @@ void devolver_contexto_ejecucion(t_paquete *paquete_cpu)
 /*ACTUALIZAR CONTEXTO EJECUCION*/
 void actualizar_contexto_de_ejecucion(t_paquete *paquete_cpu)
 {
-    t_actualizar_contexto *datos_contexto = deserializar_actualizar_contexto(paquete_cpu);
+    int bit_confirmacion = 1;
+    log_info(memoria_logger, "Entre en actualizar contexto");
+    t_contextoEjecucion* datos_contexto = deserializar_enviar_contexto_cpu(paquete_cpu);
+    log_info(memoria_logger, "Tid %u, pc %u, base %u, limite %u, pid %u", datos_contexto->TID, datos_contexto->PC, datos_contexto->base, datos_contexto->limite, datos_contexto->pid);
     usleep(atoi(valores_config_memoria->retardo_respuesta) * 1000);
 
-    pthread_mutex_lock(&mutex_contextos);
-    ContextoEjecucion *contexto = buscar_contexto_por_tid(datos_contexto->TID, datos_contexto->contexto_ejecucion->pid);
+    ContextoEjecucion *contexto = buscar_contexto_por_tid(datos_contexto->TID, datos_contexto->pid);
     if (!contexto)
     {
         log_error(memoria_logger, "Contexto no encontrado para TID %u", datos_contexto->TID);
-        pthread_mutex_unlock(&mutex_contextos);
+        bit_confirmacion = -1;
         return;
     }
 
-    contexto->registros = *(datos_contexto->contexto_ejecucion->RegistrosCPU);
-    contexto->pc = datos_contexto->contexto_ejecucion->PC;
+    contexto->registros = *(datos_contexto->RegistrosCPU);
+    contexto->pc = datos_contexto->PC;
 
     log_info(memoria_log_obligatorios, "## Contexto Actualizado - (PID:TID) - (<%u>:<%u>)", contexto->pid, contexto->tid);
-    pthread_mutex_unlock(&mutex_contextos);
+
+    t_paquete* paquete = crear_paquete(CONFIRMAR_CONTEXTO_ACTUALIZADO);
+    serializar_int(paquete, bit_confirmacion);
+    enviar_paquete(paquete, fd_cpu);
+    eliminar_paquete(paquete);
+    log_info(memoria_logger, "Ya se envio el paquete a cpu");    
 }
 
 void obtener_instruccion(t_paquete *paquete_cpu)
@@ -151,9 +159,9 @@ void obtener_instruccion(t_paquete *paquete_cpu)
         return;
     }
 
-    log_info(memoria_logger, "Me llega para buscar pid:%u, tid:%u, pc:%u", datos_instruccion->PID, datos_instruccion->TID, datos_instruccion->TID);
+    log_info(memoria_logger, "Me llega para buscar pid:%u, tid:%u, pc:%u", datos_instruccion->PID, datos_instruccion->TID, datos_instruccion->PC);
 
-    char *instruccion = obtener_instruccion_por_pc(contexto->pc, contexto->instrucciones);
+    char *instruccion = obtener_instruccion_por_pc(datos_instruccion->PC, contexto->instrucciones);
     if (!instruccion)
     {
         log_error(memoria_logger, "No se pudo obtener la instrucción en PC %u para TID %u", contexto->pc, contexto->tid);

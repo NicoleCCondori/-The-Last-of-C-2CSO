@@ -25,11 +25,31 @@ void cpu_escucha_memoria(){
 			log_info(cpu_logger, "Recibo op code enviar contexto");
 			reciboContexto(paquete_cpu_memoria);
 			break;
-
+	
 		case ENVIAR_INSTRUCCION:
 			log_info(cpu_logger, "Recibo op code enviar instruccion");
 			recibir_instruccion_de_memoria(paquete_cpu_memoria);
+			
 			break;
+		case CONFIRMAR_CONTEXTO_ACTUALIZADO:
+			int bit_confirmacion = deserializar_int(paquete_cpu_memoria);
+			log_info(cpu_logger, "Contenido del bit de confirmacion: %u", bit_confirmacion);
+;			
+			if(bit_confirmacion == 1){
+				log_info(cpu_logger,"Recibo el OK de memoria(Se actualizo el contexto exitosamente)");
+				log_info(cpu_logger,"AHORA CPU DEBE ENVIAR EL PAQUETE THREAD_CREATED A KERNEL\n");
+				
+				log_info(cpu_logger,"El valor del semaforo antes del post");
+				mostrar_valor_semaforo(&sem_syscall);
+				sem_post(&sem_syscall);
+				log_info(cpu_logger,"El valor del semaforo despues de hacer el post");
+				mostrar_valor_semaforo(&sem_syscall);
+
+			}else{
+				log_warning(cpu_logger,"No llego el OK (actualizar_contexto)\n");
+			}
+			break;	
+			
 		case -1:
 			log_error(cpu_logger, "Desconexion de MEMORIA");
 			return;
@@ -47,6 +67,7 @@ void reciboContexto(t_paquete* contextoEje)
 	log_info(cpu_logger, "Leo contexto de memoria");
 	inicializar_particion_de_memoria(contexto-> base, contexto->limite);
 	log_info(cpu_logger, "Se inicializo la particion de memoria");
+	control_key = 1;
 	empezar_ciclo_de_instruccion(contexto);
 }
 

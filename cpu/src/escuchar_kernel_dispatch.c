@@ -37,12 +37,15 @@ void escuchar_kernel_dispatch(){
                 TidHilo = contexto->TID;
 
                 log_info(cpu_logger,"Recibo de kernel pid <%u> y tid <%u>", PidHilo, TidHilo);
-
+                
                 //Debo liberar la memoria
                 //free(contexto); no sé si liberaba aca por el tema del malloc
+                //sem_post(&sem_syscallKernel);
+
                 pthread_mutex_lock(&mutex_contextos2);
                 obtener_contexto(fd_memoria, PidHilo, TidHilo); //se envia a memoria el tid y pid para obtener el contexto de ejecucion
                 pthread_mutex_unlock(&mutex_contextos2);
+
                 break;
 
             case -1:

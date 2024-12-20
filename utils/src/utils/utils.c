@@ -8,22 +8,26 @@ sem_t semaforo_binario;  // Declaración del semáforo binario
 
 
 
-PCB* buscar_proceso(t_list* lista, uint32_t pid){
-	//if (lista == NULL){
-	//	return NULL;
-	//}
-	for(int i=0; i<list_size(lista);i++)
-	{
-		PCB* proceso_actual = list_get(lista, i);
-		if(proceso_actual==NULL){
-			continue;
-		}
-		if (proceso_actual->pid == pid) {
-            return proceso_actual;
-        }
+PCB* buscar_proceso(t_list* lista_procesos, uint32_t pid) {
+    if (lista_procesos == NULL) {
+        printf("LA LISTA DE PROCESOS ESTA VACIA\n");
+        return NULL;
+    }
+	printf("La lista de procesos tiene %d elementos \n", list_size(lista_procesos));
 
-	}
-	return NULL;
+    for (int i = 0; i < list_size(lista_procesos); i++) {
+        PCB* proceso_actual = list_get(lista_procesos, i);
+        printf("Revisando proceso con PID: %u\n", proceso_actual->pid); // Log adicional
+		 
+        if (proceso_actual->pid == pid) {
+			printf("Se encontro un pid igual!! pid:%u coincide con el pid_actual: %u", pid, proceso_actual->pid);
+            return proceso_actual;
+        }else{
+			printf("No coincide el pid del proceso_actual: %u con el pid pasado por parametro :%u \n",proceso_actual->pid, pid);
+		}
+    }
+
+    return NULL;
 }
 
 TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid){
@@ -296,4 +300,12 @@ char* recibir_mensajeV2(int socket){
 	int size;
 	char* buffer = recibir_buffer(&size, socket);
 	return buffer;
+}
+void mostrar_valor_semaforo(sem_t *sem) {
+    int valor;
+    if (sem_getvalue(sem, &valor) == 0) {
+        printf("Valor actual del semáforo: %d\n", valor);
+    } else {
+        perror("Error al obtener el valor del semáforo");
+    }
 }

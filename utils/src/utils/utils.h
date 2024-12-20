@@ -54,6 +54,7 @@ typedef enum
 	FINALIZAR_PROCESO,
 	WRITE_MEM,
 	READ_MEM,
+	CONFIRMAR_CONTEXTO_ACTUALIZADO,
 	ERROR
 }op_code;
 
@@ -121,7 +122,7 @@ extern sem_t semaforo_binario;  // Declaración del semáforo binario
 //listas
 extern t_list* lista_tcb;
 
-PCB* buscar_proceso(t_list* lista, uint32_t pid);
+PCB* buscar_proceso(t_list* lista_procesos, uint32_t pid);
 TCB* buscar_tcbs(t_list* lista, uint32_t tid,uint32_t pid);
 
 //Funciones para cliente
@@ -142,5 +143,5 @@ void* recibir_buffer(int* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
 char* recibir_mensajeV2(int socket);
 t_list* recibir_paquete_lista(int socket_cliente);
-
+void mostrar_valor_semaforo(sem_t *sem);
 #endif

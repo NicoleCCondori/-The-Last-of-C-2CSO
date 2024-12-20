@@ -175,7 +175,7 @@ void serializar_enviar_instruccion(t_paquete* paquete_enviar_instruccion, char* 
     // Copiar la instrucción en sí
     memcpy(stream, instruccion, longitud_instruccion);
 
-    printf("Instrucción serializada correctamente: %s \n", instruccion);
+    printf("EN SERIALIZAR: Instrucción serializada correctamente: %s \n", instruccion);
 }
 
 
@@ -432,17 +432,6 @@ t_obtener_instruccion* deserializar_obtener_instruccion(t_paquete* paquete) {
     return enviar_contexto;
 }
 
-
-
-t_actualizar_contexto* deserializar_actualizar_contexto(t_paquete* paquete){
-    t_actualizar_contexto* enviar_contexto = malloc(sizeof(t_actualizar_contexto));
-
-    enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
-    enviar_contexto->contexto_ejecucion = deserializar_enviar_contexto_cpu(paquete);
-    
-    return enviar_contexto;
-}
-
 void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, int prioridad, const char* path) {
     // Calcular el tamaño total necesario para los datos serializados
     size_t path_length = strlen(path) + 1;  
@@ -606,32 +595,84 @@ t_datos_esenciales* deserializar_datos_esenciales(t_paquete* paquete){
 t_process_create* deserializar_process_create(t_paquete* paquete){
     t_process_create* pc_hiloMain = malloc(sizeof(t_process_create));
     
+    pc_hiloMain->PID = leer_buffer_Uint32(paquete->buffer);
+    pc_hiloMain->TID= leer_buffer_Uint32(paquete->buffer);
     pc_hiloMain->nomArchP = leer_buffer_string(paquete->buffer);
     pc_hiloMain->tamProceso = leer_buffer_Uint32(paquete->buffer);
     pc_hiloMain->prioridadHM = leer_buffer_Uint32(paquete->buffer);
     return pc_hiloMain;
 }
 
-t_thread_create* deserializar_thread_create(t_paquete* paquete){
-    t_thread_create* tc_hilo = malloc(sizeof(t_thread_create));
-    tc_hilo->nombreArchT = leer_buffer_string(paquete->buffer);
-    tc_hilo->prioridadH = leer_buffer_Uint32(paquete->buffer);
+t_thread_create* deserializar_thread_create(t_paquete* paquete) {
+    
+    size_t offset = 0;
+    size_t size_archivo;
+
+    // Crear la estructura para almacenar los datos
+    t_thread_create* thread_create = malloc(sizeof(t_thread_create));
+    if (!thread_create) {
+        perror("Error al asignar memoria para t_thread_create");
+        exit(EXIT_FAILURE);
+    }
+
+    // Buffer del paquete
+    //char* buffer = paquete->buffer;
+
+    // Deserializar PID
+    memcpy(&thread_create->PID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // Deserializar TID
+    memcpy(&thread_create->TID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // Deserializar tamaño del archivo
+    memcpy(&size_archivo, paquete->buffer->stream + offset, sizeof(size_t));
+    offset += sizeof(size_t);
+
+    // Deserializar archivo
+    thread_create->nombreArchT = malloc(size_archivo);
+    if (!thread_create->nombreArchT) {
+        perror("Error al asignar memoria para archivo");
+        free(thread_create);
+        exit(EXIT_FAILURE);
+    }
+    memcpy(thread_create->nombreArchT, paquete->buffer->stream  + offset, size_archivo);
+    offset += size_archivo;
+
+    // Deserializar prioridad
+    memcpy(&thread_create->prioridadH, paquete->buffer->stream  + offset, sizeof(uint32_t));
+
+    return thread_create;
+}
+
+
+
+t_thread_join_y_cancel* deserializar_thread_join_y_cancel(t_paquete* paquete){
+    t_thread_join_y_cancel* tc_hilo = malloc(sizeof(t_thread_join_y_cancel));
+    tc_hilo->PID = leer_buffer_Uint32(paquete->buffer);
+    tc_hilo->TID = leer_buffer_Uint32(paquete->buffer);
+    tc_hilo->tid = leer_buffer_Uint32(paquete->buffer);
     return tc_hilo;
 }
 
-uint32_t deserializar_thread_join_y_cancel(t_paquete* paquete){
-    uint32_t tid = leer_buffer_Uint32(paquete->buffer);
-    return tid;
+t_IO* deserializar_IO(t_paquete* paquete){
+
+    t_IO* io_paquete = malloc(sizeof(t_IO));
+
+    io_paquete->PID = leer_buffer_Uint32(paquete->buffer);
+    io_paquete->TID= leer_buffer_Uint32(paquete->buffer);
+    io_paquete->tiempo = leer_buffer_int(paquete->buffer);
+    
+    return io_paquete;
 }
 
-int deserializar_IO(t_paquete* paquete){
-    int tiempo = leer_buffer_int(paquete->buffer);
-    return tiempo;
-}
-
-void* deserializar_mutex(t_paquete* paquete){
-    char* recurso = leer_buffer_string(paquete->buffer);
-    return recurso;
+t_mutex_todos* deserializar_mutex(t_paquete* paquete){
+    t_mutex_todos* mutex_paquete = malloc(sizeof(t_mutex_todos));
+    mutex_paquete->PID = leer_buffer_Uint32(paquete->buffer);
+    mutex_paquete->TID = leer_buffer_Uint32(paquete->buffer);
+    mutex_paquete->recurso = leer_buffer_string(paquete->buffer);
+    return mutex_paquete;
 }
 
 t_crear_archivo_memoria* deserializar_crear_archivo_memoria(t_paquete* paquete){

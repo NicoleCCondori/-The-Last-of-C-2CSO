@@ -2,9 +2,7 @@
 
 // no era cliente?
 void memoria_escucha_FS(){
-
-    bool control_key = 1;
-    while (control_key){
+    while (1){
 		int cod_op = recibir_operacion(fd_FS);
 		switch (cod_op)
 		{

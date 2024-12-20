@@ -4,8 +4,8 @@
 
 void escuchar_kernel_interrupt(){
     //atender los msjs de kernel-interrupt 
-    bool control_key=1;
-    while (control_key)
+    
+    while (1)
 	{
 		op_code cod_op = recibir_operacion(fd_kernel_interrupt);
 		switch (cod_op)
