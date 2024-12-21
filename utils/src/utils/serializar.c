@@ -408,13 +408,31 @@ t_crear_hilo* deserializar_crear_hilo(t_paquete* paquete_hilo){
     return hilo;
 }
 
-t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete){
-    t_enviar_contexto* enviar_contexto = malloc(sizeof(t_enviar_contexto));
+t_enviar_contexto* deserializar_enviar_contexto(t_paquete* paquete) {
+    // Verificar que el paquete y su buffer no sean nulos
+    if (!paquete || !paquete->buffer) {
+        printf("Error: El paquete o su buffer son nulos\n");
+        return NULL;
+    }
 
-    enviar_contexto->PID = leer_buffer_Uint32(paquete->buffer);
-    printf("PID %u:", enviar_contexto->PID );
-    enviar_contexto->TID = leer_buffer_Uint32(paquete->buffer);
-    printf("TID %u:", enviar_contexto->TID );
+    // Reservar memoria para la estructura de salida
+    t_enviar_contexto* enviar_contexto = malloc(sizeof(t_enviar_contexto));
+    if (enviar_contexto == NULL) {
+        printf("Error: No se pudo asignar memoria para t_enviar_contexto\n");
+        return NULL;
+    }
+
+    // Definir el offset para leer los valores del buffer
+    size_t offset = 0;
+
+    // Leer el valor de PID desde el buffer usando memcpy
+    memcpy(&enviar_contexto->PID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t); // Aumentamos el offset por el tamaño de uint32_t
+
+    // Leer el valor de TID desde el buffer usando memcpy
+    memcpy(&enviar_contexto->TID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t); // Aumentamos el offset por el tamaño de uint32_t
+
     return enviar_contexto;
 }
 
@@ -494,7 +512,9 @@ void serializar_hilo_ready(t_paquete* paquete_hilo, uint32_t pid, uint32_t tid, 
     void* stream = paquete->buffer->stream;
     memcpy(stream, &pid, sizeof(uint32_t));   // Copiar PID
     stream += sizeof(uint32_t);
-    memcpy(stream, &tid, sizeof(uint32_t));   // Copiar TID
+    memcpy(stream, &tid, sizeof(uint32_t));
+    
+    printf("Aca me llegan pid: %u, tid:%u", pid, tid);   // Copiar TID
 }
 
 void serializar_obtener_instruccion(t_paquete* paquete, uint32_t pc, uint32_t tid, uint32_t pid)
@@ -667,15 +687,59 @@ t_thread_join_y_cancel* deserializar_thread_join_y_cancel(t_paquete* paquete){
     return tc_hilo;
 }
 
-t_IO* deserializar_IO(t_paquete* paquete){
+/*t_IO* deserializar_IO(t_paquete* paquete) {
+    // Verificar que el paquete y su buffer no sean NULL
+    if (paquete == NULL || paquete->buffer == NULL) {
+        // Aquí podrías manejar el error si el paquete o el buffer es NULL
+        return NULL;
+    }
 
+    // Reservar memoria para el struct t_IO
     t_IO* io_paquete = malloc(sizeof(t_IO));
 
-    io_paquete->PID = leer_buffer_Uint32(paquete->buffer);
-    io_paquete->TID= leer_buffer_Uint32(paquete->buffer);
-    io_paquete->tiempo = leer_buffer_int(paquete->buffer);
-    
+    // Verificar que la asignación de memoria haya sido exitosa
+    if (io_paquete == NULL) {
+        // Si no se puede asignar memoria, retornar NULL
+        return NULL;
+    }
+
+    // Leer PID (uint32_t)
+    memcpy(&(io_paquete->PID), paquete->buffer, sizeof(uint32_t));
+    paquete->buffer += sizeof(uint32_t);  // Avanzamos el puntero del buffer
+
+    // Leer TID (uint32_t)
+    memcpy(&(io_paquete->TID), paquete->buffer, sizeof(uint32_t));
+    paquete->buffer += sizeof(uint32_t);  // Avanzamos el puntero del buffer
+
+    // Leer tiempo (int)
+    memcpy(&(io_paquete->tiempo), paquete->buffer, sizeof(int));
+    paquete->buffer += sizeof(int);  // Avanzamos el puntero del buffer
+
     return io_paquete;
+}*/
+
+t_IO* deserializar_IO(t_paquete* paquete) {
+    size_t offset = 0;
+
+    // Crear la estructura para almacenar los datos
+    t_IO* io_data = malloc(sizeof(t_IO));
+    if (!io_data) {
+        perror("Error al asignar memoria para t_IO");
+        exit(EXIT_FAILURE);
+    }
+
+    // Deserializar PID
+    memcpy(&io_data->PID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // Deserializar TID
+    memcpy(&io_data->TID, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // Deserializar tiempo
+    memcpy(&io_data->tiempo, paquete->buffer->stream + offset, sizeof(int));
+
+    return io_data;
 }
 
 t_mutex_todos* deserializar_mutex(t_paquete* paquete){
@@ -692,12 +756,6 @@ t_crear_archivo_memoria* deserializar_crear_archivo_memoria(t_paquete* paquete){
     archivo_memoria->nombre_archivo = leer_buffer_string(paquete->buffer);
     archivo_memoria->tamanio = leer_buffer_Uint32(paquete->buffer);
     return archivo_memoria;
-}
-
-//PAra informar(kernel) a memoria, la finalización de un hilo
-void serializar_finalizar_hilo(t_paquete* paquete_memoria, uint32_t pid, uint32_t tid){
-    agregar_buffer_Uint32(paquete_memoria->buffer,pid);
-    agregar_buffer_Uint32(paquete_memoria->buffer,pid);
 }
 
 t_datos_esenciales* deserializar_finalizar_hilo(t_paquete* paquete_memoria){
@@ -738,13 +796,40 @@ t_datos_write_mem* deserializar_write_mem(t_paquete* paquete){
     return write_mem;
 }
 
-void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor,uint32_t PidHilo, uint32_t TidHilo){
-    agregar_buffer_Uint32(paquete_write_mem->buffer, dir_fis);
-    agregar_buffer_Uint32(paquete_write_mem->buffer, valor);
-    agregar_buffer_Uint32(paquete_write_mem->buffer,PidHilo);
-    agregar_buffer_Uint32(paquete_write_mem->buffer,TidHilo);
+void* serializar_write_mem(t_paquete* paquete_write_mem, uint32_t dir_fis, uint32_t valor, uint32_t PidHilo, uint32_t TidHilo) {
+    // Asegúrate de que el paquete y su buffer no sean NULL
+    if (paquete_write_mem == NULL || paquete_write_mem->buffer == NULL) {
+        return NULL; // Manejo de error en caso de que el paquete o buffer sea NULL
+    }
+
+    // Variable desplazamiento para controlar el puntero del buffer
+    size_t desplazamiento = 0;
+
+    // Serializar dir_fis (uint32_t) en el buffer
+    memcpy(paquete_write_mem->buffer + desplazamiento, &dir_fis, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);  // Avanzamos el desplazamiento
+
+    // Serializar valor (uint32_t) en el buffer
+    memcpy(paquete_write_mem->buffer + desplazamiento, &valor, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);  // Avanzamos el desplazamiento
+
+    // Serializar PidHilo (uint32_t) en el buffer
+    memcpy(paquete_write_mem->buffer + desplazamiento, &PidHilo, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);  // Avanzamos el desplazamiento
+
+    // Serializar TidHilo (uint32_t) en el buffer
+    memcpy(paquete_write_mem->buffer + desplazamiento, &TidHilo, sizeof(uint32_t));
+    desplazamiento += sizeof(uint32_t);  // Avanzamos el desplazamiento
+
+    // Actualizamos el puntero buffer del paquete con el desplazamiento total
+    paquete_write_mem->buffer += desplazamiento;
+
+    // La función no necesita devolver nada, ya que solo modifica el buffer
     return NULL;
 }
+
+
+
 
 t_datos_read_mem* deserializar_read_mem(t_paquete* paquete){
     t_datos_read_mem* read_mem = malloc(sizeof(t_datos_read_mem));
@@ -754,11 +839,25 @@ t_datos_read_mem* deserializar_read_mem(t_paquete* paquete){
     return read_mem;
 }
 
-void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica, uint32_t PidHilo, uint32_t TidHilo){
-    agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer, direccion_fisica);
-    agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer,PidHilo);
-    agregar_buffer_Uint32(paquete_enviar_datos_lectura->buffer,TidHilo);
-    return NULL;
+void* serializar_read_mem(t_paquete* paquete_enviar_datos_lectura, uint32_t direccion_fisica, uint32_t PidHilo, uint32_t TidHilo) {
+    // Verificar que el paquete y su buffer no sean NULL
+    if (paquete_enviar_datos_lectura == NULL || paquete_enviar_datos_lectura->buffer == NULL) {
+        return NULL;  // Si el paquete o buffer son NULL, retornar NULL
+    }
+
+    // Serializamos la dirección física
+    memcpy(paquete_enviar_datos_lectura->buffer, &direccion_fisica, sizeof(uint32_t));  
+    paquete_enviar_datos_lectura->buffer += sizeof(uint32_t);  // Avanzamos el puntero del buffer
+
+    // Serializamos el PidHilo
+    memcpy(paquete_enviar_datos_lectura->buffer, &PidHilo, sizeof(uint32_t));  
+    paquete_enviar_datos_lectura->buffer += sizeof(uint32_t);  // Avanzamos el puntero del buffer
+
+    // Serializamos el TidHilo
+    memcpy(paquete_enviar_datos_lectura->buffer, &TidHilo, sizeof(uint32_t));  
+    paquete_enviar_datos_lectura->buffer += sizeof(uint32_t);  // Avanzamos el puntero del buffer
+
+    return NULL;  // No necesitamos retornar nada, solo modificar el buffer
 }
 
 void* serializar_enviar_DUMP_MEMORY(t_paquete* paquete_dump_memory, void* datos,uint32_t tamanio,char* nombre){

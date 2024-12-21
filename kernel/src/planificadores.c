@@ -4,15 +4,30 @@
 
 void planificador_de_largo_plazo()
 {   
-    while(1){
+    //while(1){
+        sem_wait(&sem_plani_largo_plazo);
+
+        log_info(kernel_logger,"Entro en la funcion plani de largo plazo");
+    
+        PCB* proceso_new = malloc(sizeof(PCB));//liberar
+
+        if (cola_new != NULL && !queue_is_empty(cola_new)) {
+            proceso_new = queue_peek(cola_new);
+            log_info(kernel_logger, "Proceso encontrado en cola NEW: PID %d", proceso_new->pid);
+            asignar_espacio_memoria(proceso_new->pid, proceso_new->tam_proceso, proceso_new->prioridad_main, proceso_new->path_main);
+        }
+        else {
+            log_info(kernel_logger, "Cola new esta vacia o es igual a NULL ");
+        }
+
+   // }
+    /*while(1){
         //obtener de la cola de new el proceso
         sem_wait(&sem_plani_largo_plazo);
         log_info(kernel_logger,"entro al plani de largo plazo");
         //mandar a la cola de ready
         iniciar_proceso();
-        
-
-    }
+    }*/
 }
 
 void planificador_corto_plazo(/*TCB* hilo*/){
@@ -76,8 +91,6 @@ void planificador_corto_plazo(/*TCB* hilo*/){
 
             //1)SE crea una cola por cada nivel de prioridad que exista 
 
-sigo pero me tuve que mutear
-            //void crear_colas() {
 
                 // Asignamos memoria para el array de colas si es NULL
                 if (cola_prioridad == NULL) {
@@ -90,10 +103,9 @@ sigo pero me tuve que mutear
                         cola_prioridad[i] = queue_create(); // Crear la cola si no existe
                     }
                 }
-            //}
 
-            //enconla el hilo en la cola de prioridad correspondiente
-            sem_wait(&mutex);
+            //2)encolar el hilo en la cola de prioridad correspondiente
+            //sem_wait(&mutex);
             for(int i=0; i< list_size(lista_ready); i++){
                 TCB* hilo = list_get(lista_ready, i);
                 if(hilo->prioridad <= mayorNroPrioridad){
@@ -104,55 +116,79 @@ sigo pero me tuve que mutear
                     log_error(kernel_logger,"la prioridad del hilo es mayor que el mayorNroPrioridad");
                 }
             }
-            sem_post(&mutex);
+            //sem_post(&mutex);
             
-            //Buscamos la cola de mayor prioridad a ejecutar con rr
-            t_queue* colaMayorPrioridad = buscarColaMayorPrioridad(t_queue* cola_prioridad[]) //prioridad ==O o el mas chiquito
+            //3)Buscamos la cola de mayor prioridad a ejecutar con rr
+            t_queue* colaMayorPrioridad = buscarColaMayorPrioridad(cola_prioridad[], mayorNroPrioridad); //prioridad ==O o el mas chiquito
 
             planificar_RR(colaMayorPrioridad);
-
-            void planificar_RR(t_queue* colaMayorPrioridad)0
-            {
-                TCB *hilo = malloc(sizeof(t_pcb));
-                while (1)
-                {
-                    sem_wait(b_exec_libre);
-                    proceso = transicion_ready_exec();
-                    log_info(logger, "PID: <%d> - Estado Anterior: <READY> - Estado Actual: <EXECUTE>", proceso->cde->pid);
-                    proceso->estado = EXEC;
-                    enviar_a_cpu_cde(proceso->cde);
-
-                    inicio_quantum(QUANTUM);
-                    //busco en la lista de tcb
-
-                    //busco el hilo siguiente de la lista de ready 
-
-                    //comparo las prioridades del hilo que me pasan por interrupt y de la lista de ready
-
-                    //si tienen la misma prioridad, entoces sigue el que estaba en la lista de ready
-                    //si no hay otro sigue mismo ejecuntado
-
-                    //si tienen distinta prioridad
-                        //si el sigu
-                }
-            }
-
-            // QUANTUM
-
-            void inicio_quantum(int quantum)
-            {
-                quantum_usable = quantum;
-                pthread_create(&hiloQuantum, NULL, hilo_quantum, NULL);
-                pthread_join(hiloQuantum, NULL);
-                //pthread_detach(&hiloQuantum);
-            }
-
-            void *hilo_quantum()
-            {
-                sleep_ms(quantum_usable);
-                enviar_op_code(socket_cpu_interrupt, INTERRUMPIR);
-            }
 
         }*/
     }
 }
+/*
+t_queue* buscarColaMayorPrioridad(t_queue* cola_prioridad[], int mayorNroPrioridad) {
+    // Iteramos sobre las colas en el arreglo y buscamos la cola con la mayor prioridad (índice más bajo con elementos)
+    for (int i = 0; i <= mayorNroPrioridad; i++) {
+        if (cola_prioridad[i] != NULL && !queue_is_empty(cola_prioridad[i])) {
+            // Si la cola no es NULL y tiene elementos, la retornamos como la de mayor prioridad
+            log_info(kernel_logger, "Se encontró cola con prioridad: %d", i);
+            return cola_prioridad[i];
+        }
+    }
+    
+    // Si no se encuntra ninguna cola con elementos
+    log_error(kernel_logger, "No hay colas con hilos listos para ejecutar");
+    return NULL;
+}
+
+*/
+
+/*
+void planificar_RR(t_queue* colaMayorPrioridad)
+{
+    TCB *hilo = malloc(sizeof(t_pcb));
+    while (1)
+    {
+        proceso = transicion_ready_exec();
+        log_info(logger, "PID: <%d> - Estado Anterior: <READY> - Estado Actual: <EXECUTE>", proceso->cde->pid);
+        proceso->estado = EXEC;
+        enviar_a_cpu_cde(proceso->cde);
+
+        inicio_quantum();
+        //busco en la lista de tcb
+
+        //busco el hilo siguiente de la lista de ready 
+
+        //comparo las prioridades del hilo que me pasan por interrupt y de la lista de ready
+
+        //si tienen la misma prioridad, entoces sigue el que estaba en la lista de ready
+            //si no hay otro sigue mismo ejecuntado
+
+        /si tienen distinta prioridad
+                        //si el sigu
+        }
+    }
+}
+*/
+
+/*
+// QUANTUM
+
+void inicio_quantum()
+{   
+    pthread_t hiloQuantum;
+    pthread_create(&hiloQuantum, NULL, hilo_quantum, NULL);
+    pthread_join(hiloQuantum, NULL);
+}
+*/
+/*
+void *hilo_quantum()
+{
+    int quantum = atoi(valores_config_kernel->quantum);
+
+    sleep_ms(quantum*1000);
+
+    enviar_op_code(socket_cpu_interrupt, INTERRUMPIR);
+}
+*/

@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 
 #include <stdint.h>
+extern int control_key_kernel_memoria;
 
 typedef enum
 {
@@ -60,7 +61,9 @@ typedef enum
 	ERROR,
 	CONFIRMAR_WRITE_MEM,
 	ENVIAR_READ_MEM,
-	CONFIRMAR_INTERRUPCION
+	CONFIRMAR_INTERRUPCION,
+	CONFIRMAR_FINALIZAR_PROCESO,
+	CONFIRMAR_FINALIZAR_HILO
 }op_code;
 
 typedef enum{

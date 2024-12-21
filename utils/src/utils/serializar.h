@@ -184,7 +184,6 @@ t_thread_join_y_cancel* deserializar_thread_join_y_cancel(t_paquete* paquete);
 t_mutex_todos* deserializar_mutex(t_paquete* paquete);
 
 //==========================================================
-void serializar_finalizar_hilo(t_paquete* paquete_memoria, uint32_t pid, uint32_t tid);
 t_datos_esenciales* deserializar_finalizar_hilo(t_paquete* paquete_memoria);
 //=====================
 void enviar_mensaje(char *mensaje, int socket);

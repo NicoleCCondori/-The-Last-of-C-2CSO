@@ -75,10 +75,7 @@ void planificador_corto_plazo();
 void planificador_de_largo_plazo();
 
 
-
 void crear_proceso(int tamanio_proceso, char* path, int prioridad_main);
-
-void iniciar_proceso();
 
 void asignar_espacio_memoria(uint32_t pid,int tam_proceso, int prioridad, char* path_main);
 
@@ -92,10 +89,7 @@ void enviar_a_memoria(int fd_memoria,TCB* hilo_main);
 
 void destruir_pcb(void* elemento);
 
-//void mensaje_finalizar_proceso(int fd_memoria,uint32_t pid);
-char* informar_a_memoria_fin_proceso(int fd_memoria,uint32_t pid);
-
-void* finalizar_proceso(PCB* proceso);
+void* finalizar_proceso(PCB* proceso, uint32_t tid);
 
 void finalizar_hilo(TCB* hilo);
 

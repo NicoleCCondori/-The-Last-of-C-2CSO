@@ -36,7 +36,6 @@ t_list* lista_contextos;
 int inicializar_memoria(){
     memoria_logger = iniciar_logger(".//memoria.log","logs_memoria");
     memoria_log_obligatorios = iniciar_logger(".//memoria_logs_olbigatorios.log","logs_obligatorios_memoria");
-
 	configurar_memoria();
 
 	tamanio_memoria = atoi(valores_config_memoria->tam_memoria);
@@ -53,6 +52,7 @@ int inicializar_memoria(){
     }
 
     configurar_particiones();
+
     return 0;
 }
 

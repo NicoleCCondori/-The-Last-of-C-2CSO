@@ -6,7 +6,7 @@ t_list* lista_tcbs; //Va a estar compuesto por TCBs
 // Inicialización del semáforo binario
 sem_t semaforo_binario;  // Declaración del semáforo binario
 
-
+int control_key_kernel_memoria = 1;
 
 PCB* buscar_proceso(t_list* lista_procesos, uint32_t pid) {
     if (lista_procesos == NULL) {
@@ -102,7 +102,6 @@ int crear_conexion(char *ip, char *puerto, char *name_server,t_log* logger)
 void handshakeClient(int fd_servidor, int32_t handshake)
 {
 	int result;
-
 	send(fd_servidor, &handshake, sizeof(int32_t), 0); //tira error cuando conectamos kernel ---> falta liberar sockets?
 	recv(fd_servidor, &result, sizeof(int32_t), 0);
 

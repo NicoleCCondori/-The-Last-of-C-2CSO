@@ -189,6 +189,7 @@ void write_mem(char* registro_direccion, char* registro_datos, t_contextoEjecuci
 
 void escribir_en_memoria(int fd_memoria, uint32_t direccion_fisica, uint32_t dato, uint32_t tidHilo){
     t_paquete* paquete_enviar_datos_escritura = crear_paquete(WRITE_MEM);
+    log_info(cpu_logger, "dir fis %u,dato %u, tidHilo %u ",direccion_fisica, dato,tidHilo);
     serializar_write_mem(paquete_enviar_datos_escritura, direccion_fisica, dato, PidHilo,tidHilo);
     enviar_paquete(paquete_enviar_datos_escritura, fd_memoria);
     eliminar_paquete(paquete_enviar_datos_escritura);
@@ -376,10 +377,36 @@ void enviar_a_kernel_IO(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,int tie
     eliminar_paquete(paquete_IO);
 }
 
-void serializar_IO(t_paquete* paquete_IO, uint32_t PID, uint32_t TID, int tiempo){
-    agregar_buffer_Uint32(paquete_IO->buffer,PID);
-    agregar_buffer_Uint32(paquete_IO->buffer,TID);
-    agregar_buffer_int(paquete_IO->buffer, tiempo);
+void serializar_IO(t_paquete* paquete_IO, uint32_t PID, uint32_t TID, int tiempo) {
+    size_t total_size = sizeof(uint32_t) * 2 + sizeof(int);
+
+    // Asignar memoria al buffer
+    paquete_IO->buffer = malloc(sizeof(t_buffer));
+    if (!paquete_IO->buffer) {
+        perror("Error al asignar memoria para el buffer");
+        exit(EXIT_FAILURE);
+    }
+
+    paquete_IO->buffer->size = total_size;
+    paquete_IO->buffer->stream = malloc(total_size);
+    if (!paquete_IO->buffer->stream) {
+        perror("Error al asignar memoria para el stream");
+        exit(EXIT_FAILURE);
+    }
+
+    // Serializar los datos en el buffer
+    size_t offset = 0;
+
+    // Serializar PID
+    memcpy(paquete_IO->buffer->stream + offset, &PID, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // Serializar TID
+    memcpy(paquete_IO->buffer->stream + offset, &TID, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // Serializar tiempo
+    memcpy(paquete_IO->buffer->stream + offset, &tiempo, sizeof(int));
 }
 
 void enviar_a_kernel_THREAD_CREATE(int fd_kernel_dispatch,uint32_t PID,uint32_t TID,char* archivo,uint32_t prioridad){
@@ -488,14 +515,15 @@ void enviar_a_kernel_MUTEX_UNLOCK(int fd_kernel_dispatch,uint32_t PID,uint32_t T
 
 void enviar_a_kernel_DUMP_MEMORY(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_dump_memory = crear_paquete(DUMP_MEMORY);
-    serializar_datos_esenciales(paquete_dump_memory,PID,TID);
+    serializar_hilo_cpu(paquete_dump_memory,PID,TID);
     enviar_paquete(paquete_dump_memory,fd_kernel_dispatch);
     eliminar_paquete(paquete_dump_memory);
 }
 
 void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_thread_exit = crear_paquete(THREAD_EXIT);
-    serializar_datos_esenciales(paquete_thread_exit,PID,TID);
+    log_info(cpu_logger,"LE ENVIO PID:%u y TID:%u en THREAD_EXIT ",PID,TID);
+    serializar_hilo_cpu(paquete_thread_exit,PID,TID);
     enviar_paquete(paquete_thread_exit,fd_kernel_dispatch);
     eliminar_paquete(paquete_thread_exit);
 }
@@ -503,7 +531,9 @@ void enviar_a_kernel_THREAD_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TI
 
 void enviar_a_kernel_PROCESS_EXIT(int fd_kernel_dispatch,uint32_t PID,uint32_t TID){
     t_paquete* paquete_process_exit = crear_paquete(PROCESS_EXIT);
-    serializar_datos_esenciales(paquete_process_exit,PID,TID);
+    log_info(cpu_logger,"LE ENVIO PID:%u y TID:%u en PROCESS EXIT",PID,TID);
+    serializar_hilo_cpu(paquete_process_exit,PID,TID);
+    log_info(cpu_logger,"envio paquete");
     enviar_paquete(paquete_process_exit, fd_kernel_dispatch);
     eliminar_paquete(paquete_process_exit);
 }

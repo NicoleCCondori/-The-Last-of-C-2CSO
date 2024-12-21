@@ -14,22 +14,22 @@ int main(int argc, char* argv[]) {
     //archivo_pseudocodigo_main = argv[1];
 	//tamanio_proceso_main = atoi(argv[2]);
 
-    archivo_pseudocodigo_main = "PLANI_PROC";
-	tamanio_proceso_main = 32;
-
+    archivo_pseudocodigo_main = "MEM_FIJAS";
+	tamanio_proceso_main = 20;
+    
     inicializar_kernel();
 
     log_info(kernel_logger, "Archivo pseudocodigo: %s\n", archivo_pseudocodigo_main);
     log_info(kernel_logger, "Tamaño proceso: %d\n", tamanio_proceso_main);
-  
+    conectar_memoria();
     conectar_cpu_dispatch();
     conectar_cpu_interrupt();
-    conectar_memoria();
+
     
     int prioridad_hilo_main = 0;
     
     crear_proceso(tamanio_proceso_main, archivo_pseudocodigo_main, prioridad_hilo_main);
-    
+
     planificador_largoPlazo();
     planificador_cortoPlazo();
 

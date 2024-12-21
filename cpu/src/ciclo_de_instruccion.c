@@ -109,6 +109,9 @@ t_instruccion* decode(/*char* instruccion*/){
         instruccionDecodificada->es_syscall = true;
         instruccionDecodificada->tid = atoi(instruccionDecodificada->operando1);
     }
+    else if(strcmp(instruccionDecodificada->operacion,"PROCESS_EXIT")==0 || strcmp(instruccionDecodificada->operacion,"THREAD_EXIT")==0 ){
+        instruccionDecodificada->es_syscall=true;
+    }
 
     free(instruccionCopia);
     //free(token);
@@ -122,12 +125,12 @@ void execute(t_instruccion* instruccion, t_contextoEjecucion* contexto){
         actualizar_contexto(fd_memoria,contexto);
         sem_wait(&sem_syscall);
         log_info(cpu_logger,"Valor semaforo en execute syscall");
-        mostrar_valor_semaforo(&sem_syscall);
+        //mostrar_valor_semaforo(&sem_syscall);
         execute_syscall(instruccion,fd_kernel_dispatch);
 
         control_key = 0;
         return;
-    }
+    }else 
     if(strcmp(instruccion->operacion,"SET")==0)
     {
         log_info(cpu_logger,"## TID <%d> - Ejecutando: SET - <%s> <%s>",contexto->TID,instruccion->operando1,instruccion->operando2);
